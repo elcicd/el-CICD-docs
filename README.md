@@ -1,18 +1,34 @@
 # el-CICD
 
-**A complete CICD System for use on OKD or Red Hat® OpenShift® Platform**
+**A complete CICD System for use on OKD or Red Hat® OpenShift® Platform**  
 
 **Design and Implementation Document**
 
-Author: Evan "Hippy" Slatis
-email: hippyod -at- yahoo -dot- com
 
-## PREFACE
-This document describes motivation, design, and implementation of a fully featured CICD system for use on either the upstream OKD or on Red Hat® OpenShift®, either 3.11 or 4.x.  For the remainder of the document wherever OKD is referenced, OpenShift may be safely inferred.  There should be no difference in how the the system works on either platform.
+#### Preamble  
+This document is part of the el-CICD project, a CICD system for the OKD Container Platform  
+
+Copyright (C) 2020 Evan "Hippy" Slatis  
+email: hippyod -at- yahoo -dot- com  
+
+===================================
 
 **NOTE: Red Hat® OpenShift® Platform is a trademark of Red Hat, Inc., and supported and owned by Red Hat, Inc.**
 
-<span style="color:red">**el-CICD IS NEITHER SUPPORTED OR AFFILIATED IN ANY WAY WITH RED HAT, INC., OR ANY OF ITS PROJECTS.**</span>
+**el-CICD IS NEITHER SUPPORTED OR AFFILIATED IN ANY WAY WITH RED HAT, INC., OR ANY OF ITS PROJECTS.**
+
+===================================
+
+el-CICD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+el-CICD is distributed in the hope that it will be useful, but **WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE**.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+This document is licensed under the Creative Commons Attribution 4.0 International License. To view a copy of this license, visit http://creativecommons.org/licenses/by/4.0/ or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
+
+## PREFACE
+This document describes motivation, design, and implementation of a fully featured CICD system for use on either the upstream OKD or on Red Hat® OpenShift®, either 3.11 or 4.x.  For the remainder of the document wherever OKD is referenced, OpenShift may be safely inferred.  There should be no difference in how the the system works on either platform.
 
 el-CICD supports the following features:
 * Configurable set of deployment environments per installation and per project
@@ -26,17 +42,6 @@ el-CICD supports the following features:
 * Hotfix builds, promotions, and deployments into production
 * Incremental deployments into production 
 * Staggered application release development development patterns
-
-This document is part of the el-CICD project, a CICD system for the OKD Container Platform
-Copyright (C) 2020 Evan "Hippy" Slatis
-
-el-CICD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-
-el-CICD is distributed in the hope that it will be useful, but **WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE**.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-
-This document is licensed under the Creative Commons Attribution 4.0 International License. To view a copy of this license, visit http://creativecommons.org/licenses/by/4.0/ or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 
 **TABLE OF CONTENTS**
 - [TOC]
@@ -330,7 +335,7 @@ Deployment Branches are only created when an image is promoted into a particular
 
 Note that source commit hash remains constant.  This naming convention insures Deployment Branches should be easy to identify, and easy to trace any image back to it's original source commit hash on the Development Branch.
 
-##### <span style="color:red">**WARNING: DO NOT MODIFY UPSTREAM ENVIRONMENT CONFIGURATIONS OR THE IMAGE SOURCE CODE**</span>
+##### **WARNING: DO NOT MODIFY UPSTREAM ENVIRONMENT CONFIGURATIONS OR THE IMAGE SOURCE CODE**
 
 Changes made to the deployment configurations for an upstream environment or the source code of the microservice on a Deployment Branch will be ignored.  The purpose of a Deployment Branch is to track and version the changes of the deployment configurations for an image built from the Development Branch.  The code that's included, and any upstream deployment configurations should only be looked at as a historical record of the project.  Changing any of this in a downstream Deployment Branch makes it harder to see what is in the actual image, and how it was previously deployed.
 
@@ -382,7 +387,7 @@ _4. Release Candidate Tag **1.0.0-8d7dh3g** at the HEAD of the Stg Deployment Br
 
 Any changes to the deployment configuration of any release deployed in production should go here.  As a reminder:  
 
-**<span style="color:red">DO NOT CHANGE UPSTREAM DEPLOYMENT CONFIGURATION OR SOURCE CODE.</span>**
+**DO NOT CHANGE UPSTREAM DEPLOYMENT CONFIGURATION OR SOURCE CODE.**
 
 Any other changes on the Release Deployment Branch, as with all Deployment Branches, are ignored, and will make creating a proper hotfix branch more difficult.  Applying changes to one or more Release Deployment Branches, simply redeploy the release into production, and the system is smart enough to figure out which microservices have changed and only redeploy those unless otherwise requested.
 
@@ -722,10 +727,10 @@ EL_CICD_SSH_READ_ONLY_DEPLOY_KEY_FILE=../cicd-secrets/el-CICD-deploy-key
 EL_CICD_UTILS_SSH_READ_ONLY_PUBLIC_DEPLOY_KEY_TITLE=el-cicd-utils-read-only-public-key
 EL_CICD_UTILS_SSH_READ_ONLY_DEPLOY_KEY_FILE=../cicd-secrets/el-CICD-utils-deploy-key
 
-EL_CICD_GIT_REPO_ACCESS_TOKEN_FILE=../cicd-secrets/el-cicd-git-repo-access-token
+EL_CICD_PROJECT_INFO_REPOSITORY_READ_ONLY_DEPLOY_KEY_TITLE=el-cicd-project-info-repository-read-only-public-key
+EL_CICD_PROJECT_INFO_REPOSITORY_READ_ONLY_DEPLOY_KEY_FILE=../cicd-secrets/el-cicd-project-info-repository-github-deploy-key
 
-EL_CICD_PROJECT_INFO_REPOSITORY_READ_ONLY_DEPLOY_KEY_TITLE=project-info-repository-public-key
-EL_CICD_PROJECT_INFO_REPOSITORY_READ_ONLY_DEPLOY_KEY_FILE=../cicd-secrets/el-cicd-project-info-repository-github-private-key
+EL_CICD_GIT_REPO_ACCESS_TOKEN_FILE=../cicd-secrets/el-cicd-git-repo-access-token
 
 DEV_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-dev-pull-token
 
@@ -812,6 +817,9 @@ OKD Template reuse and patching via kustomize is relied on heavily for ease of u
 ## The ._openshift_ Directory
 
 ![Figure 7: The .openshift Directory](images/figure-7-openshift-directory.png)
+
+**Figure 7**
+ _The .openshift directory_
 
 ### Structure
 The structure of the _.openshift_ directory follows a few simple rules:
