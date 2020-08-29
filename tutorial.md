@@ -428,7 +428,7 @@ The Sanbox allows developers to test their code as deployed in isolation or in c
 You have now confirmed the successful deployment of `test-cicd1` into a Sandbox.  Quit the vi editor in the terminal and move onto the next step.
 
 ### Building the Project
-
+Normally builds into Dev will happen automatically 
 
 ### Promoting Microservices
 ### Redeloying Microservices
