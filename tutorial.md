@@ -26,13 +26,15 @@ This document is licensed under the Creative Commons Attribution 4.0 Internation
 ## Minimum Requirements
 If you install Red Hat CodeReady Containers, you will need to be able to allocate the following for the CodeReady Containers virtual machine:
 
-* 4 vCPUs
-* 32GB RAM
-* 100GB Disk Space
+* 8 vCPUs
+* 64GB RAM
+* 150GB Free Disk Space
 
-This was tested using the above minimum specs, but note that more is always better.
+This was tested using the above minimum specs, but note that more is always better.  el-CICD was developed with 16vCPUs and 96GB RAM in a small homelab.
 
-This tutorial does not setup a scanner component, and the default code does not execute a code scan during the build.  This is left as an exercise for the user, either for a production install or to extend the tutorial.
+This tutorial does not setup a scanner component, and the default code executes non-functional code scan during the build.  This will need to be implemented by the user when put into production.
+ 
+The user will also need sudo privileges to the machine running this tutorial.
 
 ## Install and Setup CodeReady Containers (CRC)
 Optional.  If you have a working OKD or OpenShift cluster, then you may skip this step.
@@ -48,14 +50,15 @@ tar -xf crc-linux-amd64.tar.xz
 mv crc-linux-X.XX.X-amd64 crc-linux-amd64
 ```
 
+We move the CRC directory containing the decompressed files to a generic directory so we don't have to continually update our path whenever we upgrade versions.
 
 ### Add the following to your .bashrc or .zshrc
 You may remove this after the demo, but these helpers make things easier so you don't have to deal directly with the pull secret during multiple logins.  If you wish to allocate more vCPUs or memory, adjust the values at the top appropriately.
 
 ```
-V_CPU=4
-MEMORY=32768
-SHELL=bash  # or zsh
+CRC_V_CPU=4
+CRC_MEMORY=32768
+CRC_SHELL=bash  # or zsh
 
 export PATH=$PATH:${HOME}/path/to/crc/crc-linux-amd64:
 
@@ -63,16 +66,17 @@ export PATH=$PATH:${HOME}/path/to/crc/crc-linux-amd64:
 if [[ -f ~/.crc/machines/crc/crc ]]
 then
     eval $(crc oc-env)
-    source <(oc completion ${SHELL})
+    source <(oc completion ${CRC_SHELL})
 fi
 
 # Starts CRC with proper sizing for vCPUs and memory
 function crc-start() {
-    crc start -p ${HOME}/path/to/crc/pull-secret -c ${V_CPU} -m ${MEMORY}
+    crc start -p ${HOME}/path/to/crc/pull-secret -c ${CRC_V_CPU} -m ${CRC_MEMORY}
 }
 
 # Copy the kube:admin pull secret to the clipboard
 function crc-pwd-admin {
+    echo "copy kubeadmin to system clipboard"
     CRC_TEMP_PWD=$(crc console --credentials | sed -n 2p | sed -e "s/.*'\(.*\)'/\1/" | awk '{print $6}' )
     echo ${CRC_TEMP_PWD} | xclipc
     echo "${CRC_TEMP_PWD} copied to clipboard for use"
@@ -82,8 +86,8 @@ function crc-pwd-admin {
 # Login to CRC as kube:admin and copy the pull secret to the clipboard
 function crc-admin-login {
     echo "crc login as kubeadmin"
-    LOGIN=$(crc console --credentials | sed -n 2p | sed -e "s/.*'\(.*\)'/\1/")
-    eval $LOGIN
+    CRC_LOGIN=$(crc console --credentials | sed -n 2p | sed -e "s/.*'\(.*\)'/\1/")
+    eval ${CRC_LOGIN}
     crc-pwd-admin
     LOGIN=
 }
@@ -116,6 +120,7 @@ crc-start
 # Need to ssh into the CRC VM, and resize the filesystem
 ssh -i ${HOME}/.crc/machines/crc/id_rsa core@192.168.130.11
 sudo xfs_growfs /sysroot
+exit
 ```
 CRC is now setup and ready to use for the purposes of the el-CICD tutorial.
 
@@ -172,7 +177,7 @@ In order to run the builds, a number of Jenkins Agents must be available for use
 1. From the el-CICD directory, create a new builds for the following Jenkins Agents by running the following commands.
 
 ```
-cat agents/Dockerfile.python | oc new-build -D - --name jenkins-agent-python -n openshift\
+cat agents/Dockerfile.python | oc new-build -D - --name jenkins-agent-python -n openshift
 
 cat agents/Dockerfile.java-maven | oc new-build -D - --name jenkins-agent-java-maven -n openshift
 
@@ -275,6 +280,22 @@ This script will ask a number of questions as it executes.
 
 When the script completes, you can check each forked el-CICD repository to confirm that a read-only deploy key was added. Check that the master namespace, `el-cicd-non-prod-master` was created and that a running instance of Jenkins was created. The script is idempotent.
 
+#### Setting Your Cluster's Sealed Secrets Decryption Key
+Each microservice repository you cloned for the purpose of this tutorial has an example of a Sealed Secret.  You will not be able to deploy any of the microservices in this tutorial without being able to decrypt them.  This part of the tutorial is actually important to pay attention to, because if you deploy your projects more than once across multiple clusters, you'll need to make sure that each cluster has the correct decryption key for them.  This process is documented in more detail on the [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets#how-can-i-do-a-backup-of-my-sealedsecrets) site, but instead of backup and restoring, this a backup and copy operation.
+
+In the same repository as this tutorial there is a file call `master.key`.  Download this file and run the following commands.
+
+```
+oc apply -f master.key
+oc delete pod -n kube-system -l name=sealed-secrets-controller
+```
+
+This will restore the encryption/decryption keys of the Sealed Secrets need in the tutorial's microservices, and restart the Sealed Secrets controller to pick up the changed keys.  To create the key for use among multiple clusters, use the following command:
+
+```
+oc get secret -n kube-system -l sealedsecrets.bitnami.com/sealed-secrets-key -o yaml >master.key
+```
+
 ### Bootstrapping the Prod Onboarding Automation Server
 Login to the CRC cluster, and then execute the execute the bootstrap script for the Prod Onboarding Automation Server.
 
@@ -305,12 +326,14 @@ Open your browser, and go to
 
 [https://jenkins-el-cicd-non-prod-master.apps-crc.testing/](https://jenkins-el-cicd-non-prod-master.apps-crc.testing)
 
-If the browser warns you about a privacy error, you can safely ignore it and click through.  Login to Jenkins using the CRC admin credentials, clicking initially on the `kube:admin` button.  You can simply paste the password (the pull secret) from your clipboard thanks to the script above.
+If the browser warns you that your connection is not private, you can safely ignore it and click  _Advanced_ , and then the link _Proceed to jenkins-el-cicd-non-prod-master.apps-crc.testing (unsafe)_ .  Login to Jenkins using the CRC admin credentials, clicking initially on the `kube:admin` button.  You can simply paste the password (the pull secret) from your clipboard thanks to the script above.
 
 ```
 Username: kubeadmin
 Password: <CRC pull secret>
 ```
+
+After successfully logging in, CRC will ask you _Authorize Access_.  This will happen the first time you log into each Jenkins instance.  You may safely click _Allow selected permissions_.
 
 From the main page on the left, click `credentials` to take you to the Jenkins credentials screen.  If you configured everything correctly, it should look like the following.
 
@@ -334,7 +357,7 @@ Click `Build with Parameters` on the left, enter `test-cicd` as the PROJECT_ID, 
 **Figure 4**  
 _Entering `test-cicd` for the PROJECT_ID when kicking off the Onboarding Pipeline_
 
-It is strongly suggested that you follow the logs of the build to see what is happening.  You can do this by clicking the bulding number when it appears, and then clicking `Console Output` on the left hand side fo the screen to follow the build logs in real time.
+It is strongly suggested that you follow the logs of the build to see what is happening.  You can do this by clicking the build number when it appears, and then clicking `Console Output` on the left hand side fo the screen to follow the build logs in real time.
 
 In summary, the pipeline will do the following:
 
@@ -361,7 +384,7 @@ oc get secrets
 In each case, you should see a `el-cicd-image-repo-dev-pull-secret` Sealed Secret and Secret in the namespace.  Checking the _qa_ and _stg_ namespaces will have a similar result.
 
 #### Confirm the Configuration of the `test-cicd` Project in Jenkins
-Open your browser to the new [Non-prod Automation Server](https://jenkins-devops-cicd-non-prod.apps-crc.testing/).  As before, click through the insecure warning, and login as the `kubeadmin` again (enter `crc-admin-login` on the command line to copy the pull secret to the clipboard for simplicity's sake).  One in, click on the `Credentials` link on the left hand side of the window, confirming general el-CICD read-only credentials, image repository pull keys, and specific microservice deploy keys have been properly added.
+Open your browser to the new [Non-prod Automation Server](https://jenkins-devops-cicd-non-prod.apps-crc.testing/).  As before, click through the privacy warning, and login as the `kubeadmin` again (enter `crc-admin-login` on the command line to copy the pull secret to the clipboard for simplicity's sake).  One in, click on the `Credentials` link on the left hand side of the window, confirming general el-CICD read-only credentials, image repository pull keys, and specific microservice deploy keys have been properly added.
 
 [**NOTE**: In the real world, the project would belong to an actual group, whether in OKD directly or as part of your organization's authentication mechanism, and you would log in as an authenticated OKD user and **not** admin.  el-CICD makes every member of the project's group an OKD namespace admin for the Non-prod Automation Server of the group.]
 
@@ -423,7 +446,7 @@ oc edit test-cicd-test-cicd1-meta-info
 
 Compare the values in the ConfigMap to the values in the Console Output of Jenkins.  
 
-The Sanbox allows developers to test their code as deployed in isolation or in conjunction with supporting microservices.  Multiple deployments may be necessary if all microservices to be deployed into the sandbox do not share the same branch name.  Deployments into Sandboxes will use the same deployment configuration as used for the _dev_ environment.
+The Sandbox allows developers to test their code as deployed in isolation or in conjunction with supporting microservices.  Multiple deployments may be necessary if all microservices to be deployed into the sandbox do not share the same branch name.  Deployments into Sandboxes will use the same deployment configuration as used for the _dev_ environment.
 
 You have now confirmed the successful deployment of `test-cicd1` into a Sandbox.  Quit the vi editor in the terminal and move onto the next step.
 
