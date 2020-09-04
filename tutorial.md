@@ -32,15 +32,15 @@ If you install Red Hat CodeReady Containers, you will need to be able to allocat
 
 This was tested using the above minimum specs, but note that more is always better.  el-CICD was developed with 16vCPUs and 96GB RAM in a small homelab.
 
-This tutorial does not setup a scanner component, and the default code executes non-functional code scan during the build.  This will need to be implemented by the user when put into production.
+This tutorial does not setup a scanner component, and the default code executes a non-functional code scan during all builds.  This will need to be implemented by the user when put into production.
  
 The user will also need sudo privileges to the machine running this tutorial.
 
 ## Install and Setup CodeReady Containers (CRC)
-Optional.  If you have a working OKD or OpenShift cluster, then you may skip this step.
+Optional.  If you have a working OKD or OpenShift cluster you can use as a lab, then you may skip this step.  Do not try run this tutorial on a production cluster; i.e. a cluster being actively used by developers or used to run applications in production.
 
 ### Download CRC and Deploy Key
-Download CRC from [here](https://developers.redhat.com/products/codeready-containers/overview).  Registration will be required, but it's free.  There is no equivalent of this product for OKD at this time.
+Download CRC from [here](https://developers.redhat.com/products/codeready-containers/overview).  Registration will be required, but it's free.
 
 Copy the downloads a tar.xz file and the pull secret into the directory where you wish to install CRC and extract the tar file.
 
@@ -283,9 +283,10 @@ When the script completes, you can check each forked el-CICD repository to confi
 #### Setting Your Cluster's Sealed Secrets Decryption Key
 Each microservice repository you cloned for the purpose of this tutorial has an example of a Sealed Secret.  You will not be able to deploy any of the microservices in this tutorial without being able to decrypt them.  This part of the tutorial is actually important to pay attention to, because if you deploy your projects more than once across multiple clusters, you'll need to make sure that each cluster has the correct decryption key for them.  This process is documented in more detail on the [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets#how-can-i-do-a-backup-of-my-sealedsecrets) site, but instead of backup and restoring, this a backup and copy operation.
 
-In the same repository as this tutorial there is a file call `master.key`.  Download this file and run the following commands.
+In the same repository as this tutorial there is a file call `master.key.tar`.  Download this file and run the following commands.
 
 ```
+tar -xf master.key.tar
 oc apply -f master.key
 oc delete pod -n kube-system -l name=sealed-secrets-controller
 ```
