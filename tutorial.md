@@ -56,8 +56,8 @@ We move the CRC directory containing the decompressed files to a generic directo
 You may remove this after the demo, but these helpers make things easier so you don't have to deal directly with the pull secret during multiple logins.  If you wish to allocate more vCPUs or memory, adjust the values at the top appropriately.
 
 ```
-CRC_V_CPU=4
-CRC_MEMORY=32768
+CRC_V_CPU=8
+CRC_MEMORY=65536
 CRC_SHELL=bash  # or zsh
 
 export PATH=$PATH:${HOME}/path/to/crc/crc-linux-amd64:
