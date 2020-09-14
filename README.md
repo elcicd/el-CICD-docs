@@ -321,7 +321,7 @@ For example, when an image is promoted from Dev to QA with a commit hash of 8d7d
 
 Only changes that affect the deployment of the image to QA or downstream environments will be acknowledged and used by the CICD system.
 
-![Figure 1: Deployment Branch](images/figure-4-deployment-branch.png)
+![Figure 4: Deployment Branch](images/figure-4-deployment-branch.png)
 
 **Figure 4**
 
@@ -403,7 +403,7 @@ _3. **deployment-stg-8d7dh3g** Deployment Branch with one Deployment Patch_
 
 _4. Release Candidate Tag **1.0.0-8d7dh3g** at the HEAD of the Stg Deployment Branch_
 
-_5. Release Version Deployment Branch created when a Release Candidate is deployed to Prod._
+_5. Release Version Deployment Branch **v1.0.0-8d7dh3g** created when a Release Candidate is deployed to Prod._
 
 Note that even though subsequent changes have been committed to the **deployment-stg-8d7dh3g** Deployment Branch after being tagged as a Release Candidate, the Release Deployment Branch is created at the commit where the tag was created.
 

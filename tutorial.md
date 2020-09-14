@@ -27,7 +27,7 @@ This document is licensed under the Creative Commons Attribution 4.0 Internation
 If you install Red Hat CodeReady Containers, you will need to be able to allocate the following for the CodeReady Containers virtual machine:
 
 * 8 vCPUs
-* 64GB RAM
+* 48GB RAM
 * 150GB Free Disk Space
 
 This was tested using the above minimum specs, but note that more is always better.  el-CICD was developed with 16vCPUs and 96GB RAM in a small homelab.
@@ -57,7 +57,7 @@ You may remove this after the demo, but these helpers make things easier so you 
 
 ```
 CRC_V_CPU=8
-CRC_MEMORY=65536
+CRC_MEMORY=49152
 CRC_SHELL=bash  # or zsh
 
 export PATH=$PATH:${HOME}/path/to/crc/crc-linux-amd64:
