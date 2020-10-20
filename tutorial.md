@@ -62,7 +62,7 @@ CRC_SHELL=bash  # or zsh
 export PATH=$PATH:${HOME}/path/to/crc/crc-linux-amd64:
 
 # Automatically sets up oc CLI command completion if CRC installed
-if [[ -f ~/.crc/machines/crc/crc ]]
+if [[ -f ~/.crc/machines/crc/crc.qcow2 ]]
 then
     eval $(crc oc-env)
     source <(oc completion ${CRC_SHELL})
@@ -108,10 +108,10 @@ The following will need to be run in order resize the virtual disk, or you will 
 
 ```
  # whatever size you want, but 100G is easily reasonable
-qemu-img resize ${HOME}/.crc/machines/crc/crc +100G
+qemu-img resize ${HOME}/.crc/machines/crc/crc.qcow2 +100G
 
   # for verification that the change took
-qemu-img info ${HOME}/.crc/machines/crc/crc | grep 'virtual size'
+qemu-img info ${HOME}/.crc/machines/crc/crc.qcow2 | grep 'virtual size'
 
 # Restart CRC
 crc-start
@@ -181,11 +181,13 @@ myemailid+elcicddev@gmail.com
 In order to run the builds, a number of Jenkins Agents must be available for use.  Some simple, default Agents have been defined for use by all the demo projects.  The default Agents that OKD comes with will not be useful, since el-CICD relies heavily on the `skopeo` tool for image verification, promotion, and tagging, and on installing `kustomize` rather than relying the `oc` CLI in order to support older versions of OKD.
 
 1. Log into the CRC cluster.  
+
 ```
 $crc-admin-login
 ```
 
 1. Change to the openshift namespace.  
+
 ```
 oc project openshift
 ```
@@ -193,16 +195,20 @@ oc project openshift
 1. From the el-CICD directory, create a new builds for the following Jenkins Agents by running the following commands.
 
 ```
+cat agents/Dockerfile.base | oc new-build -D - --name jenkins-agent-el-cicd-base -n openshift
+oc logs -f jenkins-agent-el-cicd-base-1-build  -n openshift
+
 cat agents/Dockerfile.python | oc new-build -D - --name jenkins-agent-python -n openshift
-oc logs -f jenkins-agent-python-1-build
+oc logs -f jenkins-agent-python-1-build  -n openshift
 
 cat agents/Dockerfile.java-maven | oc new-build -D - --name jenkins-agent-java-maven -n openshift
-oc logs -f jenkins-agent-java-maven-1-build
+oc logs -f jenkins-agent-java-maven-1-build -n openshift
 
 cat agents/Dockerfile.R | oc new-build -D - --name jenkins-agent-r-lang -n openshift
-oc logs -f jenkins-agent-r-lang-1-build
+oc logs -f jenkins-agent-r-lang-1-build -n openshift
 ```
-Depending on your network speed, it can take up to 30 minutes for all images to be created.
+
+Alternatively, there is a shell script, `create-all-agents.sh`, in the `agents` directory that can be run.  Depending on your network speed, it can take up to 30 minutes for all images to be created.
 
 To see how these Agents are tied into the el-CICD Build Framework, take a look at the file `vars/elCicdNode.groovy` in the `el-CICD-utils` repository.  This utility defines the Agent using the Jenkins Kubernetes plugin, and at the top is a map form _codebase_ to to the Jenkins Agent images required for the build.  Should you wish to add new build definitions to your installation, you will create a new Agent image as above, and map the _codebase_ to the image to the newly created image.
 
@@ -294,13 +300,15 @@ When the script completes, you can check each forked el-CICD Git repository to c
 #### Setting Your Cluster's Sealed Secrets Decryption Key
 Each microservice repository you cloned for the purpose of this tutorial has an example of a Sealed Secret.  You will not be able to deploy any of the microservices in this tutorial without being able to decrypt them.  This part of the tutorial is actually important to pay attention to, because if you deploy your projects more than once across multiple clusters, you'll need to make sure that each cluster has the correct decryption key for them, and you will need to keep a copy of the master.key somewhere in case of disaster recovery.  This process is documented in more detail on the [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets#how-can-i-do-a-backup-of-my-sealedsecrets) site, but instead of backup and restoring, this is a backup and copy operation.
 
-In the same repository as this tutorial there is a file call `master.key.tar`.  Download this file and run the following commands.
+In the same repository as this tutorial there is a file call `master.key.tar`.  Download this file and run the following commands:
 
 ```
 tar -xf master.key.tar
 oc apply -f master.key
 oc delete pod -n kube-system -l name=sealed-secrets-controller
 ```
+
+Alternatively, there is a shell script that can be run, `restore-master-key.sh` in this folder.
 
 This will restore the encryption/decryption keys of the Sealed Secrets needed in the tutorial's microservices, and restart the Sealed Secrets controller to pick up the changed keys.  Outside of this tutorial, you can create a Sealed Sealed key for use among multiple clusters, use the following command:
 
