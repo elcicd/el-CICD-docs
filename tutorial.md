@@ -182,31 +182,31 @@ In order to run the builds, a number of Jenkins Agents must be available for use
 
 1. Log into the CRC cluster.  
 
-```
-$crc-admin-login
-```
+    ```
+    crc-admin-login
+    ```
 
 1. Change to the openshift namespace.  
 
-```
-oc project openshift
-```
+    ```
+    oc project openshift
+    ```
 
 1. From the el-CICD directory, create a new builds for the following Jenkins Agents by running the following commands.
 
-```
-cat agents/Dockerfile.base | oc new-build -D - --name jenkins-agent-el-cicd-base -n openshift
-oc logs -f jenkins-agent-el-cicd-base-1-build  -n openshift
+    ```
+    cat agents/Dockerfile.base | oc new-build -D - --name jenkins-agent-el-cicd-base -n openshift
+    oc logs -f jenkins-agent-el-cicd-base-1-build  -n openshift
 
-cat agents/Dockerfile.python | oc new-build -D - --name jenkins-agent-python -n openshift
-oc logs -f jenkins-agent-python-1-build  -n openshift
+    cat agents/Dockerfile.python | oc new-build -D - --name jenkins-agent-python -n openshift
+    oc logs -f jenkins-agent-python-1-build  -n openshift
 
-cat agents/Dockerfile.java-maven | oc new-build -D - --name jenkins-agent-java-maven -n openshift
-oc logs -f jenkins-agent-java-maven-1-build -n openshift
+    cat agents/Dockerfile.java-maven | oc new-build -D - --name jenkins-agent-java-maven -n openshift
+    oc logs -f jenkins-agent-java-maven-1-build -n openshift
 
-cat agents/Dockerfile.R | oc new-build -D - --name jenkins-agent-r-lang -n openshift
-oc logs -f jenkins-agent-r-lang-1-build -n openshift
-```
+    cat agents/Dockerfile.R | oc new-build -D - --name jenkins-agent-r-lang -n openshift
+    oc logs -f jenkins-agent-r-lang-1-build -n openshift
+    ```
 
 Alternatively, there is a shell script, `create-all-agents.sh`, in the `agents` directory that can be run.  Depending on your network speed, it can take up to 30 minutes for all images to be created.
 
@@ -479,8 +479,8 @@ If you haven't already done so, click on the link `devops-cicd-non-prod` in the 
 1. When the new build number appears, click on it
 1. Click on `Console` on the left-hand side
 1. When the logs pause and the `Input Requested` link appears, click on it
-1. Select `DEPLOY` from the `defaultAction` drop down  
-[**NOTE**If `DEPLOY` or `REMOVE` is selected in this drop down, it will override any individual choices below]
+1. Select `PROMOTE` from the `defaultAction` drop down  
+[**NOTE**: If `PROMOTE` or `REMOVE` is selected in this drop down, it will override any individual choices below]
 1. Click the `Proceed` button
 
 The pipeline will continue to from this point to promote images created in the _dev to the _non-prod_ image repository, and these images will be tagged as _qa_ since that's where you are promoting to.  If you read through the logs, you will notice the pipeline confirms that an image for the microservice has been created for _dev_ before attempting to deploy.  You will also see a deployment branch has been created.  When the pipeline completes, all microservices in the test-cicd project will have been promotoed and deployed.  Run the following commands:  
@@ -490,6 +490,7 @@ oc project test-cicd-qa
 oc get all
 oc get cm,sealedsecrets,secrets
 ```
+
 If you compare this with what is in `test-cicd-dev`, you'll notice there is no postgresql pod anymore.  This database pod is part of the _dev_ deployment configurtation for test-cicd4 microservice.  Look in the `.openshift` directory of the Test_CICD4 repository and read the el-CICD documentation on **The .openshift Directory** for more information on how this was configured.
 
 Now run the following:
@@ -540,7 +541,7 @@ Now run the pipeline `microservice-redeploy-removal`
 1. When the logs pause and the `Input Requested` link appears, click on it
 1. Click the `Proceed` button, since the `redeployEnv` is already on _qa_
 1. When the logs pause and the `Input Requested` link appears again, click on it
-1. Choose `DEPLOY` from the `test-cicd` drop down
+1. Choose `PROMOTE` from the `test-cicd` drop down
 1. Click the `Proceed` button
 
 To verify your change was deployed, check the logs of the newly deploy `test-cicd` image.
@@ -593,7 +594,7 @@ Click on the link `devops-cicd-non-prod` in the upper left of the Jenkins window
 1. When the new build number appears, click on it
 1. Click on `Console` on the left-hand side
 1. When the logs pause and the `Input Requested` link appears, click on it
-1. Select `DEPLOY` from the `test-cicd1` drop down  
+1. Select `PROMOTE` from the `test-cicd1` drop down  
 1. Click the `Proceed` button
 
 To verify your change was promoted, check the logs of the newly deploy `test-cicd` image.
@@ -639,7 +640,7 @@ topicname value : qa topic changed for redeploy test
 You are ready to move onto the next step.
 
 ### Create the Release Candidates
-Repeat the [Promoting Microservices](#promoting-microservices) step of the tutorial and promote all the images to _stg_.  In the instructions above when choosing `DEPLOY` also select `qa to stg` from the `promotionEnvs` drop down.
+Repeat the [Promoting Microservices](#promoting-microservices) step of the tutorial and promote all the images to _stg_.  In the instructions above when choosing `PROMOTE` also select `qa to stg` from the `promotionEnvs` drop down.
 
 To create a Release Candidate, click the `create-release-candidate` pipeline.
 
