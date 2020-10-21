@@ -81,7 +81,7 @@ Features not supported, but on the immediate TODO list:
     * [Continuous Delivery](#continuous-delivery)
     * [Continuous Deployment](#continuous-deployment)
   * [Tools](#tools)
-    * [Project Information Repository](#project-information-repository)
+    * [Project Definition Repository](#project-definition-repository)
     * [Source Control Management (SCM)](#source-control-management-scm)
     * [Scanner](#scanner)
     * [Artifact Repository](#artifact-repository)
@@ -120,7 +120,7 @@ Features not supported, but on the immediate TODO list:
   * [Components](#components)
     * [Bootstrap Script](#bootstrap-script)
       * [*.config](#config)
-    * [Project Information Repository](#project-information-repository-1)
+    * [Project Definition Repository](#project-definition-repository-1)
     * [Onboarding Automation Server](#onboarding-automation-server)
     * [Non-prod Automation Server](#non-prod-automation-server)
     * [Prod Automation Server](#prod-automation-server)
@@ -148,7 +148,7 @@ Features not supported, but on the immediate TODO list:
   * [el-CICD-utils Repository](#el-cicd-utils-repository)
     * [Standardization and the Speed of Change](#standardization-and-the-speed-of-change)
   * [el-CICD-project-repository](#el-cicd-project-repository)
-    * [Project Information File](#project-information-file)
+    * [Project Definition File](#project-definition-file)
       * [OKD RBAC Groups](#okd-rbac-groups)
       * [Git Project information](#git-project-information)
       * [Microservices](#microservices)
@@ -188,14 +188,14 @@ Features not supported, but on the immediate TODO list:
       * [SealedSecrets](#sealedsecrets-1)
 * [Automation Server Pipelines](#automation-server-pipelines)
   * [Project Onboarding Pipelines](#project-onboarding-pipelines)
-  * [Engineering Specific Pipelines](#engineering-specific-pipelines)
+  * [Non-prod Automation Server Pipelines](#non-prod-automation-server-pipelines)
     * [Build to Dev](#build-to-dev-1)
     * [Build and Deploy Microservices](#build-and-deploy-microservices)
     * [Promotion/Removal](#promotionremoval)
     * [Redeploy/Removal](#redeployremoval)
-    * [Production Manifest](#production-manifest)
+    * [Create Production Manifest](#create-production-manifest)
     * [Redeploy Release Candidate](#redeploy-release-candidate)
-  * [Production Pipeline](#production-pipeline)
+  * [Prod Automation Server Pipelines](#prod-automation-server-pipelines)
     * [Deploy to Production](#deploy-to-production-1)
 * [Advanced SDLC Patterns](#advanced-sdlc-patterns)
   * [Staggered Release Teams](#staggered-release-teams)
@@ -236,9 +236,9 @@ A SDLC typically includes a number of deployment phases before ultimately being 
 
 Environments are a key concept that needs to be supported by any CICD system.  While deployments to each environment should ideally be exactly the same from Dev to Prod, there are many reasons why this is rarely true based on need and other practical matters; however, best practices are to design deployments to each environment as close to production as possible, and the closer to a production environment a deployment gets the closer the environment should resemble production.  While not always the case, environments are usually organized as a linear sequence; e.g. from Dev to QA  to Stage to Prod.  el-CICD supports a configurable, linear sequence of environments, with a few exceptions to be described below.
 
-![Figure 1: Enviroment Flow](images/figure-1-enviroments.png)
+![Figure 1: Enviroment Flow](images/enviroments.png)
 
-**Figure 1**
+**Figure 1**  
  _Environment flow from SCM Git to Prod_
 
 #### Dev
@@ -322,9 +322,9 @@ el-CICD does not address this issue, and is not designed with this functionality
 
 There are a number of tools that are needed for an automated CICD system.  They are summarized below.
 
-### Project Information Repository
+### Project Definition Repository
 
-The Project Information Repository should contain enough information about each project in the organization to automate the creation of pipelines, drive the pipelines, and set up and maintain the environments required for each project in the organization.
+The Project Definition Repository should contain enough information about each project in the organization to automate the creation of pipelines, drive the pipelines, and set up and maintain the environments required for each project in the organization.
 
 ### Source Control Management (SCM)
 
@@ -484,9 +484,9 @@ SealedSecrets is an OSS tool providing a mechanism for encrypting secrets for ex
 
 With the tools and products defined, the components that make up the el-CICD system can now be defined.
 
-![Figure 2: Enviroment Flow](images/figure-2-components.png)
+![Figure 2: Enviroment Flow](images/components.png)
 
-**Figure 2**
+**Figure 2**  
 _Shows the relationship between the components in the CICD system_
 
 ### Bootstrap Script
@@ -497,17 +497,17 @@ The first step in automating an organization is creating the Project Onboarding 
 
 The configuration files that accompany these scripts define the configuration of the whole system, and drive the execution of the scripts.  These configuration files will need to be filled out and defined in order to set up an instance.  The config files describe where the secrets for the system are located, the Git URLs for the system's el-CICD and Project Information repositories, the environments that are supported for the SDLC, and how each Jenkins is to be configured.
 
-### Project Information Repository
+### Project Definition Repository
 
-The Project Information Repository contains the configuration fear each project.  Each project is defined in a single YAML or JSON file, and defines such things as which microservices are part of the project, how their built, and the environments the project's SDLC will use.
+The Project Definition Repository contains the configuration fear each project.  Each project is defined in a single YAML or JSON file, and defines such things as which microservices are part of the project, how their built, and the environments the project's SDLC will use.
 
 ### Onboarding Automation Server
 
-The Onboarding Automation Server, or el-CICD Master, is responsible for onboarding a project onto the OKD cluster.  Once the server is created by its bootstrap script, the onboarding pipeline can launched either via a REST call into Jenkins or manually through the Jenkins UI.   The pipeline takes the name of the project to be onboarded, downloads the project's definition form Project Information Repository, and then creates either the non-prod or prod Jenkins for the group the project belongs to if it doesn't already exist, and the build pipelines for each microservice in the project.
+The Onboarding Automation Server, or el-CICD Master, is responsible for onboarding a project onto the OKD cluster.  Once the server is created by its bootstrap script, the onboarding pipeline can launched either via a REST call into Jenkins or manually through the Jenkins UI.   The pipeline takes the name of the project to be onboarded, downloads the project's definition form Project Definition Repository, and then creates either the non-prod or prod Jenkins for the group the project belongs to if it doesn't already exist, and the build pipelines for each microservice in the project.
 
 ### Non-prod Automation Server
 
-The Non-prod Automation Server, or Non-prod Jenkins, is created up by the non-prod Onboarding Automation Server.  There will be one per group per cluster, where each group will be responsible for one or more projects.  Which project belongs to which group is defined in each project's definition file stored in the Project Information Repository. The Non-prod Automation Server will host every pipeline for each project in the group except the Deploy-to-Prod pipelines.
+The Non-prod Automation Server, or Non-prod Jenkins, is created up by the non-prod Onboarding Automation Server.  There will be one per group per cluster, where each group will be responsible for one or more projects.  Which project belongs to which group is defined in each project's definition file stored in the Project Definition Repository. The Non-prod Automation Server will host every pipeline for each project in the group except the Deploy-to-Prod pipelines.
 
 ### Prod Automation Server
 
@@ -521,9 +521,9 @@ There are two repositories, Source Code and Image, as well as the Container Orch
 
 A design decision was made early on that all SCM repositories comprising a single project would have a Development Branch of the same name; e.g. _development_ or _hotfix_.  Regardless of team or the component worked on, all developers are expected to eventually merge their latest changes to this branch, and the CICD system to be automatically triggered o run the [Build-to-Dev](#build-to-dev) pipeline whenever code is delivered.  All [deployment branches](#deployment-branches) will ultimately stem from the Development Branch, of which each commit hash will represent an image that was built along with the initial deployment configuration for that image for each environment of the project.
 
-![Figure 3: Development Branch](images/figure-3-dev-branch.png)
+![Figure 3: Development Branch](images/dev-branch.png)
 
-**Figure 3**
+**Figure 3**  
 _The Development Branch with four separate commits and their hash.  In general, each commit represents a distinct build and a distinct image._
 
 ### Synchronizing the Image and SCM Repostiories
@@ -551,7 +551,7 @@ For example, when an image is promoted from Dev to QA with a commit hash of 8d7d
 
 Only changes that affect the deployment of the image to QA or downstream environments will be acknowledged and used by the CICD system.
 
-![Figure 4: Deployment Branch](images/figure-4-deployment-branch.png)
+![Figure 4: Deployment Branch](images/deployment-branch.png)
 
 **Figure 4**
 
@@ -594,7 +594,7 @@ mentioned earlier as part of the testing and tuning process, and that the projec
 
 The image deployed in Stg will similarly be tagged as 1.0.0-8d7dh3g in its Image Repository.  The application is now available for promotion to production.
 
-![Figure 5: Release Candidate Tag](images/figure-5-release-candidate-tag.png)
+![Figure 5: Release Candidate Tag](images/release-candidate-tag.png)
 
 **Figure 5**
 
@@ -623,7 +623,7 @@ Any changes to the deployment configuration of any release deployed in productio
 
 Any other changes on the Release Deployment Branch, as with all Deployment Branches, are ignored, and will make creating a proper hotfix branch more difficult.  Applying changes to one or more Release Deployment Branches, simply redeploy the release into production, and the system is smart enough to figure out which microservices have changed and only redeploy those unless otherwise requested.
 
-![Figure 6: Release Version Deployment Branch](images/figure-6-release-version-branch.png)
+![Figure 6: Release Version Deployment Branch](images/release-version-branch.png)
 
 **Figure 6**
 
@@ -690,7 +690,7 @@ Since many deployment resources are created and destroyed in OKD, a system of OK
 
 Each deployment resource defined by the microservice in it’s Source Repository will have the following labels automatically attached to it on each deployment regardless of environment:
 
-* **project**: The Project ID from the Project Information Repository
+* **project**: The Project ID from the Project Definition Repository
 * **microservice**: The microservice name, derived from the Git repository name to conform to OKD resource naming standards
 * **git-repo**: The name of the Git repository where the source code resides; the hostname is not included for security purposes
 * **src-commit-hash**: The source commit hash the deployed image was built from on the Development Branch
@@ -762,13 +762,13 @@ This also keeps the system mostly transparent to those in developer and tester r
 
 ## el-CICD-project-repository
 
-The _el-CICD-project-repository's_purpose is to define each project's structure and act as the Project Information Repository.  This includes each microservice and it's location and codebase, the name of the standard Git branch each microservice will use as a development branch, which test environments the project doesn't need to support, and how many sandbox environments the project needs.
+The _el-CICD-project-repository's_purpose is to define each project's structure and act as the Project Definition Repository.  This includes each microservice and it's location and codebase, the name of the standard Git branch each microservice will use as a development branch, which test environments the project doesn't need to support, and how many sandbox environments the project needs.
 
-### Project Information File
+### Project Definition File
 
 For simplicity, the structure of the repository is flat, so all projects will be defined in the root of the el-CICD-project-repository.  Each project will have a separate YAML or JSON file, and **the name of the file must match the project's name.**
 
-The Project Information File defines each project.  It can be written in either YAML or JSON, must be names the same as the project, and has the following content:
+The Project Definition File defines each project.  It can be written in either YAML or JSON, must be names the same as the project, and has the following content:
 
 ```yaml
 rbacGroup: devops                    # The OKD RBAC group the project belongs to
@@ -1112,9 +1112,9 @@ OKD Template reuse and patching via kustomize is relied on heavily for ease of u
 
 ## The ._openshift_ Directory
 
-![Figure 7: The .openshift Directory](images/figure-7-openshift-directory.png)
+![Figure 7: The .openshift Directory](images/openshift-directory.png)
 
-**Figure 7**
+**Figure 7**  
  _The .openshift directory_
 
 ### Structure
@@ -1278,23 +1278,121 @@ The following will describe each pipeline, and how to use them.
 
 ## Project Onboarding Pipelines
 
-The project onboarding pipelines exist on the el-CICD master servers, .  The purpose of project onboarding pipelines is twofold.  First, the pipeline makes sure the RBAC group of the project has an appropiate Jenkins instance created, and if not creates it.  Secondly, 
+The project onboarding pipelines exist on the el-CICD master servers. All onboarding pipelines will do the following:
 
-## Engineering Specific Pipelines
+* Create the RBAC group namespace for the Automation Server if it doesn't exist
+  * `<RBAC-group>-cicd-non-prod` or `<RBAC-group>-cicd-prod`
+* Create the Automation Server
+* Create all pipelines
+  * Non-prod
+    * [Build to Dev](#build-and-deploy-microservices)
+    * [Build and Deploy Microservices](#build-and-deploy-microservices)
+    * [Promotion/Removal](#promotionremoval)
+    * [Redeploy/Removal](#redeployremoval)
+    * [Create Production Manifest](#create-production-manifest)
+    * [Redeploy Release Candidate](#redeploy-release-candidate)
+  * Prod
+    * [Deploy To Production](#deploy-to-production)
+* Add all necessary credentials to the Jenkins instance for image repositories and Git
+
+Note that these pipelines is designed to be remotely triggered and complete automatically if necessary.  This allows oganizations that create outside project management software to integrate seamlessly with el-CICD.
+
+## Non-prod Automation Server Pipelines
+
+The following pipelines exist on the Non-prod Automation Server.  All except the [Build to Dev](#build-and-deploy-microservices) pipeline(s) are shared among all projects owned by the RBAC group controlling the server.  Only the Build to Dev pipelines are designed to be remotely triggered.  All other pipelines are designed such that human intervention is necessary for them to complete.
 
 ### Build to Dev
 
+There is one Build to Dev pipeline per each microservice defined in the [Project Definition File](#project-definition-file).  The pipeline will do the following:
+
+* Download the latest microservice code the project's development branch, optionally another branch as entered by the user
+* Build, test, and scan microservice in the Jenkins agent
+* Build and push an image of the microservice to the Dev Image Repository
+  * Tag the image with the Dev environment name, all lower case
+  * e.g. `sample-microservice-name:dev`, assuming the Dev environment is named `DEV`
+* Build and process the Dev environment OKD templates
+* Deploy the microservice to Dev, or to one of the Sandbox environments as chosen by the user
+  
+Build to Dev is usually triggered via a webhook from Git whenever the development branch for a particular microservice's development branch is updated, and the pipeline attempts to build and deploy the microservice to the Dev environment.  If the user chooses to execute the pipeline manually, they may choose:
+
+* The Git branch to build from
+* Whether to remove the currently deployed microservice first before redeploying
+* Whether to build to the Dev environment, or enter the namespace of a Sandox environment
+
+Start the pipeline manually by going the _Build with Parameters_ screen of the pipeline.
+
+![Figure 8: Build and Deploy Microservices](images/build-to-dev-build.png)
+
+**Figure 8**  
+_Build with Parameters screen for the Build to Dev pipeline_
+
 ### Build and Deploy Microservices
+
+The Build and Deploy Microservices pipleline is meant for the building and deploying of multiple microservices at once.  After entering the project name, the user may choose to: 
+
+* Choose to deploy to the Dev environment or a Sandbox
+* Choose the branch to build from the chosen microservices of the project
+* Build all microservices
+* Recreate all microservices; i.e. remove all currently deployed microservices below deploying new builds
+* Build selected microservices of the project
+
+The pipeline builds a number of microservices in parallel using Jenkins' parallel build capability.  The builds and deployments for each microservice are triggered by calling each individual Build to Dev pipleline of each microservice.
+
+Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
+
+![Figure 9: Build and Deploy Microservices](images/build-and-deploy-microservices-build.png)
+
+**Figure 9**  
+_Build with Parameters screen for the Build and Deploy Microservices pipeline_
+
+From the console of the running build, enter the input screen and select how you want the project built and deployed.
+
+![Figure 10: Build and Deploy Microservices](images/build-and-deploy-microservices.png)
+
+**Figure 10**  
+_Choose what microservices build and where to deploy to_
 
 ### Promotion/Removal
 
+The Promotion/Removal pipeline's main purpose is to promote one or more microservices of a project from one environment to the next as defined both in the general el-CICD settings and using only the specific test environments as listed in the [Project Definition File](#project-definition-file),  For each microservice the user has selected for promotion the pipeline will:
+
+* Verify the image(s) to be promoted have been deployed in the previous environment
+* If the previous environment is a test environment, confirm a deployment branch exists
+* Create a new deployment branch from the previous deployment branch for the current environment if one does not exist
+* Copy the image from the previous environment's image repository to the current environment's image repository
+  * Tag the image with the current environment name, all lower case
+  * Tag the image with current environment name and source commit hash; e.g. `qa-skd76dg`
+* Deploy the microservice using the environment's deployment configuration from the deployment branch and the image from the environment's image repository that was just copied
+
+Before deploying the newly copied images, any microservices selected for removal will be removed.
+
+Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
+
+![Figure 11: Promotion/Removal](images/promotion-removal-pipeline-build.png)
+
+**Figure 11**  
+_Build with Parameters screen for the Promotion/Removal pipeline_
+
+After entering the project name, the user may choose: 
+
+* Choose the environment to promote from/to
+* Choose a default action (do nothing, promote, or remove) for all microservices
+* Choose an action for a specific microservice
+
+![Figure 11: Promotion/Removal](images/promotion-removal-pipeline.png)
+
+Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
+
+**Figure 12**  
+_Select microservices to promote or remove_
+
 ### Redeploy/Removal
 
-### Production Manifest
+### Create Production Manifest
 
 ### Redeploy Release Candidate
 
-## Production Pipeline
+## Prod Automation Server Pipelines
 
 ### Deploy to Production
 
