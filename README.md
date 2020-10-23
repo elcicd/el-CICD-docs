@@ -200,17 +200,6 @@ Features not supported, but on the immediate TODO list:
 * [Advanced SDLC Patterns](#advanced-sdlc-patterns)
   * [Staggered Release Teams](#staggered-release-teams)
   * [Hotfixing](#hotfixing)
-* [Issues and Risks](#issues-and-risks)
-  * [Issues](#issues)
-    * [Rolling Back/Forward to a Previous Deployment Configuration](#rolling-backforward-to-a-previous-deployment-configuration)
-    * [Supporting Blue/Green and/or A/B Deployments, or Rolling Releases](#supporting-bluegreen-andor-ab-deployments-or-rolling-releases)
-  * [Refreshing el-CICD cluster](#refreshing-el-cicd-cluster)
-    * [Refreshing Sealed Secrets/Secrets](#refreshing-sealed-secretssecrets)
-    * [Refreshing Group Automation Servers](#refreshing-group-automation-servers)
-    * [Bitbucket, Gitlab, and SVN](#bitbucket-gitlab-and-svn)
-  * [RISKS](#risks)
-    * [System Support Needs](#system-support-needs)
-    * [Future Versions and Changing Technology](#future-versions-and-changing-technology)
 
 # Overview
 
@@ -1526,66 +1515,17 @@ _Confirm promoting or redeploying the Release Version into Prod_
 
 # Advanced SDLC Patterns
 
+There are a couple of advanced CICD patterns that can be supported by el-CICD by leveraging the Project Definition Files.  Creating copies of these files with different names allows groups to work in parallel with the collection of microservices that make up an application.
+
+It is important to remember that while el-CICD manages branching and tagging for _deployments_, el-CICD does not, cannot, and should not handle branching and tagging strategies for software development.  These strategies will still require managing merging between the different development branches these strategies will require.
+
 ## Staggered Release Teams
+
+Staggered releases are a strategy whereby two different teams within the same project work on different releases.  In order to support this type of development strategy, teams should create two different Project Definiton Files.  Each Project Definition File needs only refer to a different development branch, one for each team.
+
+The result of this strategy is that two separate sets of environments for deployments will be created in the Non-prod cluster, one for each team.  This is all that is needed.  From an RBAC Group perspective, only one needs be created, allowing developers to move between the teams easily.  In Prod, only one of the two teams Automation Servers need be created, because the tags in the image repositories do not directly belong to any particular project.
 
 ## Hotfixing
 
-# Issues and Risks
-These represent thoughts and issues that for one reason or another weren’t able to be addressed in el-CICD, either because of time constraints or due to implementation constraints.  They are not listed in any particular order.
+Hotfixing a Release Version while development continues on the Development Branch of a project can be tricky, but el-CICD makes it trivial.  Create a copy of the Project Definition File
 
-## Issues
-
-### Rolling Back/Forward to a Previous Deployment Configuration
-As noted above, rolling back or forward to different versions of either whole releases in production, or individual microservice releases in Non-prod environments is supported, but rolling back or forward for particular deployment configurations for an individual microservice is not directly supported.  These versions are stored in Git, however, as commits in the Deployment Branch, and we will describe here how to do this.  This may also be used on the Development Branch, too, if necessary.
-
-1. Check out the branch from Git that needs modifying
-    1. If it’s a Deployment Branch, you can find the full name of it in the microservice’s meta-info ConfigMap in the environment it is deployed in
-        1. It is stored as both data and as a label
-        2. Run the following command on the bastion VM:
-
-        ```
-        oc get cm <Project ID>-<microservice name>-meta-info \
-            -o jsonpath='{ .data.deployment-branch }' \
-            -n <Project ID>-<environment>
-
-        ```
-
-Where
-* <Project ID>: the project’s Project ID
-* <microservice name>: name of the microservice as derived from the Git repository name to conform to OKD resource naming conventions
-* <environment>: the environment the microservice is deployment in
-2. Run the following Git commands:
-
-  ```
-    Git reset --hard <commit hash>
-    Git reset --soft HEAD@{1}
-    Git commit -am 'your commit message'
-    Git push
-```
-The <commit hash> is the hash where the previous deployment configuration you want for the microservice lives.  It is easiest to find this hash up on GitHub.
-
-Running the Git commands will produce a new commit on the microservice’s Deployment Branch (or the Development Branch if you're rolling that back or forward) that is in all ways the same as the commit hash you entered.  Simple redeploy from there to apply the changes.
-
-### Supporting Blue/Green and/or A/B Deployments, or Rolling Releases
-
-* Blue/Green Deployments: A new release is deployed and stood up next to the current release in same project, and only then are routes to the microservices switched over to the new release
-* A/B Deployments: A new release is deployed and stood up next to the current release in same project, and incoming traffic is alternately sent to either the new release or old release for A/B testing purposes
-* Rolling Releases: Rather than rolling out a particular pod and then terminating the old on when ready, the whole release is rolled out before terminating the previous one.
-
-Each of these deployment patterns were considered briefly, but due to the complexity of implementing them and the time constraints imposed on producing a minimum viable product any effort towards working on this was quickly abandoned.
-
-## Refreshing el-CICD cluster
-
-### Refreshing Sealed Secrets/Secrets
-
-### Refreshing Group Automation Servers
-
-### Bitbucket, Gitlab, and SVN
-
-## RISKS
-
-### System Support Needs
-The system was written in the usual combination of Groovy and Bash shell scripts that make up Jenkins pipelines, as well as heavy use of Git, Docker, and Skopeo.  It is strongly recommended that further training of all DevOps individuals in Groovy, Jenkins, Git, Docker, and Skopeo be put into place.
-
-### Future Versions and Changing Technology
-Address Tekton, Knative, and other strategies; possibly Helm or ArgoCD integration
