@@ -193,7 +193,7 @@ Features not supported, but on the immediate TODO list:
     * [Build and Deploy Microservices](#build-and-deploy-microservices)
     * [Promotion/Removal](#promotionremoval)
     * [Redeploy/Removal](#redeployremoval)
-    * [Create Production Manifest](#create-production-manifest)
+    * [Create Release Candidate](#create-release-candidate)
     * [Redeploy Release Candidate](#redeploy-release-candidate)
   * [Prod Automation Server Pipelines](#prod-automation-server-pipelines)
     * [Deploy to Production](#deploy-to-production-1)
@@ -336,7 +336,7 @@ The scanner consists of one or more tools, and is responsible for scanning sourc
 
 ### Artifact Repository
 
-The main purpose of the Artifact Repository is to store artifacts produced by a CI process.  Modern builds generally result in two different types of artifacts, either libraries for reuse or in images meant to be deployed into an environment.
+The purpose of the Artifact Repository is to store artifacts produced by a CI process.  Modern builds generally result in two different types of artifacts, either libraries for reuse or in images meant to be deployed into an environment.
 
 How these artifacts are hosted depends on how they are meant to be consumed.  For example, a Java jar file meant to only be used as a dependency for another project might be stored within a Maven repository, RPM’s used intended to be installed into a Docker image in an RPM repository, and a Docker image to be deployed or used as a base image in a Docker repository.  Modern artifact repositories generally support many types of standards depending on the need.
 
@@ -588,7 +588,7 @@ For example, assume that a  few changes have been made on the Pre-prod Deploymen
 
 **deployment-stg-8d7dh3g**
 
-mentioned earlier as part of the testing and tuning process, and that the project team is now satisfied this might be good enough to promote to production with any other microservices in the application as version 1.0.0.  When the Release Candidate tag is applied by the system, _it will be applied on the latest commit hash on the **deployment-stg-8d7dh3g** branch_ as:
+mentioned earlier as part of the testing and tuning process, and that the project team is now satisfied this might be good enough to promote to production with any other microservices in the application as version 1.0.0.  When the Release Candidate Tag is applied by the system, _it will be applied on the latest commit hash on the **deployment-stg-8d7dh3g** branch_ as:
 
 **1.0.0-8d7dh3g**
 
@@ -1276,6 +1276,16 @@ Sealed Secrets are not a necessity, and other strategies such as a vault may be 
 
 The following will describe each pipeline, and how to use them.
 
+![Figure 8: Build and Deploy Microservices](images/el-cicd-non-prod-master-onboarding.png)
+
+**Figure 8**
+_el-CICD Non-prod Automation Server pipelines_
+
+![Figure 9: Build and Deploy Microservices](images/el-cicd-prod-master-onboarding.png)
+
+**Figure 9**
+_el-CICD Prod Automation Server pipelines_
+
 ## Project Onboarding Pipelines
 
 The project onboarding pipelines exist on the el-CICD master servers. All onboarding pipelines will do the following:
@@ -1289,7 +1299,7 @@ The project onboarding pipelines exist on the el-CICD master servers. All onboar
     * [Build and Deploy Microservices](#build-and-deploy-microservices)
     * [Promotion/Removal](#promotionremoval)
     * [Redeploy/Removal](#redeployremoval)
-    * [Create Production Manifest](#create-production-manifest)
+    * [Create Release Candidate](#create-release-candidate)
     * [Redeploy Release Candidate](#redeploy-release-candidate)
   * Prod
     * [Deploy To Production](#deploy-to-production)
@@ -1297,9 +1307,24 @@ The project onboarding pipelines exist on the el-CICD master servers. All onboar
 
 Note that these pipelines is designed to be remotely triggered and complete automatically if necessary.  This allows oganizations that create outside project management software to integrate seamlessly with el-CICD.
 
+![Figure 10: Non-prod Project Onboarding Pipeline](images/non-prod-project-onboarding-build.png)
+
+**Figure 10**
+_el-CICD Non-prod Project Onb pipelines_
+
+![Figure 11: Prod Project Onboarding Pipeline](images/prod-project-onboarding-build.png)
+
+**Figure 11**
+_el-CICD Prod Automation Server pipelines_
+
 ## Non-prod Automation Server Pipelines
 
 The following pipelines exist on the Non-prod Automation Server.  All except the [Build to Dev](#build-and-deploy-microservices) pipeline(s) are shared among all projects owned by the RBAC group controlling the server.  Only the Build to Dev pipelines are designed to be remotely triggered.  All other pipelines are designed such that human intervention is necessary for them to complete.
+
+![Figure 12: Non-prod Automation Server Pipelines](images/non-prod-automation-servier-pipelines.png)
+
+**Figure 12**
+_Non-prod Automation Server pipelines for RBC Group `devops` and project `test-cicd`_
 
 ### Build to Dev
 
@@ -1321,9 +1346,9 @@ Build to Dev is usually triggered via a webhook from Git whenever the developmen
 
 Start the pipeline manually by going the _Build with Parameters_ screen of the pipeline.
 
-![Figure 8: Build and Deploy Microservices](images/build-to-dev-build.png)
+![Figure 13: Build and Deploy Microservices](images/build-to-dev-build.png)
 
-**Figure 8**  
+**Figure 13**
 _Build with Parameters screen for the Build to Dev pipeline_
 
 ### Build and Deploy Microservices
@@ -1340,37 +1365,37 @@ The pipeline builds a number of microservices in parallel using Jenkins' paralle
 
 Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
 
-![Figure 9: Build and Deploy Microservices](images/build-and-deploy-microservices-build.png)
+![Figure 14: Build and Deploy Microservices](images/build-and-deploy-microservices-build.png)
 
-**Figure 9**  
+**Figure 14**
 _Build with Parameters screen for the Build and Deploy Microservices pipeline_
 
 From the console of the running build, enter the input screen and select how you want the project built and deployed.
 
-![Figure 10: Build and Deploy Microservices](images/build-and-deploy-microservices.png)
+![Figure 15: Build and Deploy Microservices](images/build-and-deploy-microservices.png)
 
-**Figure 10**  
+**Figure 15**
 _Choose what microservices build and where to deploy to_
 
 ### Promotion/Removal
 
-The Promotion/Removal pipeline's main purpose is to promote one or more microservices of a project from one environment to the next as defined both in the general el-CICD settings and using only the specific test environments as listed in the [Project Definition File](#project-definition-file),  For each microservice the user has selected for promotion the pipeline will:
+The Promotion/Removal pipeline's purpose is to promote one or more microservices of a project from one environment to the next as defined both in the general el-CICD settings and using only the specific test environments as listed in the [Project Definition File](#project-definition-file),  For each microservice the user has selected for promotion the pipeline will:
 
 * Verify the image(s) to be promoted have been deployed in the previous environment
-* If the previous environment is a test environment, confirm a deployment branch exists
-* Create a new deployment branch from the previous deployment branch for the current environment if one does not exist
+* If the previous environment is a test environment, confirm a Deployment Branch exists
+* Create a new Deployment Branch from the previous Deployment Branch for the current environment if one does not exist
 * Copy the image from the previous environment's image repository to the current environment's image repository
   * Tag the image with the current environment name, all lower case
   * Tag the image with current environment name and source commit hash; e.g. `qa-skd76dg`
-* Deploy the microservice using the environment's deployment configuration from the deployment branch and the image from the environment's image repository that was just copied
+* Deploy the microservice using the environment's deployment configuration from the Deployment Branch and the image from the environment's image repository that was just copied
 
 Before deploying the newly copied images, any microservices selected for removal will be removed.
 
 Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
 
-![Figure 11: Promotion/Removal](images/promotion-removal-pipeline-build.png)
+![Figure 16: Promotion/Removal](images/promotion-removal-pipeline-build.png)
 
-**Figure 11**  
+**Figure 16**
 _Build with Parameters screen for the Promotion/Removal pipeline_
 
 After entering the project name, the user may choose: 
@@ -1379,22 +1404,125 @@ After entering the project name, the user may choose:
 * Choose a default action (do nothing, promote, or remove) for all microservices
 * Choose an action for a specific microservice
 
-![Figure 11: Promotion/Removal](images/promotion-removal-pipeline.png)
+![Figure 17: Promotion/Removal](images/promotion-removal-pipeline.png)
 
-Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
-
-**Figure 12**  
+**Figure 17**
 _Select microservices to promote or remove_
 
 ### Redeploy/Removal
 
-### Create Production Manifest
+The Redeploy/Removal pipeline's purpose is to redeploy one or more microservices of a project back into its environment, usually because the configuration of those microservices have changed and been pushed to the microservices repository, or the user wished to peform a rollback/rollforward to a particular microservice image in the environment.  For each microservice the user has selected for redeployment the pipeline will:
+
+* Verify the image still exists in the environment's image repository
+* Confirm a Deployment Branch exists for the image
+* Tag the image with the current environment name, all lower case, marking it as the current image deployed in the environment
+* Deploy the microservice using the environment's deployment configuration from the Deployment Branch and the image from the environment's image repository that was just tagged
+
+Before redeploying any images, any microservices selected for removal will be removed.
+
+Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
+
+![Figure 18: Promotion/Removal Build](images/redeploy-removal-pipeline-build.png)
+
+**Figure 18**
+_Build with Parameters screen for the Redeploy/Removal pipeline_
+
+![Figure 19: Promotion/Removal Build Select Env](images/redeploy-removal-pipeline-select-env.png)
+
+**Figure 19**
+_Select environment to redeploy to_
+
+After entering the project name and choosing an environment, the user may choose a previous version of any microservice 
+
+![Figure 20: Promotion/Removal](images/redeploy-removal-pipeline.png)
+
+**Figure 20**
+_Select microservices to redeploy or remove_
+
+### Create Release Candidate
+
+The Create Release Candidate pipeline's purpose is to take a collection of images from those currently deployed in the Pre-prod environment that the user selects and tag them each as a candidate for a release to production.  For each microservice the user has selected for tagging  the pipeline will:
+
+* Verify images in the Pre-prod image repository with the Release Candidate Tag do not already exist
+* Tag the Pre-Prod Deployment Branch's latest commit with the Release Candidate Tag
+
+Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
+
+![Figure 23: Create Release Candidate Build](images/create-release-candidate-build.png)
+
+**Figure 23**
+_Build with Parameters screen for the Redeploy/Removal pipeline_
+
+After entering the project name and entering a release candidate tag, the user should select the microservices that will be part of the release.
+
+![Figure 24: Create Release Candidate](images/create-release-candidate.png)
+
+**Figure 24**
+_Select environment to redeploy to_
 
 ### Redeploy Release Candidate
+
+The Redeploy Release Candidate pipeline's purpose is redeploy the images in the Pre-prod image repository tagged as a particular release candidate back into the Pre-prod environment.  User will want to do this for testing purposes, or to set the environment up quickly to create a hotfix.  After entering the Project ID and the Release Candidate Tag the pipeline will:
+
+* Verify both images and a Git tag exist that match the Release Candidate Tag
+* Ask the user to confirm the deployment of the Release Candidate, and removal of all microservices not part of the Release Candidate
+
+If the user approves the deployment, the pipeline will continue and:
+
+* Tag all images of the Release Candidate with the Pre-prod environment name, all lower case, marking it as the current image deployed in the environment
+* Remove all currently deployed microservices in Pre-prod
+* Deploy all microservices of the Release Candidate into Pre-prod, using the latest commit from the Deployment Branch for the Pre-prod environment
+
+**WARNING**: when redeploying a Release Candidate, the latest commit of the Deployment Branch is what is used, meaning the deployment may **NOT** have the same deployment configuration as when the Release Candidate was created.
+
+Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
+
+![Figure 22: Redeploy Release Candidate Build](images/redeploy-release-candidate-build.png)
+
+**Figure 22**
+_Build with Parameters screen for the Redeploy Release Candidate pipeline_
+
+After entering the project name and entering a release candidate tag, the user should select the microservices that will be part of the release.
+
+![Figure 23: Redeploy Release Candidate Confirmation](images/redeploy-release-candidate.png)
+
+**Figure 23**
+_Confirm redeploying the Release Candidate into Pre-prod_
 
 ## Prod Automation Server Pipelines
 
 ### Deploy to Production
+
+The Deploy to Production pipeline's purpose is to create a Release Version by promoting an existing Release Candidate into production if it hasn't already been promoted, and then deploy it.  After entering the Project ID and the Release Candidate Tag  (**NOT** the Release Version Tag) the pipeline will:
+
+* Verify the Release Candidate Tag exists
+
+If the Release Candidate exists, then
+
+* Ask for confirmation from the user whether to deploy the Release Version
+  * The confirmation will not whether this is a redeployment or promotion
+* If they do not already exist
+  * Copy the Release Candidate images into the Prod image repository
+  * Release Version Tag is the Release Candidate Tag prefixed with a 'v'
+    * `v<relase-candidate-tag>`; e.g. `v2.0`
+  * Create the Release Version Deployment Branch
+    * Branch created from commit of Release Version Tag in Git
+* Deploy the microservices to the Prod environment that are part of Release Version
+* Remove all resources and microservices that are not part of the Release Version
+
+Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
+
+![Figure 232: Deploy to Production Build](images/deploy-to-production-build.png)
+
+**Figure 23**
+_Build with Parameters screen for the Deploy to Production pipeline_
+
+After entering the project name and entering a release candidate tag, the user should select the microservices that will be part of the release.
+
+![Figure 24: Deploy to Production Confirmation](images/deploy-to-production-confirmation.png)
+
+**Figure 24**
+_Confirm promoting or redeploying the Release Version into Prod_
 
 # Advanced SDLC Patterns
 
