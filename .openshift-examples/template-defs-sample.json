@@ -1,8 +1,9 @@
 {
    "templates":[
       {
-         "appName":"<name deployment to override default>",
-         "file":"<some template name>",
+         "appName":"<optional name deployment to override default APP_NAME>",
+         "templateName": "<name of template in file>",
+         "file":"<OKD template file name>",
          "patchFile":"<deployment or cronjob patch file.  must end in .patch>",
          "params":{
             "<some param key>":"<some param value>"
@@ -19,7 +20,8 @@
          }
       },
       {
-         "appName":"<name deployment to override default APP_NAME>",
+         "appName":"<optional name deployment to override default APP_NAME>",
+         "templateName": "<name of template in file>",
          "file":"<some other template>",
          "default":{
          },
@@ -38,23 +40,6 @@
                "MAX_REPLICAS":5,
                "MIN_REPLICAS":2
             }
-         }
-      },
-      {
-         "appName":"<name of second deployment>",
-         "file":"<some template name>",
-         "params":{
-            "<some param key>":"<some param value>"
-         },
-         "dev":{
-            "patchFile":"<some patch file with .patch extention>",
-            "params":{
-               "<some param key>":"<some param value>"
-            }
-         },
-         "<test-env-name>":{
-         },
-         "prod":{
          }
       }
    ]
