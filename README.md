@@ -47,7 +47,7 @@ el-CICD supports the following features:
 * Incremental deployments into production
 * Staggered application release development development patterns
 
-Features not supported, but on the immediate TODO list:
+Features not supported, but on the immediate investigate/TODO list:
 
 * GitLab and Bitbucket support
 * Helm support

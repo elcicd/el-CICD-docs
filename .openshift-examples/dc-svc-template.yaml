@@ -1,0 +1,183 @@
+######################################################################
+##
+## The following template can be used as is for defining most deployments
+## that do not require an external Route.  The parameters defined within should
+## allow you to configure a deployment to any degree you need.  With minor exceptions
+## documented below, DO NOT edit the template; e.g. you need sidecar container.
+## If you need additional parameters, use kustomize and template-defs.json per the
+## el-CICD documention to add them.
+##
+######################################################################
+apiVersion: v1
+kind: Template
+labels:
+  template: dc-svc-template
+message: Deploying using templated resources
+metadata:
+  name:  dc-svc-template
+objects:
+- apiVersion: v1
+  kind: DeploymentConfig
+######################################################################
+##
+## APP_NAME defaults to the microservice name.  You will need to override
+## this is you intend to deploy the same image multiple times.
+##
+######################################################################
+  metadata:
+    name: ${APP_NAME}
+    labels:
+      microservice: ${MICROSERVICE_NAME}
+      app: ${APP_NAME}
+  spec:
+    replicas: ${{REPLICAS}}
+    selector:
+      microservice: ${MICROSERVICE_NAME}
+      app: ${APP_NAME}
+      deploymentconfig: ${APP_NAME}
+######################################################################
+##
+## Default strategy is "Rolling", per OKD standards.
+##
+######################################################################
+    strategy:
+      type: ${STRATEGY}
+    template:
+      metadata:
+        labels:
+          microservice: ${MICROSERVICE_NAME}
+          app: ${APP_NAME}
+          deploymentconfig: ${APP_NAME}
+      spec:
+        containers:
+          - name: ${APP_NAME}
+######################################################################
+##
+## All of these values are set via Project Defintion File or el-CICD configuration.
+##
+######################################################################
+            image: ${IMAGE_REPOSITORY}/${PROJECT_ID}-${MICROSERVICE_NAME}:${IMAGE_TAG}
+            imagePullPolicy: Always
+######################################################################
+##
+## Best practices say your deployments should define resource limits and requests,
+## and they are required for HorizontalPodAutoscaler definitions to work.
+##
+######################################################################
+            resources:
+              limits:
+                cpu: ${CPU_LIMIT}
+                memory: ${MEM_LIMIT}
+              requests:
+                cpu: ${CPU_REQ}
+                memory: ${MEM_REQ}
+            ports:
+#############################################################################
+##
+## If you define a parameter that takes a numerical value, you need to use
+## the double curly braces {{ }} as seen below for SVC_PORT parameter for the 
+## service port.  For strings, use a single set of curly braces { }.
+##
+#############################################################################  
+            - containerPort: ${{SVC_PORT}}
+              protocol: TCP
+
+#############################################################################
+##
+## DO NOT EDIT OR REMOVE.  Doing so will break deployments.
+##
+#############################################################################
+        imagePullSecrets:
+          - name: ${PULL_SECRET}
+#############################################################################
+##
+## OKD triggers for new deployments are disabled.  el-CICD will manage deployments.
+##
+#############################################################################
+    triggers: []
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ${APP_NAME}
+    labels:
+      app: ${APP_NAME}
+  spec:
+    selector:
+      app: ${APP_NAME}
+    ports:
+      - protocol: TCP
+        port: ${{SVC_PORT}}
+        targetPort: ${{SVC_PORT}}
+
+parameters:
+- description: The image repository from where to fetch the image
+  displayName: Image Repository
+  name: IMAGE_REPOSITORY
+  required: true
+
+- description: The name for the microservice, derived by el-CICD from the name of the Git repository
+  displayName: Microservice Name
+  name: MICROSERVICE_NAME
+  required: true
+  
+- description: The name for the app.  Set this value manually through the template-defs.json file for multiple deployments of the same image.
+  displayName: Application Name
+  name: APP_NAME
+  required: true
+
+- description: The Project ID
+  displayName: Project ID
+  name: PROJECT_ID
+  required: true
+
+- description: The name of the environment the image is being deployed to.  Used to help define unique routes.
+  displayName: Environment Name
+  name: ENV
+  required: true
+
+- description: Image Tag used to pull image from image repository
+  displayName:  Image Tag
+  name: IMAGE_TAG
+  required: true
+
+- description: CPU Resource Request; see OKD docs for more info
+  displayName: CPU Resource Request
+  name: CPU_REQ
+  required: true
+  value: 100m
+  
+- description: Maximum CPU Resource Limit allowed; see OKD docs for more info
+  displayName: CPU Resource Limit
+  name: CPU_LIMIT
+  required: true
+  value: 200m
+
+- description: Memory Resource Request; see OKD docs for more info
+  displayName: Memory Resource Request
+  name: MEM_REQ
+  required: true
+  value: 50Mi
+ 
+- description: Memory Resource Limit (Ceiling) in Mi or Gi; see OKD docs for more info
+  displayName: Memory Resource Limit in Mi or Gi
+  name: MEM_LIMIT
+  required: true
+  value: 500Mi
+
+- description: The number of replicas for this deployment; see OKD docs for more info
+  displayName: Replica count
+  name: REPLICAS
+  required: true
+  value: "1"
+
+- description: Service port; see OKD docs for more info
+  displayName: Service Port
+  name: SVC_PORT
+  required: true
+  value: "8080"
+
+- description: Deployment strategy; see OKD docs for more info
+  displayName: Deployment strategy
+  name: STRATEGY
+  required: true
+  value: Rolling

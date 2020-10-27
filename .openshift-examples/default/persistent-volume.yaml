@@ -1,0 +1,41 @@
+####################################################################
+## This is only needed for NFS volumes.  Do not add this object file unless your
+## app is using a NFS share.  Currently this is not available, working on permissions issue.
+#####################################################################
+ApiVersion: v1
+kind: PersistentVolume
+metadata:
+####################################################################
+## Name here represents the name of the persistent volume, NOT the volume claim
+## this needs to be unique to the cluster. Include the namespace name in name object
+####################################################################
+  name: nfs-<namespace name>
+spec:
+  capacity:
+#######################################################################################
+## Specify the size of the requested volume using Mi for megabytes, or Gi for gigabytes
+#######################################################################################
+    storage: 1000Gi
+#######################################################################################
+## Specify the access mode. Choices are "ReadWriteMany" for volumes to be shared across microservices,
+## "ReadWriteOnce" for volumes accessed by a single microservice, or "ReadOnly", which as implies,
+## does not allow writes.  Please ensure the persistentVolumeReclaimPolicy is set to "Retain"
+#######################################################################################
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+#######################################################################################
+## For NFS Volumes, you will need the NFS share information including the hostname/ip
+## and the export path.  Your storage administrator should be able to provide this to you.
+#######################################################################################
+    path: <export path, ie. /export/lsr>
+    server: <FQDN or IP of NFS server>
+  claimRef:
+#######################################################################################
+##  To ensure your claim is the only one permitted to bind to this volume, set the claim name
+## and namespace here.  The claim name will need to match the object name you define in the
+## volume claim yaml file.
+#######################################################################################
+    name: <nfs-vol-claim-name>
+    namespace: <namespace name>

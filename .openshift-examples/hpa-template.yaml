@@ -1,0 +1,58 @@
+####################################################################
+##
+## Simple HorizontalPodAutoscaler template.  It will allow the OKD cluster
+## to automatically scale the number of replica pods for your application based
+## on resource (cpu/memory) thresholds.
+##
+## You MUST set resource requests & limits in your deployment or cronjob config
+## for the HorizontalPodAutoscaler to be able to function.
+##
+## See the OKD documentation for details.
+##
+####################################################################### 
+apiVersion: v1
+kind: Template
+labels:
+  template: hpa-template
+message: Deploying using templated resources
+metadata:
+  name:  hpa-template
+objects:
+- apiVersion: autoscaling/v1
+  kind: HorizontalPodAutoscaler
+  metadata:
+    labels:
+      app: ${APP_NAME}
+    name: ${APP_NAME}
+  spec:
+    maxReplicas: ${{MAX_REPLICAS}}
+    minReplicas: ${{MIN_REPLICAS}}
+    scaleTargetRef:
+      apiVersion: v1
+      kind: DeploymentConfig
+      name: ${APP_NAME}
+    targetCPUUtilizationPercentage: ${{SCALE_PERCENTAGE}}
+
+parameters:
+- description: Name for the deployed app
+  displayName: Deployment application name
+  name: APP_NAME
+  required: true
+  
+- description: Maximum Number of Replicas to Scale to 
+  displayName: Maximum Number of Replicas
+  name: MAX_REPLICAS
+  required: true
+  value: "3"
+  
+- description: Minimum Number of Replicas 
+  displayName: Minimum Number of Replicas
+  name: MIN_REPLICAS
+  required: true
+  value: "1"
+  
+- description: CPU Utilization Threshold to Trigger Scaling 
+  displayName: CPU Utilization Threshold 
+  name: SCALE_PERCENTAGE
+  required: true
+  value: "90"

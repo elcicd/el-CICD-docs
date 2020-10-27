@@ -1,0 +1,38 @@
+############################################################################
+##
+## A simple ConfigMap Template for reuse with el-CICD if you wish to use the
+## template-defs.json to manage the values within.
+##
+#############################################################################
+apiVersion: v1
+kind: Template
+labels:
+  template: configmap-template
+message: "Deploying using template resources"
+metadata:
+  name:  configmap-template
+objects:
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: ${APP_NAME}-configmap
+  data:
+    <some-key-1>: ${SOME_VALUE_1}
+    <some-key-12>: ${SOME_VALUE_2}
+
+parameters:
+- description: Injected App Name; defaults to microservice
+  displayName: Application Name
+  name: APP_NAME
+  required: true
+
+- description: First sample value
+  displayName: Some Value 1
+  name: SOME_VALUE_1
+  required: true
+
+- description: Second sample value
+  displayName: Some Value 1
+  name: SOME_VALUE_2
+  required: true
+  

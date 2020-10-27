@@ -1,0 +1,98 @@
+##################################################################################
+##
+## This kustomize patch is for a CronJob.  The paths defined below for each add
+## operation will inject your configuration into the template before processing it.
+##
+## Patch files allow you to push changes into the default templates provided in this
+## directory.  Each deployment may have only one patch file, but multiple patch files
+## may be included for separate deployments of the same deployment template.
+##
+## Only some of the most common possibilities for using OKD Template patching are
+## offered below, most pertaining to adding values and data. Kustomize is a powerful tool,
+## and anything kustomize supports may be used.  See the kustomize documentation for more
+## information.
+##
+#####################################################################################
+
+#####################################################################################
+##
+## Define your pod's environment values here using ConfigMaps, Secrets, or hardcoded values.
+##
+#####################################################################################
+- op: add
+  path: /objects/0/spec/jobTemplate/spec/template/spec/containers/0/env
+  value:
+    - name: <some-env-name>
+      value: <some-value>
+    - name: <some-templated-env-name>
+      value: ${SOME_TEMPLATE_VALUE}
+    - name: <some--numerical-templated-env-name>
+      value: ${{SOME_NUMERICAL_TEMPLATE_VALUE}}
+    - name: <some-env-name>
+      valueFrom:
+        secretKeyRef:
+          key: <some-Secret-key>
+          name: <some-Secret-name>
+    - name: <some-env-name>
+      valueFrom:
+        configMapKeyRef:
+          key: <some-Configmap-key>
+          name: <some-Configmap-name>
+
+#####################################################################################
+##
+## Define volumes and volumemounts here.
+##
+## Mount name should match the name of the volume.  Volumes can be ConfigMaps, Secrets,
+## or PVC's.  More examples of more exotic volumes can be found in the OKD documentation.
+##
+## Mount path example: /mnt
+##
+#####################################################################################
+- op: add
+  path: /objects/0/spec/jobTemplate/spec/template/spec/containers/0/volumeMounts
+  value:
+    - mountPath: <mount-path>
+      name: <name-of-valume>
+
+- op: add
+  path: /objects/0/spec/jobTemplate/spec/template/spec/volumes
+  value:
+    - name: <name-of-volume>
+      configMap:
+        name: <config-map-name>
+x
+- op: add
+  path: /objects/0/spec/jobTemplate/spec/template/spec/volumes
+  value:
+    - name: <name-of-volume>
+      secret:
+        secretName: <secret-name>
+
+- op: add
+  path: /objects/0/spec/jobTemplate/spec/template/spec/volumes
+  value:
+    - name: <name-of-volume>
+      persistentVolumeClaim:
+        claimName: <pvc-claim-name>
+        readOnly: <optionally-make-read=only>
+
+#####################################################################################
+##
+## Define additional parameters for the template.  Adding a templated environment key/value
+## (examples above for how to add to the environment) makes it easier to change the value
+## across different environments, and simplifies the use of the patch to a default patch
+## in which only the values change.
+##
+## NOTE: Use multiple copies of this structure for multiple parameters, rather than putting
+## multiple parameters under this structure.
+##
+#####################################################################################
+- op: add
+  path: /parameters/0
+  value:
+    description: <parameter-description>
+    displayName: <parameter-display-name>
+    name: <parameter-name>
+    required: <if-parameter-required>
+    value: <optional-default-value>
