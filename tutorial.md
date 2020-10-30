@@ -43,7 +43,7 @@ or send a letter to
   Creative Commons
   PO Box 1866
   Mountain View, CA
-      94042, USA.
+      94042, USA
 ```
 
 ## Minimum Requirements
@@ -81,6 +81,13 @@ Copy the tar.xz file and the pull secret you downloaded into the directory where
 
 We move the CRC directory containing the decompressed files to a generic directory so we don't have to continually update our path whenever we upgrade versions.
 
+**You also need to copy or download your CRC pull secret to a file called `pull-secret` in the same directory as the CRC binary, `crc`.  The scripts below you'll add to your `.bashrc` or `.zshrc` depend on it to function correctly.**
+
+![Figure 1: CRC install directory structure](tutorial-images/crc-install-directory.png)
+
+**Figure 1**  
+_CRC install directory structure with pull-secrets file and original *.tar.xz CRC download included_
+
 ### Add the following to your .bashrc or .zshrc
 
 You may remove this after the demo, but these helpers make things easier so you don't have to deal directly with the pull secret during multiple logins.  If you wish to allocate more vCPUs or memory, adjust the values at the top appropriately.
@@ -101,6 +108,9 @@ You may remove this after the demo, but these helpers make things easier so you 
 
     # Starts CRC with proper sizing for vCPUs and memory
     function crc-start() {
+        echo "Starting CRC with ${CRC_V_CPU} vCPUs, and ${CRC_MEMORY}M in memory."
+        echo "If you want to change the above values, run 'crc delete' and recreate the VM from scratch."
+        echo ''
         crc start -p ${HOME}/path/to/crc/pull-secret -c ${CRC_V_CPU} -m ${CRC_MEMORY}
     }
 
@@ -182,13 +192,19 @@ The following demonstration repositories should be forked, and the **development
 
 The odd spelling of the Git repositories was purposefully used for testing purposes 
 
-Clone the `el-CICD` repository locally, since you will need to modify the contents of this repository to hold the configuration for your installation.  Also clone the `Test-CICD1` repository locally, as you will make changes to the deployment configuration for purposes of demonstrating el-CICD's capabilities.
+Clone the following repositories to your local machine:
+
+* `el-CICD [master]`
+* `el-CICD-docs [master]`
+* `Test-CICD1 [development]`
+
+You will need to modify the contents of this repositories and/or run scripts contained in them during the course of this tutorial.
 
 You should also create a sibling directory to the `el-CICD`, `cicd-secrets`, that will contain a collection of secrets you will need to gather to run this tutorial.  Your final local el-CICD directory should look like the following:
 
-![Figure 1: code bases mapped to their Jenkins Agents](tutorial-images/local-el-cicd-dirs.png)
+![Figure 2: code bases mapped to their Jenkins Agents](tutorial-images/local-el-cicd-dirs.png)
 
-**Figure 1**  
+**Figure 2**  
 _Cloned Git repositories and `cicd-secrets` directory_
 
 
@@ -196,16 +212,13 @@ _Cloned Git repositories and `cicd-secrets` directory_
 
 For the purposes of this demo, we will use [Docker Hub](https:hub.docker.com/) to host our repositories, but any Docker compatible host will do.  You only need a single repository, but in order to more closely mirror what you might do in a production environment, we'll create three:
 
-* \<unique-demo-name>dev
-* \<unique-demo-name>nonprod
-* \<unique-demo-name>prod
+* `<unique-demo-name>dev`
+* `<unique-demo-name>nonprod`
+* `<unique-demo-name>prod`
 
-This will better demonstrate what is most likely needed for a production setup.  It will also require three separate accounts, so if you don't feel like registering three separate times, just use a single repository.
-
-When this 
+This will better demonstrate what is most likely needed for a production setup.
 
 **Tip**: If you have a GMail account, it's easy to use the same email address to create separate repositories without needing multiple email accounts.  When creating the repository on Docker Hub, register with your email in the following fashion
-
 
 ```
     <gmail-id>+<unique-demo-name>dev@gmail.com
@@ -233,14 +246,14 @@ This script will create a base agent, and agents for building python, R, and Jav
 To see how these Agents are tied into the el-CICD Build Framework, take a look at the file `vars/elCicdNode.groovy` in the `el-CICD-utils` repository.  This utility defines the Agent using the Jenkins Kubernetes plugin, and at the top is a map from the Project Definitions File's _codebase_ to the Jenkins Agent images required for the build.  Should you wish to add new build definitions to your installation, you will create a new Agent image as above, and map the _codebase_ key to the to your agent image.
 
 
-![Figure 2: code bases mapped to their Jenkins Agents](tutorial-images/microservices-project-defintion-file.png)
-
-**Figure 2**  
-_codebases defined in the microservices section of the Project Definition File_
-
-![Figure 3: code bases mapped to their Jenkins Agents](tutorial-images/agent-defs-map.png)
+![Figure 3: code bases mapped to their Jenkins Agents](tutorial-images/microservices-project-defintion-file.png)
 
 **Figure 3**  
+_codebases defined in the microservices section of the Project Definition File_
+
+![Figure 4: code bases mapped to their Jenkins Agents](tutorial-images/agent-defs-map.png)
+
+**Figure 4**  
 _codebases mapped to their Jenkins Agent images in elCicdNode.groovy_
 
 ### el-CICD Secrets
@@ -311,50 +324,55 @@ Login to the CRC cluster, and then execute the execute the bootstrap script for 
 
 ```
     crc-admin-login
-    el-cicd-non-prod-bootstrap.sh
+    ./el-cicd-non-prod-bootstrap.sh
 ```
 
-This script will ask a number of questions as it executes.  
-* First, it will ask you to confirm the wildcard domain for the cluster.
-* If the script has been run before, it will ask that you confirm the deletion of the non-prod master namespace, which must be done for the script to complete.
-* If you have previously installed Sealed Secrets, it will ask whether you wish to do so again.  There is no need to do so if you have already done it once.  
+This script will ask a number of questions as it executes:
 
-[**NOTE**: Although it is rare, Sealed Secret upgrades occasionally produce breaking changes, so check the release notes on the Sealed Secrets site for the version in question before agreeing to upgrade.  Upgrades will not break your current encryption/decryption keys]
+* Confirm the wildcard domain for the cluster
+  Should be `apps-crc.testing`
+* Delete the Non-prod Automation Server namespace, `el-cicd-non-prod-master`  
+  If the script has been run before, this must be done for the script to complete
+* If you have previously installed Sealed Secrets, it will ask whether you wish to do so again
+  * There is no need to do so if you have already done it once
+  * You will be asked for your `sudo` password when installing
+
+**NOTE**: Although it is pretty rare, Sealed Secret upgrades can result in breaking changes, so check the release notes on the Sealed Secrets site for the version in question before agreeing to upgrade.  Upgrades will not break your current encryption/decryption keys.
 
 When the script completes, you can check each forked el-CICD Git repository to confirm that a read-only deploy key was added. Check that the master namespace, `el-cicd-non-prod-master`, was created and that a running instance of Jenkins was created. The script was designed to be idempotent, and this is one reason why a specific deploy key was stored for the Git repositories.
 
 #### Setting Your Cluster's Sealed Secrets Decryption Key
 
-Each microservice repository you cloned for the purpose of this tutorial has an example of a Sealed Secret.  You will not be able to deploy any of the microservices in this tutorial without being able to decrypt them.  This part of the tutorial is actually important to pay attention to, because if you deploy your projects more than once across multiple clusters, you'll need to make sure that each cluster has the correct decryption key for them, and you will need to keep a copy of the master.key somewhere in case of disaster recovery.  This process is documented in more detail on the [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets#how-can-i-do-a-backup-of-my-sealedsecrets) site, but instead of backup and restoring, this is a backup and copy operation.
+Each microservice repository you cloned for the purpose of this tutorial has an example of a Sealed Secret.  You will not be able to deploy any of the microservices in this tutorial without being able to decrypt them.  This part of the tutorial is actually important to pay attention to, because if you deploy your projects more than once across multiple clusters, you'll need to make sure that each cluster has the correct decryption key for each, and you will need to keep a copy of the `master.key` somewhere in case of disaster recovery.  This process is documented in more detail on the [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets#how-can-i-do-a-backup-of-my-sealedsecrets) site, but instead of backup and restoring, this is a backup and copy operation.
 
-In the same repository as this tutorial there is a file call `master.key.tar`.  Download this file and run the following commands:
-
-```
-    oc apply -f master.key
-    oc delete pod -n kube-system -l name=sealed-secrets-controller
-```
-
-Alternatively, there is a shell script that can be run, `restore-master-key.sh` in this folder.
-
-This will restore the encryption/decryption keys of the Sealed Secrets needed in the tutorial's microservices, and restart the Sealed Secrets controller to pick up the changed keys.  Outside of this tutorial, you can create a Sealed Sealed key for use among multiple clusters, use the following command:
+In the same repository as this tutorial, `el-CICD-docs`, run the following script:
 
 ```
-    oc get secret -n kube-system -l sealedsecrets.bitnami.com/sealed-secrets-key -o yaml >master.key
+    ./restore-master-key.sh
 ```
+
+This script will restore the encryption/decryption keys of the Sealed Secrets plugin that are needed by the tutorial's microservices, and restart the Sealed Secrets controller to pick up the changed keys.  Outside of this tutorial, you can create a Sealed Sealed key for use among multiple clusters using the following command:
+
+```
+    oc get secret -n kube-system -l sealedsecrets.bitnami.com/sealed-secrets-key -o yaml > master.key
+```
+
+el-CICD can now begin to manage projects.
 
 ## Onboarding a Project Into the Engineering Cluster
 
-With el-CICD configuration and bootstrapping complete, el-CICD can begin managing projects.  This demo makes the assumption that the Project Information Repository already has projects defined in it, and defining projects in project information files are not part of this demo.  In a real installation, it is preferable to create a project database and utility for users to create project information files; otherwise, they will have to created manually.  This is far from tedious for a single project with relatively few microservices, but can become tedious with a larger number of projects and microservices among each.  It is also best practice to restrict access to the project information repository if it is shared among a number of different groups.
+This demo makes the assumption that the Project Information Repository already has projects defined in it, and defining projects in Project Definition Files are not part of this demo.  In a real installation, it is preferable to create a project database and utility for users to create Project Definition Files; otherwise, they will have to be created manually.  This is far from tedious for a single project with relatively few microservices, but can become tedious with a larger number of projects and microservices among each.  It is also best practice to restrict access to the Project Information Iepository if it is shared among a number of different groups.
 
-The following will take you through a typical set of steps that see two separate sets of releases candidates created.  In the real world, the second release would be developed and built, but here we are just demonstrating general system functionality, so as with most demos, it is a bit contrived.
+The rest of the tutorial will take you through a typical set of steps that will eventually create two Release Candidates.  In the real world, the second release would be developed, built, and tested separately, but here we are just demonstrating general system functionality, so as with most demos, it is a bit contrived.
 
 ### Access the Non-prod Onboarding Automation Server
 
-Open your terminal and login to CRC as admin.  If you followed previous instructions, this will also copy the pull secret to your clipboard.
+Open your terminal and login to CRC as admin.  If you followed previous instructions, the following command will also copy the pull secret to your clipboard.
 
 ```
-crc-admin-login
+    crc-admin-login
 ```
+
 Open your browser, and go to
 
 [https://jenkins-el-cicd-non-prod-master.apps-crc.testing/](https://jenkins-el-cicd-non-prod-master.apps-crc.testing)
@@ -362,17 +380,17 @@ Open your browser, and go to
 If the browser warns you that your connection is not private, you can safely ignore it and click  _Advanced_, and then the button _Proceed to jenkins-el-cicd-non-prod-master.apps-crc.testing (unsafe)_ .  Login to Jenkins using the CRC admin credentials, clicking initially on the `kube:admin` button.  You can simply paste the password (the CRC pull secret) from your clipboard thanks to the script above.
 
 ```
-Username: kubeadmin
-Password: <CRC pull secret>
+    Username: kubeadmin
+    Password: <CRC pull secret>
 ```
 
 After successfully logging in, CRC will ask you _Authorize Access_.  This will happen the first time you log into each Jenkins instance.  You may safely click _Allow selected permissions_.
 
-From the main page on the left, click `credentials` to take you to the Jenkins credentials screen.  If you configured everything correctly, it should look like the following.
+From the main page on the left, click `Credentials` to take you to the Jenkins credentials screen.  If you configured everything correctly, it should look like the following.
 
-![Figure 4: Non-prod Onboarding Automation Server Credentials](tutorial-images/onboarding-jenkins-credentials.png)
+![Figure 5: Non-prod Onboarding Automation Server Credentials](tutorial-images/onboarding-jenkins-credentials.png)
 
-**Figure 4**  
+**Figure 5**  
 _Non-prod Onboarding Automation Server Credentials_
 
 If something is missing, then check your configuration, fix any issues, and run the bootstrap script again.
@@ -381,16 +399,16 @@ If something is missing, then check your configuration, fix any issues, and run 
 
 Click on the Jenkins logo in the upper left corner of the browser window, and the click on the `el-cicd-non-prod-master` folder in the center of the screen, and again on the `el-cicd-non-prod-master/dev-project-onboarding` to get to the dev-project-onboarding pipeline screen.
 
-![Figure 5: dev-project-onboarding Pipeline](tutorial-images/non-prod-onboarding-pipeline-screen.png)
+![Figure 6: dev-project-onboarding Pipeline](tutorial-images/non-prod-onboarding-pipeline-screen.png)
 
-**Figure 5**  
+**Figure 6**  
 _non-prod-project-onboarding Pipeline_
 
 Click `Build with Parameters` on the left, enter `test-cicd` as the PROJECT_ID, and then click the `Build` button.  This will begin the `non-prod-project-onboarding` Pipeline.
 
-![Figure 6: Entering the test-cicd PROJECT_ID for the Onboarding Pipeline](tutorial-images/entering-non-prod-onboarding-pipeline-parameters.png)
+![Figure 7: Entering the test-cicd PROJECT_ID for the Onboarding Pipeline](tutorial-images/entering-non-prod-onboarding-pipeline-parameters.png)
 
-**Figure 6**  
+**Figure 7**  
 _Entering `test-cicd` for the PROJECT_ID when kicking off the Onboarding Pipeline_
 
 It is strongly suggested that you follow the logs of the build to see what is happening.  You can do this by clicking the build number when it appears, and then clicking `Console Output` on the left hand side fo the screen to follow the build logs in real time.
@@ -425,16 +443,16 @@ Open your browser to the new [Non-prod Automation Server](https://jenkins-devops
 
 [**NOTE**: In the real world, the project would belong to an actual group, whether in OKD directly or as part of your organization's authentication mechanism, and you would log in as an authenticated OKD user and **not** admin.  el-CICD makes every member of the project's group an OKD namespace admin for the Non-prod Automation Server of the group.]
 
-![Figure 7: Non-prod Jenkins Credentials](tutorial-images/devops-non-prod-jenkins-credentials.png)
+![Figure 8: Non-prod Jenkins Credentials](tutorial-images/devops-non-prod-jenkins-credentials.png)
 
-**Figure 7**  
+**Figure 8**  
 _Non-prod Jenkins Credentials_
 
 Then click on the Jenkins logo in the upper right, and click through the folder link in the center of the window `devops-cicd-non-prod` until you see all the pipelines created.
 
-![Figure 8: Non-prod Jenkins Pipelines](tutorial-images/non-prod-devops-test-cicd-project-pipelines.png)
+![Figure 9: Non-prod Jenkins Pipelines](tutorial-images/non-prod-devops-test-cicd-project-pipelines.png)
 
-**Figure 8**  
+**Figure 9**  
 _Non-prod Jenkins Pipelines_
 
 #### Confirm the Configuration of the `test-cicd` Project in GitHub
@@ -551,17 +569,17 @@ As noted previously, images are immutable, but deployment configurations are not
 First, checkout the deployment branch from the meta-information ConfigMap for `test-cidc1`
 
 ```
-oc project test-cicd-qa
-oc get test-cicd-test-cicd1-meta-info -o yaml # copy the deployment branch
-cd <path-to-Test_CICD1>/Test_CICD1
-git checkout deployment-qa-<srcCommitHash>
+    oc project test-cicd-qa
+    oc get test-cicd-test-cicd1-meta-info -o yaml # copy the deployment branch
+    cd <path-to-Test_CICD1>/Test_CICD1
+    git checkout deployment-qa-<srcCommitHash>
 ```
 
 In your favorite source code editor, open the file `Test_CICD1/.openshift/template-defs.json`.  Go to the bottom of the file, and find the section with `"appName": "test-cicd-configmap"` in it.  In the `"qa" -> "params"` section, change the param `TOPIC_NAME` from `"qa topic"` to `"qa topic changed for redeploy test"`
 
-![Figure 9: Non-prod Jenkins Pipelines](tutorial-images/template-defs-changed-redeploy.png)
+![Figure 10: Non-prod Jenkins Pipelines](tutorial-images/template-defs-changed-redeploy.png)
 
-**Figure 9**  
+**Figure 10**  
 _**qa** section of template-defs.json changed for redeployment demonstration_
 
 Save the file, commit and push it.
@@ -606,9 +624,9 @@ git checkout development
 
 To be able to see how a rollback works, a new build needs to be created.  As before, in your favorite source code editor, open the file `Test_CICD1/.openshift/template-defs.json`.  Go to the bottom of the file and find the section with `"appName": "test-cicd-configmap"` in it.  In the `"qa" -> "params"` section, change the param `TOPIC_NAME` from `"qa topic"` to `"qa topic changed"`
 
-![Figure 10: Non-prod Jenkins Pipelines](tutorial-images/template-defs-changed.png)
+![Figure 11: Non-prod Jenkins Pipelines](tutorial-images/template-defs-changed.png)
 
-**Figure 10**  
+**Figure 11**  
 _**qa** section of template-defs.json changed_
 
 Save the file, commit and push it.
@@ -746,9 +764,9 @@ After successfully logging in, CRC will ask you _Authorize Access_.  This will h
 
 From the main page on the left, click `credentials` to take you to the Jenkins credentials screen.  If you configured everything correctly, it should look exactly like the Non-prod Onboarding Automation Server credentials.
 
-![Figure 11: Non-prod Onboarding Automation Server Credentials](tutorial-images/onboarding-jenkins-credentials.png)
+![Figure 12: Non-prod Onboarding Automation Server Credentials](tutorial-images/onboarding-jenkins-credentials.png)
 
-**Figure 11**  
+**Figure 12**  
 _Non-prod Onboarding Automation Server Credentials_
 
 If something is missing, then check your configuration, fix any issues, and run the bootstrap script again.
@@ -757,16 +775,16 @@ If something is missing, then check your configuration, fix any issues, and run 
 
 Click on the Jenkins logo in the upper left corner of the browser window, and the click on the `el-cicd-prod-master` folder in the center of the screen, and again on the `el-cicd-prod-master/dev-project-onboarding` to get to the prod-project-onboarding pipeline screen.
 
-![Figure 11: dev-project-onboarding Pipeline](tutorial-images/prod-onboarding-pipeline-screen.png)
+![Figure 13: dev-project-onboarding Pipeline](tutorial-images/prod-onboarding-pipeline-screen.png)
 
-**Figure 12**  
+**Figure 13**  
 _prod-project-onboarding Pipeline_
 
 Click `Build with Parameters` on the left, enter `test-cicd` as the PROJECT_ID and `devops` for the RBAC_GROUP, and then click the `Build` button.  This will begin the `prod-project-onboarding` Pipeline.
 
-![Figure 13: Entering the test-cicd PROJECT_ID for the Onboarding Pipeline](tutorial-images/entering-prod-onboarding-pipeline-parameters.png)
+![Figure 14: Entering the test-cicd PROJECT_ID for the Onboarding Pipeline](tutorial-images/entering-prod-onboarding-pipeline-parameters.png)
 
-**Figure 13**  
+**Figure 14**  
 _Entering `test-cicd` for the PROJECT_ID when kicking off the Onboarding Pipeline_
 
 It is strongly suggested that you follow the logs of the build to see what is happening.  You can do this by clicking the build number when it appears, and then clicking `Console Output` on the left hand side fo the screen to follow the build logs in real time.
@@ -798,16 +816,16 @@ You should see a `el-cicd-image-repo-prod-pull-secret` Sealed Secret and Secret 
 
 Open your browser to the new [Prod Automation Server](https://jenkins-devops-cicd-prod.apps-crc.testing/).  As before, click through the privacy warning, and login as the `kubeadmin` again (enter `crc-admin-login` on the command line to copy the pull secret to the clipboard for simplicity's sake).  Once in, click on the `Credentials` link on the left hand side of the window, confirming general el-CICD read-only credentials, image repository pull keys, and specific microservice deploy keys have been properly added.
 
-![Figure 14: Non-prod Jenkins Credentials](tutorial-images/devops-non-prod-jenkins-credentials.png)
+![Figure 15: Non-prod Jenkins Credentials](tutorial-images/devops-non-prod-jenkins-credentials.png)
 
-**Figure 14**  
+**Figure 15**  
 _Non-prod Jenkins Credentials_
 
 Then click on the Jenkins logo in the upper right, and click through the folder link in the center of the window `devops-cicd-non-prod` until you see the single deployment pipeline created.
 
-![Figure 15: Prod Jenkins Pipeline](tutorial-images/prod-devops-test-cicd-project-pipelines.png)
+![Figure 16: Prod Jenkins Pipeline](tutorial-images/prod-devops-test-cicd-project-pipelines.png)
 
-**Figure 15**  
+**Figure 16**  
 _Prod Jenkins Pipelines_
 
 #### Confirm the Configuration of the `test-cicd` Project in GitHub

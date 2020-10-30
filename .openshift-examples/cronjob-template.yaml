@@ -74,6 +74,11 @@ objects:
     suspend: false
 
 parameters:
+- description: The image repository from where to fetch the image
+  displayName: Image Repository
+  name: IMAGE_REPOSITORY
+  required: true
+  
 - description: The name for the microservice, derived by el-CICD from the name of the Git repository
   displayName: Microservice Name
   name: MICROSERVICE_NAME
