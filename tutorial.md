@@ -94,12 +94,15 @@ _CRC install directory structure with pull-secrets file and original *.tar.xz CR
 
 You may remove this after the demo, but these helper scripts make things easier so you don't have to deal directly with the pull secret during multiple logins or the `crc` CLI options.  If you wish to change the allocation of vCPUs, memory, or disk space of the VM, adjust the values `CRC_V_CPU`, `CRC_MEMORY`, `CRC_DISK_SIZE` appropriately.
 
+You will also need to check that the path to your `CRC_INSTALL_DIR` is properly set to wherever you chose to install CRC.
+
 ```
+    CRC_INSTALL_DIR=${HOME}/dev
+
     # PREFERRED CRC OPTIONS
     # MINUMUM VALUES ARE 6 vCPUs and 36864M memory
     CRC_V_CPU=16
     CRC_MEMORY=98304
-    CRC_DISK_SIZE=100
 
     CRC_SHELL=zsh
 
@@ -109,12 +112,27 @@ You may remove this after the demo, but these helper scripts make things easier 
         source <(oc completion ${CRC_SHELL})
     fi
 
+    function crc-setup() {
+        crc setup
+        echo ''
+        crc-start
+        echo ''
+        crc stop
+        echo ''
+        qemu-img resize ${HOME}/.crc/machines/crc/crc.qcow2 +100G
+        sed -i 's/"DiskCapacity": 33285996544,/"DiskCapacity": 140660178944,/' ${HOME}/.crc/machines/crc/config.json
+        echo ''
+        crc-start
+    }
+    
     function crc-start() {
-        echo "Starting CRC with ${CRC_V_CPU} vCPUs, ${CRC_MEMORY}M memory, and ${CRC_DISK_SIZE}G virtual disk."
+        echo "Starting CRC with ${CRC_V_CPU} vCPUs, ${CRC_MEMORY}M memory"
         echo "If you want to change the above values, run 'crc delete' and recreate the VM from scratch."
         echo ''
-        crc start -p ~/dev/crc/pull-secret -c ${CRC_V_CPU} -m ${CRC_MEMORY} -d ${CRC_DISK_SIZE}
-    }
+
+        crc start -p ${CRC_INSTALL_DIR}/crc/pull-secret -c ${CRC_V_CPU} -m ${CRC_MEMORY}
+     }
+
 
     function crc-pwd-admin {
         echo "copy kubeadmin to system clipboard"
@@ -178,20 +196,29 @@ Fedora 33 changed the way network name resolution to local applications is handl
     sudo systemctl restart systemd-resolved.service
     ```
 
-Your system will now properly pick up the CRC network even if you reboot your machine.
+Your system should now properly pick up the CRC network when trying to access deployed applications even if you reboot your machine.  If you recreate the CRC VM (see below) you might need to restart `systemd-resolved.service`.
 
-### Initial CRC Setup and Install
+### CRC Setup and Install
 
 Run
 
 ```
-    crc setup
-    crc-start  # PAY ATTENTION TO THE DASH!!
+    crc-setup # PAY ATTENTION TO THE DASH!!
 ```
 
-This will complete initial setup and create the virtual machine image for CRC with the requested vCPUs,  memory, and disk size.  Note that these values cannot be adjusted after this step have been run, and you will need to delete and recreate the CRC VM if a mistake was made.  If you delete the CRC VM, all data will be lost and the following setup steps will need to be repeated.
+This will complete initial setup, create the virtual machine image for CRC with the requested vCPUs and memory, resize the virtual disk, and start the CRC VM for use.
 
-CRC is now setup and ready to use for the purposes of the el-CICD tutorial.
+To stop the CRC VM, use 
+
+```
+    crc stop
+```
+
+To start it up again
+
+```
+    crc-start  # PAY ATTENTION TO THE DASH!!  Uses the pull secret automatically
+```
 
 ## Setup, Configure, and Bootstrap el-CICD
 
