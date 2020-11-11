@@ -100,6 +100,7 @@ Features not supported, but on the immediate investigate/TODO list:
     * [Continuous Deployment](#continuous-deployment)
   * [Tools](#tools)
     * [Project Definition Repository](#project-definition-repository)
+    * [](#)
     * [Source Control Management (SCM)](#source-control-management-scm)
     * [Scanner](#scanner)
     * [Artifact Repository](#artifact-repository)
@@ -144,8 +145,8 @@ Features not supported, but on the immediate investigate/TODO list:
     * [Prod Automation Server](#prod-automation-server)
   * [Repository and Runtime Integration Strategy](#repository-and-runtime-integration-strategy)
     * [Development Branch](#development-branch)
-    * [Synchronizing the Image and SCM Repostiories](#synchronizing-the-image-and-scm-repostiories)
-      * [Deployment Branches](#deployment-branches)
+    * [Synchronizing the Image and SCM Repositories](#synchronizing-the-image-and-scm-repositories)
+      * [Deployment Branch](#deployment-branch)
         * [**WARNING: DO NOT MODIFY UPSTREAM ENVIRONMENT CONFIGURATIONS OR THE IMAGE SOURCE CODE**](#warning-do-not-modify-upstream-environment-configurations-or-the-image-source-code)
       * [Release Candidate Tags](#release-candidate-tags)
       * [Release Deployment Branches](#release-deployment-branches)
@@ -190,7 +191,7 @@ Features not supported, but on the immediate investigate/TODO list:
       * [Other](#other)
     * [Permissions](#permissions)
   * [Deployment](#deployment)
-    * [el-cicd-non-prod-bootstrap.sh](#el-cicd-non-prod-bootstrapsh)
+    * [el-cicd-Non-prod-bootstrap.sh](#el-cicd-non-prod-bootstrapsh)
     * [el-cicd-prod-bootstrap.sh](#el-cicd-prod-bootstrapsh)
     * [el-cicd-post-github-read-only-deploy-keys.sh](#el-cicd-post-github-read-only-deploy-keyssh)
 * [Developer Integration](#developer-integration)
@@ -334,6 +335,8 @@ There are a number of tools that are needed for an automated CICD system.  They 
 ### Project Definition Repository
 
 The Project Definition Repository should contain enough information about each project in the organization to automate the creation of its supporting pipelines, drive the pipelines, and define the environments required for each project in the organization.
+
+### 
 
 ### Source Control Management (SCM)
 
@@ -537,40 +540,39 @@ A design decision was made early on that all SCM repositories comprising a singl
 **Figure 3**  
 _The Development Branch with four separate commits and their hash.  In general, each commit represents a distinct build and a distinct image._
 
-### Synchronizing the Image and SCM Repostiories
+### Synchronizing the Image and SCM Repositories
 
 The images built from source reside in an Image Repository, and they are immutable.  The deployment configuration, describing how the image should be deployed across multiple environments lives in the SCM, and it needs to remain mutable.  One of the most difficult design problems for the modern, cloud supporting CICD system was settling on a methodology which explicitly acknowledges this reality while providing an easy to understand, standardized, and automated system for supporting [deployment patching](#deployment-patching).
 
 For the Dev environment and Development Branch, this isn't a problem, since any image built for Dev only needs to match what’s in the Development Branch; i.e. it was reasonable to expect to build a new image every time the deployment configuration changed, because part of the Build-to-Dev pipeline is testing the deployment by deploying directly to Dev.
 
-The harder problem is when an image is promoted to a downstream environment like QA, Stg, or Prod.  Where are changes to the deployment for those images kept and tracked?  Changes in the Development Branch happen faster than any downstream environment, and the further downstream the environment, the slower the changes will happen, so expecting the Development Branch to also hold the deployment for the current image deployed to QA when the Development Branch might be many commits ahead is unreasonable; i.e. expecting the source code to match the image being deployed into a downstream environment would grind development to a halt..
+The harder problem is when an image is promoted to a downstream environment; e.g. QA, Stg, or Prod.  Where are changes to the deployment for those images kept and tracked?  Changes in the Development Branch happen faster than any downstream environment, and the further downstream the environment, the slower the changes will happen, so expecting the Development Branch to also hold the deployment for the current image deployed to QA when the Development Branch might be many commits ahead is unreasonable; i.e. expecting the source code to match the image being deployed into a downstream environment would grind development to a halt.
 
-The solution was to create a Deployment Branch.
+The solution was to create the Deployment Branch.
 
-#### Deployment Branches
+#### Deployment Branch
 
-The purpose of the Deployment Branches is to support the [_deployment patching_]](#deployment-patching) process directly by creating a branch for each environment the image is deployed to.  Each Deployment Branch is where developers can push deployment configuration changes for the image built from the source included in the branch.  The changes will be applied whenever the image is redeployed to the environment.  The branches will be named in the following manner:
+The purpose of the Deployment Branch is to support the [deployment patching](#deployment-patching) process directly by creating a branch for each environment the image is deployed to.  Each Deployment Branch is where developers can push deployment configuration changes for the image built from the source included in the branch.  The changes will be applied whenever the image is redeployed to the environment.  The branches will be named in the following manner:
 
 **deployment-\<environment>-\<src-commit hash>**
 
 * **\<environment>:** the environment the image is to be deployed to
 * **\<src-commit-hash>:** the commit hash **_on the Development Branch_** the image was originally built from
 
-For example, when an image is promoted from Dev to QA with a commit hash of 8d7dh3g on the Development Branch, it Deployment Branch will be created and named:
+For example, when an image is promoted from Dev to QA with a commit hash of 8d7dh3g on the Development Branch, its Deployment Branch will be created and named:
 
 **deployment-qa-8d7dh3g**
 
-Only changes that affect the deployment of the image to QA or downstream environments will be acknowledged and used by the CICD system.
+Only changes that affect the deployment of the image to QA or its downstream environments will be acknowledged and used by the CICD system.
 
 ![Figure 4: Deployment Branch](images/deployment-branch.png)
 
 **Figure 4**
 
-_1. Development Branch of project_
+1. _Development Branch of project_
+1. _**deployment-qa-8d7dh3g**_ Deployment Branch with one Deployment Patch committed to it
 
-_2. **deployment-qa-8d7dh3g**_ Deployment Branch with one Deployment Patch committed to it
-
-Deployment Branches are only created when an image is promoted into a particular environment.  Subsequent Deployment Branches are created from the HEAD of the previous Deployment Branch; e.g. referring to Figure 4, for the Stg environment, you'd get a Deployment Branch at source commit hash 9458de3.
+Deployment Branches are only created when an image is promoted into a particular environment.  Subsequent Deployment Branches are created from the HEAD of the previous Deployment Branch; e.g. referring to Figure 4, for the Stg environment, you'd get a Deployment Branch at source commit hash 9458de3 (bottom right commit in the above figure).
 
 **deployment-stg-8d7dh3g**
 
@@ -578,7 +580,7 @@ Note that source commit hash remains constant.  This naming convention insures D
 
 ##### **WARNING: DO NOT MODIFY UPSTREAM ENVIRONMENT CONFIGURATIONS OR THE IMAGE SOURCE CODE**
 
-Changes made to the deployment configurations for an upstream environment or the source code of the microservice on a Deployment Branch will be ignored.  The purpose of a Deployment Branch is to track and version the changes of the deployment configurations for an image built from the Development Branch.  The code that's included, and any upstream deployment configurations should only be looked at as a historical record of the project.  Changing any of this in a downstream Deployment Branch makes it harder to see what is in the actual image, and how it was previously deployed.
+Changes made to the deployment configurations for an upstream environment or the source code of the microservice on a Deployment Branch will be ignored by the current Deployment Branch.  The purpose of a Deployment Branch is to track and version the changes of the deployment configurations for an image built from the Development Branch.  The code that's included, and any upstream deployment configurations should only be looked at as a historical record of the project from the time the branch was created.  Changing any of this in a downstream Deployment Branch makes it harder to see what is in the actual image, and how it was previously deployed before being promoted.
 
 Changing the source or upstream deployment configurations will at a minimum cause confusion, and at worst make it harder to work on hotfixes if necessary.  Because of Git's distributed nature and design, locking certain files from being modified is not possible.  Deployment Branches are a work-around to the modern development problem of keeping the proverbial source of truth in two places at once, the SCM and the Image Repository.
 
@@ -586,14 +588,14 @@ Note that merging changes back into the Development Branch to pick up changes, o
 
 #### Release Candidate Tags
 
-As noted [earlier](#deploy-to-production), deploying a complete application to production is different and more complex than deploying the individual components or microservices of an application to a non-production environment.  Tagging for a Release Candidate or branching for the Release Version must happen for all images and source repositories of all microservices defined to be in the Release Version.  el-CICD does not define what  a valid tag is, only that it must conform to a naming conventions acceptable to both the Source and Image Repository, in this case Git and an Image Repository which complies with the Docker’s naming conventions for images.  A Release Candidate Tag has the following format:
+As noted [earlier](#deploy-to-production), deploying a complete application to production is different and more complex than deploying the individual components or microservices of an application to a non-production environment.  Tagging for a Release Candidate or branching for the Release Version must happen for all images and source repositories of all microservices defined to be in the Release Version.  el-CICD does not define what a valid tag is, only that it must conform to a naming conventions acceptable to both the Source and Image Repository, in this case Git and an Image Repository which complies with the Docker’s naming conventions for images.  A Release Candidate Tag has the following format:
 
 **<version tag>-<src-commit-hash>**
 
 * **<version tag>:** the Release Version Version tag
 * **<src-commit-hash>:** the commit hash on the **Development Branch** where the image was built
 
-Each project will have a Pre-prod environment, and that environment will define what can be promoted to Prod.  Once chosen, **_each image and the latest source commit hash on its associated Pre-prod Deployment Branch_** will be tagged.  A check will be performed to ensure the Release Candidate Tag is unique and hasn’t been used before.  The tagging operation will fail if it has.
+Each project will have a Pre-prod environment, and that environment will define what can be promoted to Prod.  Once chosen, **_each image and the latest source commit hash on its associated Pre-prod Deployment Branch_** will be tagged.  A check will be performed to ensure the Release Candidate Tag is unique within every repository of the project and hasn’t been used before.  The tagging operation will fail if it has.
 
 For example, assume that a  few changes have been made on the Pre-prod Deployment Branch
 
@@ -609,22 +611,19 @@ The image deployed in Stg will similarly be tagged as 1.0.0-8d7dh3g in its Image
 
 **Figure 5**
 
-_1. Development Branch of project_
-
-_2. **deployment-qa-8d7dh3g** Deployment Branch with one Deployment Patch_
-
-_3. **deployment-stg-8d7dh3g** Deployment Branch with one Deployment Patch_
-
-_4. Release Candidate Tag **1.0.0-8d7dh3g** at the HEAD of the Stg Deployment Branch_
+1. _Development Branch of project_
+1. _**deployment-qa-8d7dh3g** Deployment Branch with one Deployment Patch_
+1. _**deployment-stg-8d7dh3g** Deployment Branch with one Deployment Patch_
+1. _Release Candidate Tag **1.0.0-8d7dh3g** at the HEAD of the Stg Deployment Branch_
 
 #### Release Deployment Branches
 
-[deployment patching](#deployment-patching) must be supported in production, too.  As production is possibly tuned over time due to unforeseen circumstances, a Deployment Branch is created for each microservice that was tagged in the Release Candidate process to accommodate those changes.  Each branch is made **at the same commit hash** where the Release Candidate was tagged, and conforms to the following naming convention:
+[Deployment patching](#deployment-patching) must be supported in production, too.  As production is possibly tuned over time due to unforeseen circumstances, a Deployment Branch is created for each microservice that was tagged in the Release Candidate process to accommodate those changes.  Each branch is made **at the same commit hash** where the Release Candidate was tagged, and conforms to the following naming convention:
 
 **v<version tag>-<src-commit-hash>**
 * **v:** every release to production is prepended with a ‘v’ to delineate it from a Release Candidate
-* **<version tag>:** the Release Candidate Tag
-* **<src-commit-hash>:** the commit hash on the **Development Branch** where the image was built; e.g.
+* **\<version tag>:** the Release Candidate Tag
+* **\<src-commit-hash>:** the commit hash on the **Development Branch** where the image was built; e.g.
 
 **1.0.0-8d7dh3g** becomes **v1.0.0-8d7dh3g**
 
@@ -632,21 +631,17 @@ Any changes to the deployment configuration of any release deployed in productio
 
 **DO NOT CHANGE UPSTREAM DEPLOYMENT CONFIGURATION OR SOURCE CODE.**
 
-Any other changes on the Release Deployment Branch, as with all Deployment Branches, are ignored, and will make creating a proper hotfix branch more difficult.  Applying changes to one or more Release Deployment Branches, simply redeploy the release into production, and the system is smart enough to figure out which microservices have changed and only redeploy those unless otherwise requested.
+Any other changes on the Release Deployment Branches, as with all Deployment Branches, are ignored, and will make creating a proper hotfix branch more difficult.  When applying changes to one or more Release Deployment Branches, simply redeploy the release into production, and the system is smart enough to figure out which microservices have changed and only redeploy those unless otherwise requested.
 
 ![Figure 6: Release Version Deployment Branch](images/release-version-branch.png)
 
 **Figure 6**
 
-_1. Development Branch of project_
-
-_2. **deployment-qa-8d7dh3g** Deployment Branch with one Deployment Patch_
-
-_3. **deployment-stg-8d7dh3g** Deployment Branch with one Deployment Patch_
-
-_4. Release Candidate Tag **1.0.0-8d7dh3g** at the HEAD of the Stg Deployment Branch_
-
-_5. Release Version Deployment Branch **v1.0.0-8d7dh3g** created when a Release Candidate is deployed to Prod._
+1. _Development Branch of project_
+1. _**deployment-qa-8d7dh3g** Deployment Branch with one Deployment Patch_
+1. _**deployment-stg-8d7dh3g** Deployment Branch with one Deployment Patch_
+1. _Release Candidate Tag **1.0.0-8d7dh3g** at the HEAD of the Stg Deployment Branch_
+1. _Release Version Deployment Branch **v1.0.0-8d7dh3g** created when a Release Candidate is deployed to Prod._
 
 Note that even though subsequent changes have been committed to the **deployment-stg-8d7dh3g** Deployment Branch after being tagged as a Release Candidate, the Release Deployment Branch is created at the commit where the tag was created.
 
@@ -656,32 +651,32 @@ Note that even though subsequent changes have been committed to the **deployment
 
 Images are named with the following convention:
 
-**<Project ID>-<microservice name>**
-* **<Project ID>:** the Project ID of the application
-* **<microservice name>:** name of the microservice as derived from the Git repository name to conform to OKD resource naming conventions
+**\<Project ID>-\<microservice name>**
+* **\<Project ID>:** the Project ID of the application
+* **\<microservice name>:** name of the microservice as derived from the Git repository name to conform to OKD resource naming conventions
 
-The Project ID comes from the name of file the project is defined in the Project Info Repository, and serves as an ID for the group of microservices that make up a project.  The _microservice name_ comes from the Git repository name the source code the microservice came from, modified to conform to OKD resource naming conventions.  In particular, underscores are converted to dashes, and all letters are made lowercase; e.g.
+The Project ID comes from the name of the [Project Definition File](#project-definition-file) defined in the Project Info Repository, and serves as an ID for the group of microservices that make up a project.  The _microservice name_ comes from the Git repository name of the source code the microservice came from, modified to conform to OKD resource naming conventions.  In particular, underscores are converted to dashes, and all letters are lowercased; e.g.
 
-* **_Git Repository Name:  Test_CICD_**
-* **_Microservice Name:  test-cicd_**
+* **_Git Repository Name:  Test_CICD1_**
+* **_Microservice Name:  test-cicd1_**
 
 #### Image Tagging Conventions
 
 ##### Dev Image Tag
 
-Images built to Dev are always tagged as _dev_, and there will be only a single version of an image built from source to Dev.  This is because versioning is expected to take place in the Source Repository, and Dev images are expected to reflect the latest delivered code in the Development Branch at all times.  For rollback/forward considerations of Dev images, you can either reset HEAD to an earlier or later commit and rebuild, or build manually from a commit hash in the [Build-to-Dev](#build-to-dev-pipeline) pipeline.
+Images built to Dev are always tagged as **_dev_**, and there will be only a single version of an image built from source to Dev.  This is because versioning is expected to take place in the Source Code Repository, and Dev images are expected to reflect the latest delivered code in the Development Branch at all times.  For rollback/forward considerations of Dev images, you can either reset HEAD to an earlier or later commit and rebuild, or build manually from a commit hash in the [Build-to-Dev](#build-to-dev-pipeline) pipeline.
 
 ##### Non-prod Environments
 
-Subsequent non-prod environments are given two tags.  The version currently deployed in the environment is simply tagged as the environment name; e.g. QA is tagged as _qa_, and Stg is tagged as _stg_.  The image is also given a separate tag in the following format:
+Subsequent Non-prod environments are given two tags.  The version currently deployed in the environment is simply tagged as the environment name; e.g. QA is tagged as **_qa_**, and Stg is tagged as **_stg_**.  The image is also given a separate tag in the following format:
 
-**<environment>-<src-commit-hash>**
-* **<environment>:** the lowercase environment name, such as qa for QA, or prod for Prod
-* **<src-commit-hash>:** the commit hash on the Development Branch where the image was built
+**\<environment>-\<src-commit-hash>**
+* **\<environment>:** the lowercase environment name, such as qa for QA, or prod for Prod
+* **\<src-commit-hash>:** the commit hash on the Development Branch where the image was built
 
 ##### Release Candidates
 
-Release Candidates are tagged in their Image Repository by there Release Candidate Tag; e.g. 1.0.0.
+Release Candidates are tagged in their Image Repository by their Release Candidate Tag; e.g. 1.0.0.
 
 ##### Prod Image Tag
 
@@ -689,7 +684,7 @@ Production images are tagged by prefixing their Release Candidate Tag with a **v
 
 **v<version tag>**
 * **v:** every release to production is prepended with a ‘v’ to delineate it from a Release Version
-* **<version tag>:** the Release Version Version tag [Deployment Patching](#deployment-patching)
+* **<version tag>:** the Release Candidate Tag
 
 So, *1.0.0* becomes **_v1.0.0_**.
 
@@ -699,7 +694,7 @@ Since many deployment resources are created and destroyed in OKD, a system of OK
 
 #### Deployment Resource Labeling
 
-Each deployment resource defined by the microservice in it’s Source Repository will have the following labels automatically attached to it on each deployment regardless of environment:
+Each deployment resource defined by the microservice in it’s Source Code Repository will have the following labels automatically attached to it on each deployment regardless of environment:
 
 * **project**: The Project ID from the Project Definition Repository
 * **microservice**: The microservice name, derived from the Git repository name to conform to OKD resource naming standards
@@ -862,7 +857,7 @@ This configuration file defines number of basic values needed to describe an el-
 #### el-CICD Basic info
 
 ```properties
-EL_CICD_NON_PROD_MASTER_NAMEPACE=el-cicd-non-prod-master
+EL_CICD_NON_PROD_MASTER_NAMEPACE=el-cicd-Non-prod-master
 EL_CICD_NON_PROD_MASTER_NODE_SELECTORS=
 
 EL_CICD_PROD_MASTER_NAMEPACE=el-cicd-prod-master
@@ -873,7 +868,7 @@ CLUSTER_WILDCARD_DOMAIN=my.cluster.com
 EL_CICD_META_INFO_NAME=el-cicd-meta-info
 ```
 
-This section describes the namespaces and node selectors of the engineering (non-prod) and production (prod) el-CICD [Onboarding Automation Servers](#onboarding-automation-server).  The clusters wildcard domain and the name of the ConfigMap that this configuration information will be stored on OKD are also here.
+This section describes the namespaces and node selectors of the engineering (Non-prod) and production (prod) el-CICD [Onboarding Automation Servers](#onboarding-automation-server).  The clusters wildcard domain and the name of the ConfigMap that this configuration information will be stored on OKD are also here.
 
 Note that except for the node selectors, for the most part this information can be left as is, unless you intend to install multiple instances on the same cluster, inc which case each will need it's own, unique namespace.  The wildcard domain is the exception, as each cluster will most likely have its own.
 
@@ -914,7 +909,7 @@ to add a writable deploy key and a webhook for automated builds for each microse
 ##### el-CICD Read Only Deploy Key Title
 
 ```properties
-EL_CICD_DEPLOY_NON_PROD_KEY_TITLE=el-cicd-non-prod-deploy-key
+EL_CICD_DEPLOY_NON_PROD_KEY_TITLE=el-cicd-Non-prod-deploy-key
 EL_CICD_DEPLOY_PROD_KEY_TITLE=el-cicd-prod-deploy-key
 ```
 
@@ -923,7 +918,7 @@ These deploy keys are the titles used to read only store access keys up on Git f
 #### Non-Prod and Prod Automation Server Namespace Postfix
 
 ```properties
-CICD_NON_PROD=cicd-non-prod
+CICD_NON_PROD=cicd-Non-prod
 CICD_PROD=cicd-prod
 ```
 
@@ -967,8 +962,8 @@ DEV_NODE_SELECTORS=
 <TEST_ENV>_IMAGE_REPO_DOMAIN=docker.io
 <TEST_ENV>_IMAGE_REPO_USERNAME=elcicdnonprod
 <TEST_ENV>_IMAGE_REPO=docker.io/elcicdnonprod
-<TEST_ENV>_IMAGE_REPO_PULL_SECRET=el-cicd-image-repo-non-prod-pull-secret
-<TEST_ENV>_IMAGE_REPO_ACCESS_TOKEN_ID=image-repo-non-prod-access-token
+<TEST_ENV>_IMAGE_REPO_PULL_SECRET=el-cicd-image-repo-Non-prod-pull-secret
+<TEST_ENV>_IMAGE_REPO_ACCESS_TOKEN_ID=image-repo-Non-prod-access-token
 <TEST_ENV>_NODE_SELECTORS=
 
 PROD_IMAGE_REPO_DOMAIN=docker.io
@@ -1036,11 +1031,11 @@ EL_CICD_GIT_REPO_ACCESS_TOKEN_FILE=../cicd-secrets/el-cicd-git-repo-access-token
 
 DEV_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-dev-pull-token
 
-QA_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-non-prod-pull-token
+QA_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-Non-prod-pull-token
 
-UAT_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-non-prod-pull-token
+UAT_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-Non-prod-pull-token
 
-STG_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-non-prod-pull-token
+STG_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-Non-prod-pull-token
 
 PROD_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-prod-pull-token
 ```
@@ -1069,7 +1064,7 @@ There are two bootstrap scripts, each for a Non-Prod and Prod Onboarding Automat
 
 A typical, minimal installation of OKD has three cluster, a lab cluster to test changes, a production quality cluster to support software development and/or application deployments, and a production quality cluster for running applications in production.  Many times more than one production cluster is deployed to support multiple regions and/or failover, or perhaps engineering groups don't share the same cluster during software development or testing.  The modularity of the bootstrap scripts allows for easy installation of el-CICD in as many clusters for as many purposes as needed.
 
-### el-cicd-non-prod-bootstrap.sh
+### el-cicd-Non-prod-bootstrap.sh
 
 The el-CICD Non-prod Automation Onboarding Server bootstrap script is for setting up a production CICD server for onboarding projects into a engineering OKD cluster.  Executing the script result in the following actions:
 
@@ -1287,7 +1282,7 @@ Sealed Secrets are not a necessity, and other strategies such as a vault may be 
 
 The following will describe each pipeline, and how to use them.
 
-![Figure 8: Build and Deploy Microservices](images/el-cicd-non-prod-master-onboarding.png)
+![Figure 8: Build and Deploy Microservices](images/el-cicd-Non-prod-master-onboarding.png)
 
 **Figure 8**
 _el-CICD Non-prod Automation Server pipelines_
@@ -1302,7 +1297,7 @@ _el-CICD Prod Automation Server pipelines_
 The project onboarding pipelines exist on the el-CICD master servers. All onboarding pipelines will do the following:
 
 * Create the RBAC group namespace for the Automation Server if it doesn't exist
-  * `<RBAC-group>-cicd-non-prod` or `<RBAC-group>-cicd-prod`
+  * `<RBAC-group>-cicd-Non-prod` or `<RBAC-group>-cicd-prod`
 * Create the Automation Server
 * Create all pipelines
   * Non-prod
@@ -1318,7 +1313,7 @@ The project onboarding pipelines exist on the el-CICD master servers. All onboar
 
 Note that these pipelines is designed to be remotely triggered and complete automatically if necessary.  This allows oganizations that create outside project management software to integrate seamlessly with el-CICD.
 
-![Figure 10: Non-prod Project Onboarding Pipeline](images/non-prod-project-onboarding-build.png)
+![Figure 10: Non-prod Project Onboarding Pipeline](images/Non-prod-project-onboarding-build.png)
 
 **Figure 10**
 _el-CICD Non-prod Project Onb pipelines_
@@ -1332,7 +1327,7 @@ _el-CICD Prod Automation Server pipelines_
 
 The following pipelines exist on the Non-prod Automation Server.  All except the [Build to Dev](#build-and-deploy-microservices) pipeline(s) are shared among all projects owned by the RBAC group controlling the server.  Only the Build to Dev pipelines are designed to be remotely triggered.  All other pipelines are designed such that human intervention is necessary for them to complete.
 
-![Figure 12: Non-prod Automation Server Pipelines](images/non-prod-automation-servier-pipelines.png)
+![Figure 12: Non-prod Automation Server Pipelines](images/Non-prod-automation-servier-pipelines.png)
 
 **Figure 12**
 _Non-prod Automation Server pipelines for RBC Group `devops` and project `test-cicd`_

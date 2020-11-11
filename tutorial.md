@@ -45,6 +45,54 @@ or send a letter to
   Mountain View, CA
       94042, USA
 ```
+# Table of Contents
+
+* [el-CICD Tutorial](#el-cicd-tutorial)
+  * [Preamble](#preamble)
+  * [License](#license)
+* [Table of Contents](#table-of-contents)
+  * [Minimum Requirements](#minimum-requirements)
+  * [Install and Setup CodeReady Containers (CRC)](#install-and-setup-codeready-containers-crc)
+    * [Download CRC and Deploy Key](#download-crc-and-deploy-key)
+        * [CURRENT TESTED VERSION OF CRC: **1.18**](#current-tested-version-of-crc-118)
+    * [Add the following to your .bashrc or .zshrc](#add-the-following-to-your-bashrc-or-zshrc)
+    * [For Fedora 33 Users **ONLY**](#for-fedora-33-users-only)
+    * [CRC Setup and Install](#crc-setup-and-install)
+  * [Setup, Configure, and Bootstrap el-CICD](#setup-configure-and-bootstrap-el-cicd)
+    * [Fork and Clone el-CICD Repositories](#fork-and-clone-el-cicd-repositories)
+    * [Create Image Repositories](#create-image-repositories)
+    * [Create the el-CICD Compatible Jenkins Agents](#create-the-el-cicd-compatible-jenkins-agents)
+    * [el-CICD Secrets](#el-cicd-secrets)
+      * [Create el-CICD Repo Read Only Private Keys](#create-el-cicd-repo-read-only-private-keys)
+      * [Gather el-CICD Access Token](#gather-el-cicd-access-token)
+      * [Gather Image Repo Access Tokens](#gather-image-repo-access-tokens)
+    * [el-cicd-bootstrap.config](#el-cicd-bootstrapconfig)
+    * [Bootstrapping the Non-prod Onboarding Automation Server](#bootstrapping-the-non-prod-onboarding-automation-server)
+      * [Setting Your Cluster's Sealed Secrets Decryption Key](#setting-your-clusters-sealed-secrets-decryption-key)
+  * [Onboarding a Project Into the Engineering Cluster](#onboarding-a-project-into-the-engineering-cluster)
+    * [Access the Non-prod Onboarding Automation Server](#access-the-non-prod-onboarding-automation-server)
+    * [Onboarding the Test-CICD Project](#onboarding-the-test-cicd-project)
+      * [Confirm the Configuration of the `test-cicd` Project in Jenkins](#confirm-the-configuration-of-the-test-cicd-project-in-jenkins)
+      * [Confirm the Configuration of the `test-cicd` Project in GitHub](#confirm-the-configuration-of-the-test-cicd-project-in-github)
+  * [Non-prod SDLC Support](#non-prod-sdlc-support)
+    * [Building the Project](#building-the-project)
+    * [Promoting Microservices](#promoting-microservices)
+    * [Redeploying Microservices](#redeploying-microservices)
+    * [Image Roll Back and Roll Forward](#image-roll-back-and-roll-forward)
+      * [Build](#build)
+      * [Promote](#promote)
+      * [Rollback](#rollback)
+    * [Create the Release Candidates](#create-the-release-candidates)
+  * [Bootstrapping the Prod Onboarding Automation Server](#bootstrapping-the-prod-onboarding-automation-server)
+  * [Onboarding a Project Into the Production Cluster](#onboarding-a-project-into-the-production-cluster)
+    * [Access the Prod Onboarding Automation Server](#access-the-prod-onboarding-automation-server)
+    * [Onboarding the Test-CICD Project](#onboarding-the-test-cicd-project-1)
+      * [Confirm the Configuration of the `test-cicd` Project in Jenkins](#confirm-the-configuration-of-the-test-cicd-project-in-jenkins-1)
+      * [Confirm the Configuration of the `test-cicd` Project in GitHub](#confirm-the-configuration-of-the-test-cicd-project-in-github-1)
+  * [Prod SDLC Support](#prod-sdlc-support)
+      * [Deploy Version 1.0](#deploy-version-10)
+      * [Deploy Version 1.1](#deploy-version-11)
+      * [Rollback to Version 1.0](#rollback-to-version-10)
 
 ## Minimum Requirements
 
@@ -92,41 +140,60 @@ _CRC install directory structure with pull-secrets file and original *.tar.xz CR
 
 ### Add the following to your .bashrc or .zshrc
 
-You may remove this after the demo, but these helper scripts make things easier so you don't have to deal directly with the pull secret during multiple logins or the `crc` CLI options.  If you wish to change the allocation of vCPUs, memory, or disk space of the VM, adjust the values `CRC_V_CPU`, `CRC_MEMORY`, `CRC_DISK_SIZE` appropriately.
+You may remove this after the demo, but these helper scripts make things easier so you don't have to deal directly with the pull secret during multiple logins or the `crc` CLI options, and tab completion for the OKD CLI will be automatically enabled.  If you wish to change the allocation of vCPUs, memory, or disk space of the VM, adjust the values `CRC_V_CPU`, `CRC_MEMORY`, `CRC_DISK_SIZE` appropriately.
 
 You will also need to check that the path to your `CRC_INSTALL_DIR` is properly set to wherever you chose to install CRC.
 
 ```
-    CRC_INSTALL_DIR=${HOME}/dev
+    CRC_INSTALL_DIR=<crc-install-directory>
 
     # PREFERRED CRC OPTIONS
     # MINUMUM VALUES ARE 6 vCPUs and 36864M memory
-    CRC_V_CPU=16
-    CRC_MEMORY=98304
+    # PREFERRED VALUES ARE 12 CORES and 48G memory
+    # 100G DISK
+    CRC_V_CPU=12
+    CRC_MEMORY=49152
+    CRC_DISK=100
 
     CRC_SHELL=zsh
 
-    if [[ -f ~/.crc/machines/crc/crc.qcow2 ]]
-    then
+    function eval-oc-env() {
         eval $(crc oc-env)
         source <(oc completion ${CRC_SHELL})
+    }
+    
+    if [[ -f ~/.crc/machines/crc/crc.qcow2 ]]
+    then
+        eval-oc-env
     fi
 
     function crc-setup() {
         crc setup
         echo ''
+        echo 'Initial start of CRC'
+        echo ''
         crc-start
+        echo ''
+        echo ' Shutting down CRC for disk resize'
         echo ''
         crc stop
         echo ''
-        qemu-img resize ${HOME}/.crc/machines/crc/crc.qcow2 +100G
+        echo 'Resizing disk...'
+        echo''
+        qemu-img resize ${HOME}/.crc/machines/crc/crc.qcow2 +${CRC_DISK}G
         sed -i 's/"DiskCapacity": 33285996544,/"DiskCapacity": 140660178944,/' ${HOME}/.crc/machines/crc/config.json
         echo ''
+        echo 'Restarting CRC with disk properly resized'
+        echo''
         crc-start
+        echo ''
+        echo 'Adding oc autocompletion'
+        echo ''
+        eval-oc-env
     }
-    
+
     function crc-start() {
-        echo "Starting CRC with ${CRC_V_CPU} vCPUs, ${CRC_MEMORY}M memory"
+        echo "Starting CRC with ${CRC_V_CPU} vCPUs, ${CRC_MEMORY}M memory, and ${CRC_DISK}G disk"
         echo "If you want to change the above values, run 'crc delete' and recreate the VM from scratch."
         echo ''
 
@@ -202,8 +269,10 @@ Your system should now properly pick up the CRC network when trying to access de
 
 Run
 
-```
-    crc-setup # PAY ATTENTION TO THE DASH!!
+``` 
+    # PAY ATTENTION TO THE DASH IN THE COMMAND!!
+    # Does the extra work needed to properly size the CRC VM
+    crc-setup
 ```
 
 This will complete initial setup, create the virtual machine image for CRC with the requested vCPUs and memory, resize the virtual disk, and start the CRC VM for use.
@@ -217,7 +286,10 @@ To stop the CRC VM, use
 To start it up again
 
 ```
-    crc-start  # PAY ATTENTION TO THE DASH!!  Uses the pull secret automatically
+    # PAY ATTENTION TO THE DASH IN THE COMMAND!!
+    # Uses the pull secret automatically
+    # Copies it to the clipboard for easy login through apps or console in browser
+    crc-start
 ```
 
 ## Setup, Configure, and Bootstrap el-CICD
@@ -300,7 +372,7 @@ From the el-CICD directory run the following shell script
 
 This script will create a base agent to run the shared pipelines, and agents for building python, R, and Java programs.  All hold the extra tools needed, such as `skopeo` and `kustomize` needed to integrate with el-CICD.  Depending on your network speed, it can take up to 30 minutes for all images to be created.
 
-To see how these Agents are tied into the el-CICD Build Framework, take a look at the file `vars/elCicdNode.groovy` in the `el-CICD-utils` repository.  This utility defines the Agent using the Jenkins Kubernetes plugin, and at the top is a map from the Project Definitions File's _codebase_ to the Jenkins Agent images required for the build.  Should you wish to add new build definitions to your installation, you will create a new Agent image as above, and map the _codebase_ key to the to your agent image.
+To see how these Agents are tied into the el-CICD Build Framework, take a look at the file `vars/elCicdNode.groovy` in the `el-CICD-utils` repository.  This utility defines the Agent using the Jenkins Kubernetes plugin, and at the top is a map from the Project Definition File's _codebase_ to the Jenkins Agent images required for the build.  Should you wish to add new build definitions to your installation, you will create a new Agent image as above, and map the _codebase_ key to the to your agent image.
 
 
 ![Figure 3: code bases mapped to their Jenkins Agents](tutorial-images/microservices-project-defintion-file.png)
