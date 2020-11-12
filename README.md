@@ -884,63 +884,62 @@ The above snippet from the [Project Definition File](#project-definition-file) e
 
 ## Configuration
 
-Before initially deploying el-CICD and after forking the el-CICD repositories, el-CICD needs to be configured.  At it's most fundamental, this requires defining which test environments your engineering cluster will support, the cluster's wildcard domain, deciding which image repositories will back each environment, gathering the Git and image repository tokens as secrets for access, and sizing information for your Jenkins instances.
+After forking the el-CICD repositories, el-CICD needs to be configured.  This requires defining which such information as test environments your engineering cluster will support, specifying the cluster's wildcard domain, creating and/or deciding which image repositories will back each environment, gathering the Git and Image Repository tokens as secrets for access, and sizing information for your Jenkins instances.
 
 ### el-cicd-bootstrap.config
 
-This configuration file defines number of basic values needed to describe an el-CICD installation, as well as defining your systems supported environments and promotion flow, among other things.  The files are sourced when running either bootstrap shell script for the Onboarding Automation Servers, and then used to create a Configmap holding this information in every CICD Jenkins namespace subsequently created by the system.  Note that all credentials ids for Jenkins or titles for deploy keys on Git will be pushed by el-CICD into their respective systems.
+This configuration file defines most of the values needed to configure an el-CICD installation, as well as defining your systems supported environments and promotion flow, among other things.  The files are sourced when running either bootstrap shell script for the Onboarding Automation Servers, and then used to create a ConfigMap holding this information in every CICD Jenkins namespace subsequently created by the system.
 
 #### el-CICD Basic info
 
 ```properties
-EL_CICD_NON_PROD_MASTER_NAMEPACE=el-cicd-non-prod-master
-EL_CICD_NON_PROD_MASTER_NODE_SELECTORS=
+  EL_CICD_NON_PROD_MASTER_NAMEPACE=el-cicd-non-prod-master
+  EL_CICD_NON_PROD_MASTER_NODE_SELECTORS=
 
-EL_CICD_PROD_MASTER_NAMEPACE=el-cicd-prod-master
-EL_CICD_PROD_MASTER_NODE_SELECTORS=
+  EL_CICD_PROD_MASTER_NAMEPACE=el-cicd-prod-master
+  EL_CICD_PROD_MASTER_NODE_SELECTORS=
 
-CLUSTER_WILDCARD_DOMAIN=my.cluster.com
+  CLUSTER_WILDCARD_DOMAIN=my.cluster.com
 
-EL_CICD_META_INFO_NAME=el-cicd-meta-info
+  EL_CICD_META_INFO_NAME=el-cicd-meta-info
 ```
 
-This section describes the namespaces and node selectors of the engineering (Non-prod) and production (prod) el-CICD [Onboarding Automation Servers](#onboarding-automation-server).  The clusters wildcard domain and the name of the ConfigMap that this configuration information will be stored on OKD are also here.
+This section describes the namespaces and node selectors of the engineering (Non-prod) and production (Prod) el-CICD [Onboarding Automation Servers](#onboarding-automation-server).  The clusters wildcard domain and the name of the ConfigMap that this configuration information will be stored on OKD are also here.
 
 Note that except for the node selectors, for the most part this information can be left as is, unless you intend to install multiple instances on the same cluster, inc which case each will need it's own, unique namespace.  The wildcard domain is the exception, as each cluster will most likely have its own.
 
 #### Git Repository Information
 
 ```properties
-GIT_CREDS_POSTFIX=github-private-key
+  GIT_CREDS_POSTFIX=github-private-key
 
-EL_CICD_GIT_REPO=git@github.com:hippyod/el-CICD.git
-EL_CICD_BRANCH_NAME=development
-EL_CICD_READ_ONLY_GITHUB_PRIVATE_KEY_ID=el-cicd-read-only-github-private-key
+  EL_CICD_GIT_REPO=git@github.com:hippyod/el-CICD.git
+  EL_CICD_BRANCH_NAME=master
+  EL_CICD_READ_ONLY_GITHUB_PRIVATE_KEY_ID=el-cicd-read-only-github-private-key
 
-EL_CICD_UTILS_GIT_REPO=git@github.com:hippyod/el-CICD-utils.git
-EL_CICD_UTILS_BRANCH_NAME=development
-EL_CICD_UTILS_READ_ONLY_GITHUB_PRIVATE_KEY_ID=el-cicd-utils-read-only-github-private-key
+  EL_CICD_UTILS_GIT_REPO=git@github.com:hippyod/el-CICD-utils.git
+  EL_CICD_UTILS_BRANCH_NAME=master
+  EL_CICD_UTILS_READ_ONLY_GITHUB_PRIVATE_KEY_ID=el-cicd-utils-read-only-github-private-key
 
-EL_CICD_PROJECT_INFO_REPOSITORY=git@github.com:hippyod/el-CICD-project-repository.git
-EL_CICD_PROJECT_INFO_REPOSITORY_BRANCH_NAME=development
-EL_CICD_PROJECT_INFO_REPOSITORY_READ_ONLY_GITHUB_PRIVATE_KEY_ID=el-cicd-project-info-repository-github-private-key
+  EL_CICD_PROJECT_INFO_REPOSITORY=git@github.com:hippyod/el-CICD-project-repository.git
+  EL_CICD_PROJECT_INFO_REPOSITORY_BRANCH_NAME=master
+  EL_CICD_PROJECT_INFO_REPOSITORY_READ_ONLY_GITHUB_PRIVATE_KEY_ID=el-cicd-project-info-repository-github-private-key
 
-GIT_SITE_WIDE_ACCESS_TOKEN_ID=git-site-wide-access-token
+  GIT_SITE_WIDE_ACCESS_TOKEN_ID=git-site-wide-access-token
 ```
 
-This section of the configuration file covers the location of the Git repositories el-CICD, el-CICD-utils, and el-CICD-project-repository.  All will need to be updated to match where you have decided to fork these repositories, as each is cloned for every pipeline run.
+This section of the configuration file covers the location of the Git repositories [el-CICD](#el-cicd-repository) [el-CICD-utils](#el-cicd-utils-repository) and [el-CICD-project-repository](#el-cicd-project-repository)  All will need to be updated to match where you have decided to fork these repositories, as each is cloned for every pipeline run.
 
-* **GIT_CREDS_POSTFIX**
+* **GIT_CREDS_POSTFIX**  
 This is appended to all credential ids stored in Jenkins that are generated by el-CICD pipelines.
-* ***_GIT_REPO**
+* ***_GIT_REPO**  
 The url of the el-CICD Git repositories.
-* ***_REPOSITORY_BRANCH_NAME**
+* ***_REPOSITORY_BRANCH_NAME**  
 These variables define the branch to check out for each el-CICD repository.
-* ***_READ_ONLY_GITHUB_PRIVATE_KEY**
+* ***_READ_ONLY_GITHUB_PRIVATE_KEY**  
 These Jenkins credential ids are passed onto project specific Jenkins for read only access to the el-CICD repositories for each Non-prod and Prod Automation Server.
-* **GIT_SITE_WIDE_ACCESS_TOKEN_ID**
-This token will store an administrative service account token for access to all project Git repositories.  This is needed in order
-to add a writable deploy key and a webhook for automated builds for each microservice Git repository.  More on this will be described below in the [el-cicd-secrets.config](#el-cicd-secrets.config)
+* **GIT_SITE_WIDE_ACCESS_TOKEN_ID**  
+This token will store an administrative service account token for access to all project Git repositories.  This is needed in order to add a writable deploy key and a webhook for automated builds for each microservice Git repository.  More on this will be described below in the [el-cicd-secrets.config](#el-cicd-secrets-config)
 
 ##### el-CICD Read Only Deploy Key Title
 
