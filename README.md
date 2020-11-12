@@ -174,7 +174,7 @@ Features not supported, but on the immediate investigate/TODO list:
       * [Enabled Test Environments](#enabled-test-environments)
       * [Sandbox Environments](#sandbox-environments)
   * [Builder Framework](#builder-framework)
-    * [Builder images](#builder-images)
+    * [Jenkins Agents](#jenkins-agents)
     * [elCicdNode.groovy](#elcicdnodegroovy)
     * [_builder-steps_ Directory](#builder-steps-directory)
       * [Code Base Folders](#code-base-folders)
@@ -191,7 +191,7 @@ Features not supported, but on the immediate investigate/TODO list:
       * [Other](#other)
     * [Permissions](#permissions)
   * [Deployment](#deployment)
-    * [el-cicd-Non-prod-bootstrap.sh](#el-cicd-non-prod-bootstrapsh)
+    * [el-cicd-non-prod-bootstrap.sh](#el-cicd-non-prod-bootstrapsh)
     * [el-cicd-prod-bootstrap.sh](#el-cicd-prod-bootstrapsh)
     * [el-cicd-post-github-read-only-deploy-keys.sh](#el-cicd-post-github-read-only-deploy-keyssh)
 * [Developer Integration](#developer-integration)
@@ -244,7 +244,7 @@ A SDLC typically includes a number of deployment phases before ultimately being 
 
 Environments are a key concept that needs to be supported by any CICD system.  While deployments to each environment should ideally be exactly the same from Dev to Prod, there are many reasons why this is rarely true based on need and other practical matters; however, best practices are to design deployments to each environment as close to production as possible, and the closer to a production environment a deployment gets the closer the environment should resemble production.  While not always the case, environments are usually organized as a linear sequence; e.g. from Dev to QA  to Stage to Prod.  el-CICD supports a configurable, linear sequence of environments, with a few exceptions to be described below.
 
-![Figure 1: Enviroment Flow](images/enviroments.png)
+![Figure 1: Environment Flow](images/enviroments.png)
 
 **Figure 1**  
  _Environment flow from SCM Git to Prod_
@@ -690,7 +690,7 @@ So, *1.0.0* becomes **_v1.0.0_**.
 
 ### Deployment Metadata Resources
 
-Since many deployment resources are created and destroyed in OKD, a system of OKD resources hold metadata are needed to facilitate maintenance and knowing what is actually deployed for each microservice.
+Since many deployment resources are created and destroyed in OKD per each deployment of a microservice, el-CICD maintains a lightweight set of metadata for microservice and application to facilitate deployment resource management.
 
 #### Deployment Resource Labeling
 
@@ -702,15 +702,15 @@ Each deployment resource defined by the microservice in it’s Source Code Repos
 * **src-commit-hash**: The source commit hash the deployed image was built from on the Development Branch
 * **deployment-branch**: The Deployment Branch from which the deployment resource for the currently deployed image was defined
 * **deployment-commit-hash**: The deployment commit hash on the Deployment Branch that was holds the source to the current deployment resource definitions
-* **release-version**: The Release Version Tag, if in production; the value will be _undefined_ in any other environment outside of production
+* **release-version**: The Release Version Tag, if in production; the value will be _undefined_ in any other environment outside of Prod
 
 #### Microservice Runtime Meta-Info
 
-Each deployment of a microservice will automatically have created and deployed an OKD ConfigMap that contains data and labels mirroring the labels defined in the previous section, and it will be named using the following format:
+Each deployment of a microservice will automatically have created and deployed an OKD ConfigMap that contains data and labels that mirror the microservice meta-information defined in the previous section, and it will be named using the following format:
 
 **<Project ID>-<microservice name>-meta-info**
 
-* **<Project ID>:** the Project ID of the application
+* **<Project ID>:** the Project ID of the application, per OKD resource naming rules
 * **<microservice name>:** name of the microservice as derived from the Git repository name to conform to OKD resource naming conventions
 
 #### Project Meta-Info
@@ -724,11 +724,11 @@ This resource will only exist in Prod.
 
 # Deployment and Configuration
 
-While OKD is el-CICD's home, it's functional heart is Jenkins.  This document will not address anything regarding OKD administration outside of few details needed for configuring el-CICD.  This document will also not cover Jenkins administration, which can be found on the Jenkins site linked to above, but nothing should need to be done with regards Jenkins administration directly.   The system should be fully automated in this regard from bootstrapping to installing pipelines and necessary credentials based on an organization's needs.
+While OKD is el-CICD's home, it's functional heart is Jenkins.  This document will not address anything regarding OKD administration outside of few details needed for configuring el-CICD.  This document will also not cover Jenkins administration, which can be found on the Jenkins site linked to above, but nothing should need to be done with regards Jenkins administration directly.   The system should be fully automated in this regard from bootstrapping to installing pipelines and necessary credentials based on an organization's needs.  Other concerns such as maintenance patching of images are outside the scope of el-CICD.
 
 ## el-CICD Project Structure
 
-The el-CICD system is made up of two functional repositories, one project data repository, and one documentation repository, and each is described below.  el-CICD is meant to be configured per install, and have it's functionality extended or configured as needed by it's users.  **Each repository should be forked into the organizations own Git repository**, or created from scratch in the case of the _el-CICD-project-repository_.
+The el-CICD system is made up of two functional repositories, a project data repository, and a documentation repository, and each is described below.  el-CICD is meant to be configured per install, and have it's functionality extended or configured as needed by it's users.  **Each repository should be forked into the organizations own Git repository**, or created from scratch in the case of the [el-CICD-project-repository](#el-cicd-project-repository)
 
 ## el-CICD Repository
 
@@ -739,17 +739,17 @@ This repository holds the following content:
 * **root Directory**
 Bootstrap scripts and configuration files.
 * **agent Directory**
-Holds some Dockerfiles for base Jenkins agents that can be optionally used.
+Holds some Dockerfiles for base Jenkins agents that can be optionally used.  Also contains a script for building all of the default agents.
 * **buildconfigs Directory**
 OKD BuildConfig Templates for all Jenkins pipelines in the system.
 * **builder-steps Directory**
-Holds all utility files for the build supporting each codebases builder, tester, and scanner el-CICD utiltiy.
+Holds the files that define each codebase's builder(s), tester(s), and scanner(s) utilities.
 * **resources Directory**
 A number of script style templates used throughout the system for deploying el-CICD and deploying applications.
 * **templates Directory**
-OKD ConfigMap templates  for microservice and project metadata.
+OKD ConfigMap templates for microservice and project metadata in the form of ConfigMap OKD templates.
 
-The el-CICD repository is pulled on almost every pipeline run for used of the resources and templates.
+The el-CICD repository is pulled on almost every pipeline run for used of the resources and templates.  It is also the directory in which bootstrapping Onboarding Automation Servers takes place.
 
 ## el-CICD-utils Repository
 
@@ -757,24 +757,24 @@ This repository constitutes a [Jenkins Shared Library]([https://www.jenkins.io/d
 
 This repository holds the following content:
 
-* **vars Directory**
-Standards global variable directory for a Jenkins Shared Library.  This design allowed all utilities and Jenkins step extensions to be loaded as globally accessible variable, and easily used among each other.
+* **vars Directory**  
+  Standards global variable directory for a Jenkins Shared Library.
+  
+This design allowed all utilities and Jenkins step extensions to be loaded as globally accessible variables, and easily used among each other.
 
 ### Standardization and the Speed of Change
 
-el-CICD is very opinionated on standardizing builds across projects.  This makes it easier for organizations to manage a large number of projects without increasing the level of complexity or maintenance costs of managing a CICD system.  By keeping most the runtime functional aspects of the CICD system on Git, besides the usual versioning benefits, it makes pushing updates and changes in the build system almost immediate.  Any functional changes committed to the branch the el-CICD is pulling from when running a pipeline will be immediately felt upon the next run of the effected pipeline(s), and transparent to the end users.
+el-CICD is very opinionated on standardizing builds across projects.  This makes it easier for organizations to manage a large number of projects without increasing the level of complexity or maintenance costs of managing a CICD system.  Besides the usual versioning benefits, keeping most the runtime functional aspects of the CICD system on Git makes pushing updates and changes in the build system immediate.  Any functional changes committed to the branch el-CICD is pulling from when running a pipeline will be immediately executed upon the next run of the effected pipeline(s).
 
-This also keeps the system mostly transparent to those in developer and tester roles on their projects.  Developers and testers should be focused on meeting the business requirements, and not have to worry about the CICD system or how to configure it.  That is more the responsibility of someone in a DevOps role.
+This strategy keeps changes to the system mostly transparent to those in developer and tester.  Developers and testers should be focused on meeting business requirements, and not have to worry about lower level tools such as the CICD system or how to configure it.  That is more the responsibility of someone in a DevOps role.
 
 ## el-CICD-project-repository
 
-The _el-CICD-project-repository's_purpose is to define each project's structure and act as the Project Definition Repository.  This includes each microservice and it's location and codebase, the name of the standard Git branch each microservice will use as a development branch, which test environments the project doesn't need to support, and how many sandbox environments the project needs.
+The _el-CICD-project-repository's_ purpose is to version every [Project Definition File](#project-definition-file) the CICD system will manage.  This allows for the versioning of project definitions over time, and provides an easy and flexible point for external project databases to integrate with the CICD system and introduce new applications for the system to manage.  For simplicity, the structure of the repository is flat, so all projects will be defined in the root of the el-CICD-project-repository.
 
 ### Project Definition File
 
-For simplicity, the structure of the repository is flat, so all projects will be defined in the root of the el-CICD-project-repository.  Each project will have a separate YAML or JSON file, and **the name of the file must match the project's name.**
-
-The Project Definition File defines each project.  It can be written in either YAML or JSON, must be names the same as the project, and has the following content:
+The Project Definition File is a file that defines each project, and **the name of the file must match the project's name.**.  It can be written in either YAML or JSON, must be names the same as the project, and has the following content:
 
 ```yaml
 rbacGroup: devops                    # The OKD RBAC group the project belongs to
@@ -790,8 +790,8 @@ microServices:                       # List of microservices in project
   codeBase: java-maven
   active: true
 enabledTestEnvs:
-  - qa                               # Unordered list of test environments
-  - stg
+- qa                                 # Unordered list of test environments
+- stg
 sandboxEnvs: 5                       # Number of sandboxes needed
 ```
 
@@ -799,32 +799,31 @@ This file will be processed every time the project is referenced or built in a p
 
 #### OKD RBAC Groups
 
-Regardless of how you configure OKD for user authentication, either connecting to a corporate LDAP or simple htpasswd, el-CICD projects leverage groups as owners of projects.  Each project must have group defined to be an owner, and the group will be registered as an admin for all OKD namespaces in the project, one per environment.
+Regardless of how you configure OKD for user authentication with an identity provider, el-CICD projects leverage groups as owners of projects.  Each project must have a group defined to be an owner, and the group will be registered as an admin for all OKD namespaces in the project, one per environment.
 
 #### Git Project information
 
 The project must define the SCM (Git) host and organization of the project.  All microservices are assumed to be on the same host and collected in the same organization.
 
-The project may only define a single Git branch name per project, and all microservices are expected to use it.  This branch will be used to trigger builds and used to build the project by default, and all Deployment Branches will be branched from the correct commit hash off this branched.
+In order to encourage good practices and standardization within a project, the project may only define one [Development Branch](#development-branch) name, and all microservices are expected to use it.  Committing to this branch will trigger builds, and the [Deployment Branch](#deployment-branch) for each microservice when first promoted out of Dev will be created from this branch.
 
 #### Microservices
 
-All microservices belonging to the project will be listed here.  Specific information will be
+All microservices (aka Components for more traditional, monolithic applications) belonging to the project will be listed here.  Specific information will be
 
 * the Git repo, from which the microservice name in the system is derived)
 * the codebase of the microservice, which drives how the system will build the microservice
 * By default the build framework will look for build utility files with the following names
-  * builder
-  * tester
-  * scanner
-  * Overrides will name the override utility with any of the above names
-  * If you're utility files match the names, there is no need to define them
-* Whether the microservice is still active or not
-  * Projects replace components regularly, but different supported versions may still use developmentally inactive components; flagging them is good practice
+  * builder.groovy
+  * tester.groovy
+  * scanner.groovy
+  * To override any of these [see below](#builder-framework)
+* Whether the microservice is still active or not  
+  Projects replace components regularly, but different supported versions may still use developmentally inactive components; flagging them rather than outright removing them is good practice
 
 #### Enabled Test Environments
 
-el-CICD expects all environments to be defined before bootstrapping the system, but not all projects will need every test environment available.  This feature allows projects to define the test environments it needs.   Only Dev and Prod are required for all projects.
+el-CICD expects all environments to be defined before bootstrapping the system, but not all projects will need every test environment available.  This feature allows projects to whitelist the test environments it needs.   Only Dev, Prod, and at least one test environment are required for all projects.  Not whitelisting a test environment will default in selecting the first one in the list of [available test environments](#general-environment-information).
 
 #### Sandbox Environments
 
@@ -832,19 +831,56 @@ The number sandbox environments needed by the project.
 
 ## Builder Framework
 
-el-CICD can support any combination of build, test, and scanning.  The following will describe the el-CICD's Builder Framework, and how to extend it as needed.
+el-CICD can support any combination of build, test, and scanning per codebase.  The following will describe the el-CICD's Builder Framework, and how to extend it as needed.
 
-### Builder images
+### Jenkins Agents
+
+Each [codebase](#code-base) will be mapped to specific Jenkins Agent where code will be built.  There will also be a generic, base agent defined that should hold shared tools like [Git](#git), [kustomize](#kustomize), and [skopeo](#skopeo).
 
 ### elCicdNode.groovy
 
-Describe builder images needed
+This utility file defines how Jenkins kubernetes-plugin should us all Jenkins Agents, and the map between the codebase and the Jenkins Agent.  By default, el-CICD defines four agents, shown below.  To add a new agent for a particular codebase, add to this map, codebase to image.
+
+```groovy
+@groovy.transform.Field
+agentDefs = [base: 'image-registry.openshift-image-registry.svc:5000/openshift/jenkins-agent-el-cicd-base:latest',
+             'java-maven': 'image-registry.openshift-image-registry.svc:5000/openshift/jenkins-agent-java-maven:latest',
+             'r-lang': 'image-registry.openshift-image-registry.svc:5000/openshift/jenkins-agent-r-lang:latest',
+             python: 'image-registry.openshift-image-registry.svc:5000/openshift/jenkins-agent-python:latest']
+```
 
 ### _builder-steps_ Directory
 
+The **_builder-steps_** directory holds the functional files that are loaded and executed for each build.
+
+
+![Figure 7: The builder-steps Directory](images/builder-steps-directory.png)
+
+**Figure 7**  
+ _The builder-steps directory_
+
 #### Code Base Folders
 
+Each codebase must have a folder of the same name.created in the _builder-steps_ directory, and it must contain at least one builder, tester, and scanner script for the codebase to execute when building.  Even if the codebase doesn't execute the step, an empty script must be defined for the component.  The folders many also contain other folders or files to support builds; e.g. in Figure 7 above, the `r-lang` codebase has a `resources` folder for holding files defining linting instructions.
+
 #### Build Scripts
+
+The builder framework is made up of three basic steps for each Build: building, testing, and scanning.  By default, the framework will look inside the codebase folder and look for the following files for each step:
+
+* **Building**: `builder.groovy`
+* **Testing**: `tester.groovy`
+* **Scanning**: `scanner.groovy`
+
+For microservices defined in a [Project Definition File](#project-definition-file), there is no need to specifically name any of the defaults.  If a step is to be overridden by a file that does not follow the above naming conventions, then it does have to be named:
+
+```yaml
+- gitRepoName: Test-CICD1            # The Git repository name of the microservce
+  codeBase: python                   # The codebase to build the microservice
+  tester: pytest                     # Overridden tester to use during builds
+  active: true                       # If the microservice is active or not
+```
+
+The above snippet from the [Project Definition File](#project-definition-file) example above specifies that the `pytest.groovy` script (found in the `python` codebase folder) should be executed during the testing step of the build.
 
 ## Configuration
 
@@ -857,7 +893,7 @@ This configuration file defines number of basic values needed to describe an el-
 #### el-CICD Basic info
 
 ```properties
-EL_CICD_NON_PROD_MASTER_NAMEPACE=el-cicd-Non-prod-master
+EL_CICD_NON_PROD_MASTER_NAMEPACE=el-cicd-non-prod-master
 EL_CICD_NON_PROD_MASTER_NODE_SELECTORS=
 
 EL_CICD_PROD_MASTER_NAMEPACE=el-cicd-prod-master
@@ -909,7 +945,7 @@ to add a writable deploy key and a webhook for automated builds for each microse
 ##### el-CICD Read Only Deploy Key Title
 
 ```properties
-EL_CICD_DEPLOY_NON_PROD_KEY_TITLE=el-cicd-Non-prod-deploy-key
+EL_CICD_DEPLOY_NON_PROD_KEY_TITLE=el-cicd-non-prod-deploy-key
 EL_CICD_DEPLOY_PROD_KEY_TITLE=el-cicd-prod-deploy-key
 ```
 
@@ -962,8 +998,8 @@ DEV_NODE_SELECTORS=
 <TEST_ENV>_IMAGE_REPO_DOMAIN=docker.io
 <TEST_ENV>_IMAGE_REPO_USERNAME=elcicdnonprod
 <TEST_ENV>_IMAGE_REPO=docker.io/elcicdnonprod
-<TEST_ENV>_IMAGE_REPO_PULL_SECRET=el-cicd-image-repo-Non-prod-pull-secret
-<TEST_ENV>_IMAGE_REPO_ACCESS_TOKEN_ID=image-repo-Non-prod-access-token
+<TEST_ENV>_IMAGE_REPO_PULL_SECRET=el-cicd-image-repo-non-prod-pull-secret
+<TEST_ENV>_IMAGE_REPO_ACCESS_TOKEN_ID=image-repo-non-prod-access-token
 <TEST_ENV>_NODE_SELECTORS=
 
 PROD_IMAGE_REPO_DOMAIN=docker.io
@@ -1031,11 +1067,11 @@ EL_CICD_GIT_REPO_ACCESS_TOKEN_FILE=../cicd-secrets/el-cicd-git-repo-access-token
 
 DEV_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-dev-pull-token
 
-QA_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-Non-prod-pull-token
+QA_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-non-prod-pull-token
 
-UAT_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-Non-prod-pull-token
+UAT_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-non-prod-pull-token
 
-STG_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-Non-prod-pull-token
+STG_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-non-prod-pull-token
 
 PROD_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-prod-pull-token
 ```
@@ -1064,7 +1100,7 @@ There are two bootstrap scripts, each for a Non-Prod and Prod Onboarding Automat
 
 A typical, minimal installation of OKD has three cluster, a lab cluster to test changes, a production quality cluster to support software development and/or application deployments, and a production quality cluster for running applications in production.  Many times more than one production cluster is deployed to support multiple regions and/or failover, or perhaps engineering groups don't share the same cluster during software development or testing.  The modularity of the bootstrap scripts allows for easy installation of el-CICD in as many clusters for as many purposes as needed.
 
-### el-cicd-Non-prod-bootstrap.sh
+### el-cicd-non-prod-bootstrap.sh
 
 The el-CICD Non-prod Automation Onboarding Server bootstrap script is for setting up a production CICD server for onboarding projects into a engineering OKD cluster.  Executing the script result in the following actions:
 
@@ -1118,9 +1154,9 @@ OKD Template reuse and patching via kustomize is relied on heavily for ease of u
 
 ## The ._openshift_ Directory
 
-![Figure 7: The .openshift Directory](images/openshift-directory.png)
+![Figure 8: The .openshift Directory](images/openshift-directory.png)
 
-**Figure 7**  
+**Figure 8**  
  _The .openshift directory_
 
 ### Structure
@@ -1282,14 +1318,14 @@ Sealed Secrets are not a necessity, and other strategies such as a vault may be 
 
 The following will describe each pipeline, and how to use them.
 
-![Figure 8: Build and Deploy Microservices](images/el-cicd-Non-prod-master-onboarding.png)
-
-**Figure 8**
-_el-CICD Non-prod Automation Server pipelines_
-
-![Figure 9: Build and Deploy Microservices](images/el-cicd-prod-master-onboarding.png)
+![Figure 9: Build and Deploy Microservices](images/el-cicd-non-prod-master-onboarding.png)
 
 **Figure 9**
+_el-CICD Non-prod Automation Server pipelines_
+
+![Figure 10: Build and Deploy Microservices](images/el-cicd-prod-master-onboarding.png)
+
+**Figure 10**
 _el-CICD Prod Automation Server pipelines_
 
 ## Project Onboarding Pipelines
@@ -1313,23 +1349,23 @@ The project onboarding pipelines exist on the el-CICD master servers. All onboar
 
 Note that these pipelines is designed to be remotely triggered and complete automatically if necessary.  This allows oganizations that create outside project management software to integrate seamlessly with el-CICD.
 
-![Figure 10: Non-prod Project Onboarding Pipeline](images/Non-prod-project-onboarding-build.png)
-
-**Figure 10**
-_el-CICD Non-prod Project Onb pipelines_
-
-![Figure 11: Prod Project Onboarding Pipeline](images/prod-project-onboarding-build.png)
+![Figure 11: Non-prod Project Onboarding Pipeline](images/non-prod-project-onboarding-build.png)
 
 **Figure 11**
+_el-CICD Non-prod Project Onb pipelines_
+
+![Figure 12: Prod Project Onboarding Pipeline](images/prod-project-onboarding-build.png)
+
+**Figure 12**
 _el-CICD Prod Automation Server pipelines_
 
 ## Non-prod Automation Server Pipelines
 
 The following pipelines exist on the Non-prod Automation Server.  All except the [Build to Dev](#build-and-deploy-microservices) pipeline(s) are shared among all projects owned by the RBAC group controlling the server.  Only the Build to Dev pipelines are designed to be remotely triggered.  All other pipelines are designed such that human intervention is necessary for them to complete.
 
-![Figure 12: Non-prod Automation Server Pipelines](images/Non-prod-automation-servier-pipelines.png)
+![Figure 13: Non-prod Automation Server Pipelines](images/non-prod-automation-servier-pipelines.png)
 
-**Figure 12**
+**Figure 13**
 _Non-prod Automation Server pipelines for RBC Group `devops` and project `test-cicd`_
 
 ### Build to Dev
@@ -1352,9 +1388,9 @@ Build to Dev is usually triggered via a webhook from Git whenever the developmen
 
 Start the pipeline manually by going the _Build with Parameters_ screen of the pipeline.
 
-![Figure 13: Build and Deploy Microservices](images/build-to-dev-build.png)
+![Figure 14: Build and Deploy Microservices](images/build-to-dev-build.png)
 
-**Figure 13**
+**Figure 14**
 _Build with Parameters screen for the Build to Dev pipeline_
 
 ### Build and Deploy Microservices
@@ -1371,16 +1407,16 @@ The pipeline builds a number of microservices in parallel using Jenkins' paralle
 
 Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
 
-![Figure 14: Build and Deploy Microservices](images/build-and-deploy-microservices-build.png)
+![Figure 15: Build and Deploy Microservices](images/build-and-deploy-microservices-build.png)
 
-**Figure 14**
+**Figure 15**
 _Build with Parameters screen for the Build and Deploy Microservices pipeline_
 
 From the console of the running build, enter the input screen and select how you want the project built and deployed.
 
-![Figure 15: Build and Deploy Microservices](images/build-and-deploy-microservices.png)
+![Figure 16: Build and Deploy Microservices](images/build-and-deploy-microservices.png)
 
-**Figure 15**
+**Figure 16**
 _Choose what microservices build and where to deploy to_
 
 ### Promotion/Removal
@@ -1399,9 +1435,9 @@ Before deploying the newly copied images, any microservices selected for removal
 
 Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
 
-![Figure 16: Promotion/Removal](images/promotion-removal-pipeline-build.png)
+![Figure 17: Promotion/Removal](images/promotion-removal-pipeline-build.png)
 
-**Figure 16**
+**Figure 17**
 _Build with Parameters screen for the Promotion/Removal pipeline_
 
 After entering the project name, the user may choose: 
@@ -1410,9 +1446,9 @@ After entering the project name, the user may choose:
 * Choose a default action (do nothing, promote, or remove) for all microservices
 * Choose an action for a specific microservice
 
-![Figure 17: Promotion/Removal](images/promotion-removal-pipeline.png)
+![Figure 18: Promotion/Removal](images/promotion-removal-pipeline.png)
 
-**Figure 17**
+**Figure 18**
 _Select microservices to promote or remove_
 
 ### Redeploy/Removal
@@ -1428,21 +1464,21 @@ Before redeploying any images, any microservices selected for removal will be re
 
 Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
 
-![Figure 18: Promotion/Removal Build](images/redeploy-removal-pipeline-build.png)
-
-**Figure 18**
-_Build with Parameters screen for the Redeploy/Removal pipeline_
-
-![Figure 19: Promotion/Removal Build Select Env](images/redeploy-removal-pipeline-select-env.png)
+![Figure 19: Promotion/Removal Build](images/redeploy-removal-pipeline-build.png)
 
 **Figure 19**
+_Build with Parameters screen for the Redeploy/Removal pipeline_
+
+![Figure 20: Promotion/Removal Build Select Env](images/redeploy-removal-pipeline-select-env.png)
+
+**Figure 20**
 _Select environment to redeploy to_
 
 After entering the project name and choosing an environment, the user may choose a previous version of any microservice 
 
-![Figure 20: Promotion/Removal](images/redeploy-removal-pipeline.png)
+![Figure 21: Promotion/Removal](images/redeploy-removal-pipeline.png)
 
-**Figure 20**
+**Figure 21**
 _Select microservices to redeploy or remove_
 
 ### Create Release Candidate
@@ -1454,16 +1490,16 @@ The Create Release Candidate pipeline's purpose is to take a collection of image
 
 Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
 
-![Figure 23: Create Release Candidate Build](images/create-release-candidate-build.png)
+![Figure 22: Create Release Candidate Build](images/create-release-candidate-build.png)
 
-**Figure 23**
+**Figure 22**
 _Build with Parameters screen for the Redeploy/Removal pipeline_
 
 After entering the project name and entering a release candidate tag, the user should select the microservices that will be part of the release.
 
-![Figure 24: Create Release Candidate](images/create-release-candidate.png)
+![Figure 23: Create Release Candidate](images/create-release-candidate.png)
 
-**Figure 24**
+**Figure 23**
 _Select environment to redeploy to_
 
 ### Redeploy Release Candidate
@@ -1483,16 +1519,16 @@ If the user approves the deployment, the pipeline will continue and:
 
 Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
 
-![Figure 22: Redeploy Release Candidate Build](images/redeploy-release-candidate-build.png)
+![Figure 24: Redeploy Release Candidate Build](images/redeploy-release-candidate-build.png)
 
-**Figure 22**
+**Figure 24**
 _Build with Parameters screen for the Redeploy Release Candidate pipeline_
 
 After entering the project name and entering a release candidate tag, the user should select the microservices that will be part of the release.
 
-![Figure 23: Redeploy Release Candidate Confirmation](images/redeploy-release-candidate.png)
+![Figure 25: Redeploy Release Candidate Confirmation](images/redeploy-release-candidate.png)
 
-**Figure 23**
+**Figure 25**
 _Confirm redeploying the Release Candidate into Pre-prod_
 
 ## Prod Automation Server Pipelines
@@ -1518,16 +1554,16 @@ If the Release Candidate exists, then
 
 Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
 
-![Figure 232: Deploy to Production Build](images/deploy-to-production-build.png)
+![Figure 26: Deploy to Production Build](images/deploy-to-production-build.png)
 
-**Figure 23**
+**Figure 26**
 _Build with Parameters screen for the Deploy to Production pipeline_
 
 After entering the project name and entering a release candidate tag, the user should select the microservices that will be part of the release.
 
-![Figure 24: Deploy to Production Confirmation](images/deploy-to-production-confirmation.png)
+![Figure 27: Deploy to Production Confirmation](images/deploy-to-production-confirmation.png)
 
-**Figure 24**
+**Figure 27**
 _Confirm promoting or redeploying the Release Version into Prod_
 
 # Advanced SDLC Patterns
