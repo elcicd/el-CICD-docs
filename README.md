@@ -189,6 +189,7 @@ Features not supported, but on the immediate investigate/TODO list:
       * [Environment Definitions](#environment-definitions)
       * [Jenkins Sizing and Configuration](#jenkins-sizing-and-configuration)
       * [Other](#other)
+    * [el-cicd-secrets.config](#el-cicd-secretsconfig)
     * [Permissions](#permissions)
   * [Deployment](#deployment)
     * [el-cicd-non-prod-bootstrap.sh](#el-cicd-non-prod-bootstrapsh)
@@ -884,11 +885,11 @@ The above snippet from the [Project Definition File](#project-definition-file) e
 
 ## Configuration
 
-After forking the el-CICD repositories, el-CICD needs to be configured.  This requires defining which such information as test environments your engineering cluster will support, specifying the cluster's wildcard domain, creating and/or deciding which image repositories will back each environment, gathering the Git and Image Repository tokens as secrets for access, and sizing information for your Jenkins instances.
+After forking the el-CICD repositories, el-CICD needs to be configured.  This requires defining which such information as test environments your engineering cluster will support, specifying the cluster's wildcard domain, creating and/or deciding which image repositories will back each environment, gathering the Git and Image Repository tokens as secrets for access, credentials, and sizing information for your Jenkins instances.  There are two files, [el-cicd-bootstrap.config](#el-cicd-bootstrapconfig) and [el-cicd-secrets.config](#el-cicd-secretsconfig), and both are sourced during bootstrapping.
 
 ### el-cicd-bootstrap.config
 
-This configuration file defines most of the values needed to configure an el-CICD installation, as well as defining your systems supported environments and promotion flow, among other things.  The files are sourced when running either bootstrap shell script for the Onboarding Automation Servers, and then used to create a ConfigMap holding this information in every CICD Jenkins namespace subsequently created by the system.
+This configuration file defines most of the values needed to configure an el-CICD installation, as well as defining the SDLC environments and promotion flow, among other things.  The file are sourced when running either bootstrap shell script for the Onboarding Automation Servers, and then used to create a ConfigMap holding this information in every CICD Jenkins namespace subsequently created by the system.
 
 #### el-CICD Basic info
 
@@ -904,26 +905,26 @@ This configuration file defines most of the values needed to configure an el-CIC
   EL_CICD_META_INFO_NAME=el-cicd-meta-info
 ```
 
-This section describes the namespaces and node selectors of the engineering (Non-prod) and production (Prod) el-CICD [Onboarding Automation Servers](#onboarding-automation-server).  The clusters wildcard domain and the name of the ConfigMap that this configuration information will be stored on OKD are also here.
+This section describes the namespaces and node selectors of the engineering (Non-prod) and production (Prod) el-CICD [Onboarding Automation Servers](#onboarding-automation-server).  The cluster's wildcard domain and the name of the ConfigMap that this configuration information will be stored on OKD are also here.
 
-Note that except for the node selectors, for the most part this information can be left as is, unless you intend to install multiple instances on the same cluster, inc which case each will need it's own, unique namespace.  The wildcard domain is the exception, as each cluster will most likely have its own.
+Note that except for the node selectors, for the most part this information can be left as is, unless you intend to install multiple instances on the same cluster, in which case each will need it's own, unique namespace.  The wildcard domain is the exception, as each cluster will most likely have its own.
 
 #### Git Repository Information
 
 ```properties
-  GIT_CREDS_POSTFIX=github-private-key
+  GIT_CREDS_POSTFIX=git-repo-private-key
 
   EL_CICD_GIT_REPO=git@github.com:hippyod/el-CICD.git
   EL_CICD_BRANCH_NAME=master
-  EL_CICD_READ_ONLY_GITHUB_PRIVATE_KEY_ID=el-cicd-read-only-github-private-key
+  EL_CICD_READ_ONLY_GITHUB_PRIVATE_KEY_ID=el-cicd-read-only-git-repo-private-key
 
   EL_CICD_UTILS_GIT_REPO=git@github.com:hippyod/el-CICD-utils.git
   EL_CICD_UTILS_BRANCH_NAME=master
-  EL_CICD_UTILS_READ_ONLY_GITHUB_PRIVATE_KEY_ID=el-cicd-utils-read-only-github-private-key
+  EL_CICD_UTILS_READ_ONLY_GITHUB_PRIVATE_KEY_ID=el-cicd-utils-read-only-git-repo-private-key
 
   EL_CICD_PROJECT_INFO_REPOSITORY=git@github.com:hippyod/el-CICD-project-repository.git
   EL_CICD_PROJECT_INFO_REPOSITORY_BRANCH_NAME=master
-  EL_CICD_PROJECT_INFO_REPOSITORY_READ_ONLY_GITHUB_PRIVATE_KEY_ID=el-cicd-project-info-repository-github-private-key
+  EL_CICD_PROJECT_INFO_REPOSITORY_READ_ONLY_GITHUB_PRIVATE_KEY_ID=el-cicd-project-info-repository-git-repo-private-key
 
   GIT_SITE_WIDE_ACCESS_TOKEN_ID=git-site-wide-access-token
 ```
@@ -931,30 +932,30 @@ Note that except for the node selectors, for the most part this information can 
 This section of the configuration file covers the location of the Git repositories [el-CICD](#el-cicd-repository) [el-CICD-utils](#el-cicd-utils-repository) and [el-CICD-project-repository](#el-cicd-project-repository)  All will need to be updated to match where you have decided to fork these repositories, as each is cloned for every pipeline run.
 
 * **GIT_CREDS_POSTFIX**  
-This is appended to all credential ids stored in Jenkins that are generated by el-CICD pipelines.
+This is appended to all el-CICD credential IDs stored in Jenkins for GitHub.
 * ***_GIT_REPO**  
 The url of the el-CICD Git repositories.
 * ***_REPOSITORY_BRANCH_NAME**  
 These variables define the branch to check out for each el-CICD repository.
 * ***_READ_ONLY_GITHUB_PRIVATE_KEY**  
-These Jenkins credential ids are passed onto project specific Jenkins for read only access to the el-CICD repositories for each Non-prod and Prod Automation Server.
+These Jenkins credential IDs are passed onto project specific Jenkins for read only access to the el-CICD repositories for each Non-prod and Prod Automation Server.
 * **GIT_SITE_WIDE_ACCESS_TOKEN_ID**  
-This token will store an administrative service account token for access to all project Git repositories.  This is needed in order to add a writable deploy key and a webhook for automated builds for each microservice Git repository.  More on this will be described below in the [el-cicd-secrets.config](#el-cicd-secrets-config)
+This ID references the token stored in Jenkins for an administrative service account for access to all project Git repositories.  This is needed in order to add a writable deploy key and a webhook for automated builds for each microservice Git repository.  More on this will be described below in the [el-cicd-secrets.config](#el-cicd-secretsconfig)
 
 ##### el-CICD Read Only Deploy Key Title
 
 ```properties
-EL_CICD_DEPLOY_NON_PROD_KEY_TITLE=el-cicd-non-prod-deploy-key
-EL_CICD_DEPLOY_PROD_KEY_TITLE=el-cicd-prod-deploy-key
+  EL_CICD_DEPLOY_NON_PROD_KEY_TITLE=el-cicd-non-prod-deploy-key
+  EL_CICD_DEPLOY_PROD_KEY_TITLE=el-cicd-prod-deploy-key
 ```
 
-These deploy keys are the titles used to read only store access keys up on Git for el-CICD access.  These need to be unique per installed Onboarding Automation server.  Every time the bootstrap script is run, it will look for a deploy key with the given title, remove it if it's there, and place a a deploy key with this title for use.  For example, if el-CICD is installed on multiple production clusters for purposes of deploying the applications with failover capability per region, a unique _EL_CICD_DEPLOY_PROD_KEY_TITLE_ will need to be provided to each.
+These deploy keys are the titles used to read only store access keys up on the Git provider for el-CICD access.  These need to be unique per installed Onboarding Automation server.  Every time the bootstrap script is run, it will look for a deploy key with the given title, remove it if it's there, and place a a deploy key with this title for use.  For example, if el-CICD is installed on multiple production clusters for purposes of deploying the applications with failover capability per region, a unique _EL_CICD_DEPLOY_PROD_KEY_TITLE_ will need to be provided to each.
 
 #### Non-Prod and Prod Automation Server Namespace Postfix
 
 ```properties
-CICD_NON_PROD=cicd-Non-prod
-CICD_PROD=cicd-prod
+  CICD_NON_PROD=cicd-Non-prod
+  CICD_PROD=cicd-prod
 ```
 
 Namespaces for the each RBAC Group's namespace will have these values appended to the RBAC group name; e.g. if a project's group is _devops_, the resulting Non-prod and Prod Automation Servers will reside in _devops-cicd-non-prod_ and  _devops-cicd-prod_, respectively.
@@ -962,14 +963,14 @@ Namespaces for the each RBAC Group's namespace will have these values appended t
 #### General Environment Information
 
 ```properties
-DEV_ENV=DEV
+  DEV_ENV=DEV
 
-TEST_ENVS=<TEST_ENV_1>:...:<TEST_ENV_N>
+  TEST_ENVS=<TEST_ENV_1>:...:<TEST_ENV_N>
 
-PROD_ENV=PROD
+  PROD_ENV=PROD
 ```
 
-The values represent the general names and SDLC flow of the installed el-CICD environments.   Every el-CICD system must also support a Den environment to build into, and a Prod environment for release to to production.
+The values represent the general names and SDLC flow of the installed el-CICD environments.
 
 * **DEV_ENV**
 Name of the Dev environment.  This must be defined.
@@ -978,58 +979,75 @@ Colon separated list of test environment.  As many can be defined as the needs o
 * **PROD_ENV**
 The name of the Prod environment.  This must be defined.
 
+The SDLC workflow will be defined by the system as
+
+`<DEV_ENV> -> <TEST_ENVS> -> PROD_ENV`
+
 Thus, for
+
 `TEST_ENVS=QA:UAT:STG`
 
 This will define a set of environments with the following SDLC flow:
+
 `DEV -> QA -> UAT -> STG -> PROD`
 
 #### Environment Definitions
 
 ```properties
-DEV_IMAGE_REPO_DOMAIN=docker.io
-DEV_IMAGE_REPO_USERNAME=elcicddev
-DEV_IMAGE_REPO=docker.io/elcicddev
-DEV_IMAGE_REPO_PULL_SECRET=el-cicd-image-repo-dev-pull-secret
-DEV_IMAGE_REPO_ACCESS_TOKEN_ID=image-repo-dev-access-token
-DEV_NODE_SELECTORS=
+  DEV_IMAGE_REPO_DOMAIN=docker.io
+  DEV_IMAGE_REPO_USERNAME=elcicddev
+  DEV_IMAGE_REPO=docker.io/elcicddev
+  DEV_IMAGE_REPO_PULL_SECRET=el-cicd-image-repo-dev-pull-secret
+  DEV_IMAGE_REPO_ACCESS_TOKEN_ID=image-repo-dev-access-token
+  DEV_NODE_SELECTORS=
 
-<TEST_ENV>_IMAGE_REPO_DOMAIN=docker.io
-<TEST_ENV>_IMAGE_REPO_USERNAME=elcicdnonprod
-<TEST_ENV>_IMAGE_REPO=docker.io/elcicdnonprod
-<TEST_ENV>_IMAGE_REPO_PULL_SECRET=el-cicd-image-repo-non-prod-pull-secret
-<TEST_ENV>_IMAGE_REPO_ACCESS_TOKEN_ID=image-repo-non-prod-access-token
-<TEST_ENV>_NODE_SELECTORS=
+  <TEST_ENV>_IMAGE_REPO_DOMAIN=docker.io
+  <TEST_ENV>_IMAGE_REPO_USERNAME=elcicdnonprod
+  <TEST_ENV>_IMAGE_REPO=docker.io/elcicdnonprod
+  <TEST_ENV>_IMAGE_REPO_PULL_SECRET=el-cicd-image-repo-non-prod-pull-secret
+  <TEST_ENV>_IMAGE_REPO_ACCESS_TOKEN_ID=image-repo-non-prod-access-token
+  <TEST_ENV>_NODE_SELECTORS=
 
-PROD_IMAGE_REPO_DOMAIN=docker.io
-PROD_IMAGE_REPO_USERNAME=elcicdprod
-PROD_IMAGE_REPO=docker.io/elcicdprod
-PROD_IMAGE_REPO_PULL_SECRET=el-cicd-image-repo-prod-pull-secret
-PROD_IMAGE_REPO_ACCESS_TOKEN_ID=image-repo-prod-access-token
-PROD_NODE_SELECTORS=
+  PROD_IMAGE_REPO_DOMAIN=docker.io
+  PROD_IMAGE_REPO_USERNAME=elcicdprod
+  PROD_IMAGE_REPO=docker.io/elcicdprod
+  PROD_IMAGE_REPO_PULL_SECRET=el-cicd-image-repo-prod-pull-secret
+  PROD_IMAGE_REPO_ACCESS_TOKEN_ID=image-repo-prod-access-token
+  PROD_NODE_SELECTORS=
 ```
 
 After the environment name and SDLC flow is defined, each environment's configuration must be completed.
 
-* \<ENV>_IMAGE_REPO_DOMAIN
+* **\<ENV>_IMAGE_REPO_DOMAIN**  
 Image repository domain.
-* \<ENV>_IMAGE_REPO_USERNAME
-Image repository username or organization id
-* \<ENV>_IMAGE_REPO
+* **\<ENV>_IMAGE_REPO_USERNAME**  
+Image repository username or organization ID
+* **\<ENV>_IMAGE_REPO**  
 Image repository url; i.e *_IMAGE_REPO_DOMAIN/*_IMAGE_REPO_USERNAME
-* \<ENV>_IMAGE_REPO_PULL_SECRET
+* **\<ENV>_IMAGE_REPO_PULL_SECRET**  
 Image pull secret name; secret is generated at startup with this name.
-* \<ENV>_IMAGE_REPO_ACCESS_TOKEN_ID
-Jenkins credentials id referring to the pull secret
+* **\<ENV>_IMAGE_REPO_ACCESS_TOKEN_ID**  
+Jenkins credentials ID referring to the pull secret
 
-The above values are each prepended with the name of each environment defined in the previous section.  Typical installations might have a Dev, QA (covering all test environments), and Prod image repository, but it is also possible have a single image repository shared among all environments, or an image repository per environment.  Regardless, each named environment must be defined separately.
+The above values are each prepended with the name of each environment defined in the previous section.  For a test environment called QA, you're final config entry would look like the following:
+
+```
+  QA_IMAGE_REPO_DOMAIN=docker.io
+  QA_IMAGE_REPO_USERNAME=elcicdnonprod
+  QA_IMAGE_REPO=docker.io/elcicdnonprod
+  QA_IMAGE_REPO_PULL_SECRET=el-cicd-image-repo-non-prod-pull-secret
+  QA_IMAGE_REPO_ACCESS_TOKEN_ID=image-repo-non-prod-access-token
+  QA_NODE_SELECTORS=
+```
+
+Typical installations might have a Dev, QA (covering all test environments), and Prod image repository, but it is also possible have a single image repository shared among all environments, or an image repository per environment.  Regardless, an entry for each named environment must be defined separately.
 
 #### Jenkins Sizing and Configuration
 
 ```properties
-JENKINS_MEMORY_LIMIT=4Gi
-JENKINS_VOLUME_CAPACITY=4Gi
-JENKINS_DISABLE_ADMINISTRATIVE_MONITORS=true
+  JENKINS_MEMORY_LIMIT=4Gi
+  JENKINS_VOLUME_CAPACITY=4Gi
+  JENKINS_DISABLE_ADMINISTRATIVE_MONITORS=true
 ```
 
 Sizing information in memory and persistent storage capacity for each Jenkins created by el-CICD.
@@ -1037,79 +1055,83 @@ Sizing information in memory and persistent storage capacity for each Jenkins cr
 #### Other
 
 ```properties
-SONARQUBE_HOST_URL=
-SONARQUBE_ACCESS_TOKEN_ID=sonarqube-access-token
+  SONARQUBE_HOST_URL=
+  SONARQUBE_ACCESS_TOKEN_ID=sonarqube-access-token
 ```
 
-SonarQube url and Jenkins credentials id if in use.
+SonarQube url and Jenkins credentials ID if in use.
 
-A secondary configuration file is used by el-CICD on bootstrap, and it holds a few minor configuration values that don't need to be referenced from the running CICD environments, but also a number variables that provide paths to files that hold access tokens (i.e. secrets) for various systems.
+### el-cicd-secrets.config
+
+A secondary configuration file is used by el-CICD on bootstrap, and it holds a few minor configuration values that don't need to be referenced from the running el-CICD system or project environments, as well as a number variables that provide paths to files that hold the actual secret SSH keys and access tokens that will be onloaded into Jenkins.
 
 Depending on how you choose to manage your different Onboarding Automation Servers, you can either reuse the keys among them or keep individual keys for each server.  If you keep individual keys per server, then you will need to change the titles used to push them into the SCM so they do not overwrite each other.
 
 ```properties
-GITHUB=github
+  GIT_PROVIDER=github
 
-EL_CICD_HOST=github.com
-EL_CICD_ORGANIZATION=hippyod
+  EL_CICD_HOST=github.com
+  EL_CICD_ORGANIZATION=hippyod
 
-EL_CICD_SSH_READ_ONLY_PUBLIC_DEPLOY_KEY_TITLE=el-cicd-read-only-public-key
-EL_CICD_SSH_READ_ONLY_DEPLOY_KEY_FILE=../cicd-secrets/el-CICD-deploy-key
+  EL_CICD_SSH_READ_ONLY_PUBLIC_DEPLOY_KEY_TITLE=el-cicd-read-only-public-key
+  EL_CICD_SSH_READ_ONLY_DEPLOY_KEY_FILE=../cicd-secrets/el-CICD-deploy-key
 
-EL_CICD_UTILS_SSH_READ_ONLY_PUBLIC_DEPLOY_KEY_TITLE=el-cicd-utils-read-only-public-key
-EL_CICD_UTILS_SSH_READ_ONLY_DEPLOY_KEY_FILE=../cicd-secrets/el-CICD-utils-deploy-key
+  EL_CICD_UTILS_SSH_READ_ONLY_PUBLIC_DEPLOY_KEY_TITLE=el-cicd-utils-read-only-public-key
+  EL_CICD_UTILS_SSH_READ_ONLY_DEPLOY_KEY_FILE=../cicd-secrets/el-CICD-utils-deploy-key
 
-EL_CICD_PROJECT_INFO_REPOSITORY_READ_ONLY_DEPLOY_KEY_TITLE=el-cicd-project-info-repository-read-only-public-key
-EL_CICD_PROJECT_INFO_REPOSITORY_READ_ONLY_DEPLOY_KEY_FILE=../cicd-secrets/el-cicd-project-info-repository-github-deploy-key
+  EL_CICD_PROJECT_INFO_REPOSITORY_READ_ONLY_DEPLOY_KEY_TITLE=el-cicd-project-info-repository-read-only-public-key
+  EL_CICD_PROJECT_INFO_REPOSITORY_READ_ONLY_DEPLOY_KEY_FILE=../cicd-secrets/el-cicd-project-info-repository-github-deploy-key
 
-EL_CICD_GIT_REPO_ACCESS_TOKEN_FILE=../cicd-secrets/el-cicd-git-repo-access-token
+  EL_CICD_GIT_REPO_ACCESS_TOKEN_FILE=../cicd-secrets/el-cicd-git-repo-access-token
 
-DEV_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-dev-pull-token
+  DEV_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-dev-pull-token
 
-QA_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-non-prod-pull-token
+  QA_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-non-prod-pull-token
 
-UAT_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-non-prod-pull-token
+  UAT_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-non-prod-pull-token
 
-STG_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-non-prod-pull-token
+  STG_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-non-prod-pull-token
 
-PROD_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-prod-pull-token
+  PROD_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-prod-pull-token
 ```
 
-* **EL_CICD_HOST and EL_CICD_ORGANIZATION**
-Where el-CICD is SCM host and organization.  Note that the system is built assuming the el-CICD repositories are stored in the same SCM as the project repositories it will be managing.
-* **EL_CICD_SSH_READ_ONLY_PUBLIC_DEPLOY_KEY_TITLE and EL_CICD_UTILS_SSH_READ_ONLY_PUBLIC_DEPLOY_KEY_TITLE and
-EL_CICD_PROJECT_INFO_REPOSITORY_READ_ONLY_DEPLOY_KEY_TITLE**
+* **EL_CICD_HOST  
+  EL_CICD_ORGANIZATION**  
+The el-CICD SCM host and organization.  Note that the system is built assuming the el-CICD repositories are stored in the same SCM as the project repositories it will be managing.
+* **EL_CICD_SSH_READ_ONLY_PUBLIC_DEPLOY_KEY_TITLE EL_CICD_UTILS_SSH_READ_ONLY_PUBLIC_DEPLOY_KEY_TITLE
+EL_CICD_PROJECT_INFO_REPOSITORY_READ_ONLY_DEPLOY_KEY_TITLE**  
 The title to use when pushing the read only key to el-CICD.  If you don't wish to use the same read-only per Onboarding Automation Server installation, then you'll need a separate name per installation.
-* **EL_CICD_SSH_READ_ONLY_DEPLOY_KEY_FILE and EL_CICD_UTILS_SSH_READ_ONLY_DEPLOY_KEY_FILE and EL_CICD_PROJECT_INFO_REPOSITORY_READ_ONLY_DEPLOY_KEY_FILE**
+* **EL_CICD_SSH_READ_ONLY_DEPLOY_KEY_FILE  
+  EL_CICD_UTILS_SSH_READ_ONLY_DEPLOY_KEY_FILE  EL_CICD_PROJECT_INFO_REPOSITORY_READ_ONLY_DEPLOY_KEY_FILE**  
 The path to the read-only private deploy key for the el-CICD repositories.  The system assumes the *.pub key is located in the same directory for pushing to the SCM.
-* **EL_CICD_GIT_REPO_ACCESS_TOKEN_FILE**
+* **EL_CICD_GIT_REPO_ACCESS_TOKEN_FILE**  
 An access token (**not** an ssh key) to an administrative account for the SCM.  This token will live in the Onboarding Automation Server.  For this reason, only administrators of the DevOps should have access to this server.  Write tokens for each project microservice's repository will be confined to the group that owns the project.
-* **<ENV_NAME>_PULL_TOKEN_FILE**
-Path to the file holding the access token(s) to the image repository for each environment.  These will be used for the Build and for all image Deployments, and these tokens need push and pull access to each repository.
+* **<ENV_NAME>_PULL_TOKEN_FILE**  
+Path to the file holding the access token(s) to the image repository for each environment.  These will be used for the Build and for all image Deployments, and these tokens need push and pull access to each repository.  As the example above shows, each test environment must be defined separately, even if all the test environments use the same repository.
 
 ### Permissions
 
-It is strongly suggested that only responsible DevOps resources have access to all el-CICD repositories, as well any system server that can manipulate the el-CICD repositories because they will hold access tokens.  This ensures only DevOps resources can define system level changes.  For el-CICD-project-information-repository, it also ensures projects can't edit each other's project definition files.
+It is strongly suggested that only responsible DevOps resources have access to the el-CICD repositories (`el-CICD` and `el-CICD-utils` and `el-CICD-project-information-repository`) as well the Onboarding Automation Servers.  This ensures only DevOps resources can define system level changes, or have access across the Git repositories.  For the `el-CICD-project-information-repository`, it also ensures projects can't edit each other's project definition files.
 
 ## Deployment
 
-Once each _*.config_ file has all the values properly entered, and all image pull and Git repository deploy tokens saved in their proper locations, the bootstrap scripts can be run.
+Once each _*.config_ file has all the values properly entered, and all Image Repository pull and Git repository deploy tokens are saved in their proper locations, the bootstrap scripts can be run.
 
-There are two bootstrap scripts, each for a Non-Prod and Prod Onboarding Automation Server.  This allows for the greatest flexibility on installation of the servers, perhaps more than once, on different clusters.
+There are two bootstrap scripts, one each for the Non-Prod and Prod Onboarding Automation Servers.  This allows for the greatest flexibility on installation of the servers, perhaps more than once, on different clusters.
 
-A typical, minimal installation of OKD has three cluster, a lab cluster to test changes, a production quality cluster to support software development and/or application deployments, and a production quality cluster for running applications in production.  Many times more than one production cluster is deployed to support multiple regions and/or failover, or perhaps engineering groups don't share the same cluster during software development or testing.  The modularity of the bootstrap scripts allows for easy installation of el-CICD in as many clusters for as many purposes as needed.
+A typical, minimal installation of OKD has three clusters, a lab cluster to test cluster configuration changes and upgrades, a production quality cluster to support software development and/or application deployments, and a production quality cluster for running applications in production.  Many times more than one production cluster is deployed to support multiple regions and/or failover, or perhaps engineering groups don't share the same cluster during software development or testing.  The modularity of the bootstrap scripts allows for easy installation of el-CICD in as many clusters for as many purposes as needed.
 
 ### el-cicd-non-prod-bootstrap.sh
 
-The el-CICD Non-prod Automation Onboarding Server bootstrap script is for setting up a production CICD server for onboarding projects into a engineering OKD cluster.  Executing the script result in the following actions:
+The el-CICD Non-prod Automation Onboarding Server bootstrap script is for setting up a production CICD server for onboarding projects into a engineering OKD cluster.  Executing the script results in the following actions:
 
 1. Source the *.config files
 1. Have the user confirm the OKD cluster's wildcard domain
-1. Run the script for pushing el-CICD repository read only public keys to git
-1. Have the user confirm deletion of the el-CICD master namespace, if it exists
+1. Run the script for pushing el-CICD repository read only public keys to the Git provider
+1. Have the user confirm deletion of the el-CICD Non-prod master namespace, if it exists
     * **NOTE**: failure to delete the old namespace will cause the script to exit
 1. Stand up a new persistent Jenkins instance to act as the Onboarding Automation Server
-1. Install sealed secrets locally and on the cluster
+1. Install Sealed Secrets locally and on the cluster
     1. If Sealed Secrets is not already installed, installation proceeds immediately
     1. User will confirm installation of Sealed Secrets locally and on the cluster if Sealed Secrets has been installed before
     * **NOTE**: Users should check version numbers and release notes before upgrading
@@ -1117,17 +1139,16 @@ The el-CICD Non-prod Automation Onboarding Server bootstrap script is for settin
 1. Create all necessary Sealed Secrets for image pull secrets for each environment
 1. Push all necessary credentials to Jenkins
 
-
 ### el-cicd-prod-bootstrap.sh
 
 The el-CICD Prod Automation Onboarding Server bootstrap script is for setting up a production CICD server for onboarding projects into a production OKD cluster.  Executing the script result in the following actions:
 
 1. Source the *.config files
 1. Have the user confirm the OKD cluster's wildcard domain
-1. Have the user confirm deletion of the el-CICD master namespace, if it exists
+1. Have the user confirm deletion of the el-CICD Prod master namespace, if it exists
     * **NOTE**: failure to delete the old namespace will cause the script to exit
 1. Stand up a new persistent Jenkins instance to act as the Onboarding Automation Server
-1. Install sealed secrets locally and on the cluster
+1. Install Sealed Secrets locally and on the cluster
     1. If Sealed Secrets is not already installed, installation proceeds immediately
     1. User will confirm installation of Sealed Secrets locally and on the cluster if Sealed Secrets has been installed before
     * **NOTE**: Users should check version numbers and release notes before upgrading
@@ -1145,11 +1166,13 @@ This script is shared between the two bootstrap scripts for pushing deployment k
 
 Developers need to follow certain conventions for their microservice projects to integrate into el-CICD.  In particular:
 
-* **A standard of one image produced per Git repository**.  It will be assumed that only one microservice will be defined per Git repository per project.  This is not the same as one image deployed per Git repository; i.e. deployment configurations for supporting images, such as databases, or multiple configurations of the same image built, are perfectly reasonable deployment strategies.
-* If there is code to built (there doesn't necessarily have to be), a Dockerfile must exist in the root directory of the microservice or component to be built.  Every OKD BuildConfig will use the binary docker strategy to create and push an image to the Dev environment image repository.  el-CICD does not currently manage builds strictly for building artifacts consumed for builds by other microservices.
-* All OKD configuration files will be stored in a **_.openshift_** directory under the root directory of the microservice.
+* **A standard of one image produced per Git repository**  
+  It will be assumed that only one microservice will be defined per Git repository per project.  This is not the same as one image deployed per Git repository; i.e. deployment configurations for supporting images, such as databases, or multiple configurations of the same image built, are perfectly reasonable deployment strategies.
+* **A Dockerfile must exist in the root directory of the microservice or component to be built**  
+  Every OKD BuildConfig will use the binary docker strategy to create and push an image to the Dev environment image repository.  el-CICD does not currently manage builds strictly for building artifacts consumed for builds by other microservices.
+* **All OKD deployment resources will be placed in a _.openshift_ directory under the root directory of the microservice.**
 
-OKD Template reuse and patching via kustomize is relied on heavily for ease of use, but not necessary.
+OKD Template reuse and patching via `kustomize` is relied on heavily for ease of use, but not necessary.
 
 ## The ._openshift_ Directory
 

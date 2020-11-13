@@ -25,7 +25,7 @@ This library is distributed in the hope that it will be useful, but **WITHOUT AN
 
 You should have received a copy of the GNU Lesser General Public License along with this library; if not, write to
 
-```
+```text
     The Free Software Foundation, Inc.
     51 Franklin Street
     Fifth Floor
@@ -39,7 +39,7 @@ http://creativecommons.org/licenses/by/4.0/
 
 or send a letter to
 
-```
+```text
   Creative Commons
   PO Box 1866
   Mountain View, CA
@@ -123,7 +123,7 @@ Download CRC from [here](https://developers.redhat.com/products/codeready-contai
 
 Copy the tar.xz file and the pull secret you downloaded into the directory where you wish to install CRC and extract the tar file.
 
-```
+```bash
     tar -xf crc-linux-amd64.tar.xz
 
     mv crc-linux-X.XX.X-amd64 crc-linux-amd64
@@ -144,7 +144,7 @@ You may remove this after the demo, but these helper scripts make things easier 
 
 You will also need to check that the path to your `CRC_INSTALL_DIR` is properly set to wherever you chose to install CRC.
 
-```
+```bash
     CRC_INSTALL_DIR=<crc-install-directory>
 
     # PREFERRED CRC OPTIONS
@@ -222,45 +222,36 @@ You will also need to check that the path to your `CRC_INSTALL_DIR` is properly 
 
 Fedora 33 changed the way network name resolution to local applications is handled, so when CRC is [installed](#initial-crc-setup-and-install), the wildcard network for deployed applications onto the cluster will not work.  To fix this, you need to do the following:
 
-* First make `libvirtd.service` a dependency of `systemd-resolved.service`.  CRC has it's own network, and that needs to be up and running for `systemd-resolved.service` to pick up.
-  
-    ```
-    sudo vi /etc/systemd/system/dbus-org.freedesktop.resolve1.service
-    ```
+* Create the following script in a file called `10-crc` and put it in the directory `/etc/NetworkManager/dispatcher.d`:
 
-    and change
+    ```bash
+    #!/bin/sh
+    # This is a NetworkManager dispatcher script to configure split DNS for
+    # the 'crc' libvirt network.
 
-    ```
-    After=systemd-sysusers.service systemd-networkd.service
-    ```
+    export LC_ALL=C
 
-    to
+    if [ "$1" = crc ] && [ "$2" = up ]; then
+        echo "$1 $2: configuring domain name resolution crc.testing apps-crc.testing"
+        resolvectl domain crc crc.testing apps-crc.testing
+        resolvectl dns crc 192.168.130.11
+        resolvectl default-route crc false
+        echo "$1 $2: domain name resolution configured for crc.testing apps-crc.testing"
+    fi
 
-    ```
-    After=systemd-sysusers.service systemd-networkd.service libvirtd.service
-    ```
-
-    Save and exit the text editor.
-
-* Next, open the `systemd-resolved.service` configuration file, `resolved.conf`, for editing to add the CRC DNS and Domains:
-
-    ```
-    sudo vi /etc/systemd/resolved.conf
+    exit 0
     ```
 
-    and add
+* Change the file to be execuble:
 
+    ```bash
+    sudo chmod 755 /etc/NetworkManager/dispatcher.d/10-crc
     ```
-    DNS=192.168.130.11%crc#apps-crc.testing 192.168.130.11%crc#crc.testing
-    Domains=~apps-crc.testing ~crc.testing
-    ```
 
-    Save and exit the text editor.
+* Restart the `NetworkManager` service:
 
-* Restart the `systemd-resolved` service:
-
-    ```
-    sudo systemctl restart systemd-resolved.service
+    ```bash
+    sudo systemctl restart NetworkManager.service
     ```
 
 Your system should now properly pick up the CRC network when trying to access deployed applications even if you reboot your machine.  If you recreate the CRC VM (see below) you might need to restart `systemd-resolved.service`.
@@ -269,7 +260,7 @@ Your system should now properly pick up the CRC network when trying to access de
 
 Run
 
-``` 
+```bash
     # PAY ATTENTION TO THE DASH IN THE COMMAND!!
     # Does the extra work needed to properly size the CRC VM
     crc-setup
@@ -279,13 +270,13 @@ This will complete initial setup, create the virtual machine image for CRC with 
 
 To stop the CRC VM, use 
 
-```
+```bash
     crc stop
 ```
 
 To start it up again
 
-```
+```bash
     # PAY ATTENTION TO THE DASH IN THE COMMAND!!
     # Uses the pull secret automatically
     # Copies it to the clipboard for easy login through apps or console in browser
@@ -345,13 +336,13 @@ This will better demonstrate what is most likely needed for a production setup.
 
 **Tip**: If you have a GMail account, it's easy to use the same email address to create separate repositories without needing multiple email accounts.  When creating the repository on Docker Hub, register with your email in the following fashion
 
-```
+```text
     <gmail-id>+<unique-demo-name>dev@gmail.com
 ```
 
 For example, for the each image repository:
 
-```
+```text
     myemailid+elcicddev@gmail.com
 
     myemailid+elcicdnonprod@gmail.com
@@ -365,7 +356,7 @@ In order to run the builds, a number of Jenkins Agents must be available for use
 
 From the el-CICD directory run the following shell script
 
-```
+```bash
     crc-admin-login
     ./agents/create-all-agents.sh`
 ```
@@ -393,12 +384,12 @@ The following will cover how to create the deploy keys for all necessary Git rep
 
 In the `cicd-secrets` directory, run the following commands:
 
-```
+```bash
     ssh-keygen -b 2048 -t rsa -f 'el-CICD-deploy-key' -q -N '' -C 'Jenkins Deploy key for el-CICD'
 
     ssh-keygen -b 2048 -t rsa -f 'el-CICD-utils-deploy-key' -q -N '' -C 'Jenkins Deploy key for el-CICD-utils'
 
-    ssh-keygen -b 2048 -t rsa -f 'el-cicd-project-info-repository-github-private-key' -q -N '' -C 'Jenkins Deploy key for el-CICD-project-repository'
+    ssh-keygen -b 2048 -t rsa -f 'el-cicd-project-info-repository-git-repo-private-key' -q -N '' -C 'Jenkins Deploy key for el-CICD-project-repository'
 ```
 
 Each of these in turn will create the proper read only ssh keys for el-CICD in the `cicd-secrets` directory to pull the latest el-CICD code for each pipeline run:
@@ -449,7 +440,7 @@ el-CICD is now fully configured and ready to be installed and run on your CRC cl
 
 Login to the CRC cluster, and then execute the execute the bootstrap script for the Non-prod Onboarding Automation Server.
 
-```
+```bash
     crc-admin-login
     ./el-cicd-non-prod-bootstrap.sh
 ```
@@ -474,13 +465,13 @@ Each microservice repository you cloned for the purpose of this tutorial has an 
 
 In the same repository as this tutorial, `el-CICD-docs`, run the following script:
 
-```
+```bash
     ./restore-master-key.sh
 ```
 
 This script will restore the encryption/decryption keys of the Sealed Secrets plugin that are needed by the tutorial's microservices, and restart the Sealed Secrets controller to pick up the changed keys.  Outside of this tutorial, you can create a Sealed Sealed key for use among multiple clusters using the following command:
 
-```
+```bash
     oc get secret -n kube-system -l sealedsecrets.bitnami.com/sealed-secrets-key -o yaml > master.key
 ```
 
@@ -496,7 +487,7 @@ The rest of the tutorial will take you through a typical set of steps that will 
 
 Open your terminal and login to CRC as admin.  If you followed previous instructions, the following command will also copy the CRC pull secret to your clipboard.
 
-```
+```bash
     crc-admin-login
 ```
 
@@ -506,7 +497,7 @@ Open your browser, and go to
 
 If the browser warns you that your connection is not private, you can safely ignore it and click  _Advanced_, and then the button _Proceed to jenkins-el-cicd-non-prod-master.apps-crc.testing (unsafe)_ .  Login to Jenkins using the CRC admin credentials, clicking initially on the `kube:admin` button.  You can simply paste the password (the CRC pull secret) from your clipboard thanks to the custom command you entered above.
 
-```
+```text
     Username: kubeadmin
     Password: <CRC pull secret>
 ```
@@ -558,7 +549,7 @@ In summary, the pipeline will do the following:
 
 As you can see, the `non-prod-project-onboarding` Pipeline creates and configures a great deal in order to get a project onboard.  If you enter the following commands in a terminal, you can see an all of the namespaces and example of the Sealed Secrets and Secrets created:
 
-```
+```bash
     oc get projects | grep test-cicd
 
     oc project test-cicd-dev
@@ -620,13 +611,13 @@ This will kick off a build of all microservices in the `test-cicd` project.  Thi
 1. Click on the build number, and then click on `Console Output` to follow the build to completion
 1. Enter the following command in your terminal to watch the pods as they come up:
 
-```
+```bash
     watch oc get pods -n test-cicd-dev
 ```
 
 5. When the build `build-and-deploy-microservices` completes, enter `crtl-c` in your terminal, and enter the following:
 
-```
+```bash
     oc get cm,sealedsecrets,secrets -n  test-cicd-dev
 ```
 
@@ -634,13 +625,13 @@ This will list all resources ConfigMaps, Sealed Secrets, and Secrets of the `tes
 
 Now enter the following:
 
-```
+```bash
     oc edit test-cicd-test-cicd1-meta-info
 ```
 
 Every microservice deployed to an environment namespace has a ConfigMap created that describes the deployed microservice's meta-information.  Because the _dev_ environment has no deployment branch and hasn't been promoted from another environment, that value will be empty.  The `deployment-commit-hash`, project ID, and microservice name are labeled across all microservice resources deployed by el-CICD, and are used as selectors to ensure that only that latest deployment exists in the namespace after a successful deployment.  Quit the editor, and run the following:
 
-```
+```bash
     oc edit cm test-cicd1-configmap
 ```
 
@@ -672,7 +663,7 @@ If you haven't already done so, click on the link `devops-cicd-non-prod` in the 
 
 To watch the pods in _qa_ come up as they are promoted and deployed, go to your terminal and enter:
 
-```
+```bash
     watch oc get pods -n test-cicd-qa
 ```
 
@@ -684,7 +675,7 @@ Exit `watch` command by entering `crtl-c` in your terminal.
 
 Now run the following:
 
-```
+```bash
     oc edit test-cicd-test-cicd1-meta-info
 ```
 
@@ -705,7 +696,7 @@ As noted previously, images are immutable, but deployment configurations are not
 
 First check the logs of the deployed `test-cicd1` pod:
 
-``` 
+```bash
     oc project test-cicd-qa
     oc get pods
     oc logs test-cicd1-1-<someHash>
@@ -715,7 +706,7 @@ The `<hash>` is a random hash assigned to each pod in OKD.  Not the value of out
 
 Next, checkout the deployment branch from the meta-information ConfigMap for `test-cidc1`.  You can the name of the deployment branch or value of source commit hash from the meta-information ConfigMap:
 
-```
+```bash
     oc project test-cicd-qa
     # copy the deployment branch or source commit hash from the meta-information ConfigMap
     oc get test-cicd-test-cicd1-meta-info -o yaml
@@ -732,7 +723,7 @@ _**qa** section of template-defs.json changed for redeployment demonstration_
 
 Save the file, commit and push it:
 
-```
+```bash
     git commit -am 'changing the qa topic'
     git push
 ```
@@ -752,14 +743,14 @@ Now run the pipeline `microservice-redeploy-removal`
 
 To verify your change was deployed, check the logs of the newly deploy `test-cicd` image:
 
-```
+```bash
     oc get pods
     oc logs test-cicd1-2-<someHash>
 ```
 
 You should see your changes reflected in the logs:
 
-```
+```text
     topicname value : qa topic changed for el-CICD tutorial
 ```
 
@@ -771,7 +762,7 @@ You are ready to move onto the next step.
 
 First, check out the `test-cicd1` development branch:
 
-```
+```bash
     cd <path-to-Test_CICD1>/Test_CICD1
     git checkout development
 ```
@@ -808,12 +799,13 @@ Click on the link `devops-cicd-non-prod` in the upper left of the Jenkins window
 
 To verify your change was promoted, check the logs of the newly deploy `test-cicd` image:
 
-```
+```bash
     oc get pods
     oc logs test-cicd1-3-<someHash>
 ```
 
 You should see your changes reflected in the logs:
+
 ```
     topicname value : qa topic changed
 ```
@@ -838,14 +830,14 @@ Click on `devops-cicd-non-prod` in the upper left corner.
    
 When the pipeline completes successfully, to verify your change was rolled back, check the logs of the current `test-cicd1` pod:
 
-```
+```bash
     oc get pods
     oc logs test-cicd1-4-<someHash>
 ```
 
 You should see your changes reflected in the logs:
 
-```
+```bash
     topicname value : qa topic
 ```
 
@@ -882,7 +874,7 @@ You are ready to move onto the production workflow.
 
 From your terminal, login to the CRC cluster, and then execute the execute the bootstrap script for the Prod Onboarding Automation Server in your local el-CICD directory.
 
-```
+```bash
     crc-admin-login
     el-cicd-prod-bootstrap.sh
 ```
@@ -903,7 +895,7 @@ This follows the same basic procedure you went through before with the Non-prod 
 
 Open your terminal and login to CRC as admin.
 
-```
+```bash
     crc-admin-login
 ```
 
@@ -913,7 +905,7 @@ Open your browser, and go to
 
 If the browser warns you that your connection is not private, you can safely ignore it and click  _Advanced_, and then the button _Proceed to jenkins-el-cicd-non-prod-master.apps-crc.testing (unsafe)_ .  Login to Jenkins using the CRC admin credentials, clicking initially on the `kube:admin` button.  You can simply paste the password (the CRC pull secret) from your clipboard thanks to the script above.
 
-```
+```text
     Username: kubeadmin
     Password: <CRC pull secret>
 ```
@@ -963,7 +955,7 @@ In summary, the pipeline will do the following:
 
 Like in Non-prod Onboarding Automation Server, the `prod-project-onboarding` Pipeline creates and configures a great deal.  If you enter the following commands in a terminal, you can see what has been created in the `test-cicd-prod` namespace:
 
-```
+```bash
     oc project test-cicd-prod
     oc get sealedsecrets,secrets
 ```
@@ -1014,7 +1006,7 @@ Click on `devops-cicd-prod` in the upper left corner.
 
 Run the following commands in a terminal to watch the Release Version pods as they are deployed:
 
-```
+```bash
     oc project test-cicd-prod
     watch oc get pods
 ```
@@ -1023,13 +1015,13 @@ After the pipeline completes, you should see only `test-cicd-stationdemo`, `test
 
 Exit `watch` by entering `crtl-c` in your terminal, and run the following command:
 
-```
+```bash
     oc get cm test-cicd-meta-info -o yaml
 ```
 
 This ConfigMap is only created in production deployments, and will hold the following data confirming your deployment:
 
-```
+```text
     microservices: test-cicd-stationdemo,test-cicd1,test-cicd3
     projectid: test-cicd
     release-version: v1.0.0
@@ -1056,7 +1048,7 @@ This step will demo upgrading to a new version of you application.  Click on `de
 
 Run the following commands in a terminal to watch the Release Version pods as they are deployed:
 
-```
+```bash
     oc project test-cicd-prod
     watch oc get pods
 ```
@@ -1066,13 +1058,13 @@ After the pipeline completes, you should see only _test-cicd1_, _test-cicd2_, _t
 
 Exit `watch` by entering `crtl-c` in your terminal, and run the following command:
 
-```
+```bash
     oc get cm test-cicd-meta-info -o yaml
 ```
 
 This map will hold the following data confirming your deployment:
 
-```
+```text
     microservices: _test-cicd1,test-cicd2,test-cicd4,test-cicd-r
     projectid: test-cicd
     release-version: v1.1.0
