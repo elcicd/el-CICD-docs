@@ -209,7 +209,7 @@ Features not supported, but on the immediate investigate/TODO list:
 * [Automation Server Pipelines](#automation-server-pipelines)
   * [Project Onboarding Pipelines](#project-onboarding-pipelines)
   * [Non-prod Automation Server Pipelines](#non-prod-automation-server-pipelines)
-    * [Build to Dev](#build-to-dev-1)
+    * [Build-to-Dev](#build-to-dev-1)
     * [Build and Deploy Microservices](#build-and-deploy-microservices)
     * [Promotion/Removal](#promotionremoval)
     * [Redeploy/Removal](#redeployremoval)
@@ -481,7 +481,7 @@ A Docker-like tool for the copying, tagging, deleting, and inspection of images 
 
 ### [DockerHub](https://hub.docker.com), [Quay](https://quay.io)
 
-Any online or or on premise image repository that is compatible with podman/buildah/skopeo or Docker is compatible for use with el-CICD.  Our examples in this tutorial use DockerHub.
+Any online or or on premise Image Repository that is compatible with podman/buildah/skopeo or Docker is compatible for use with el-CICD.  Our examples in this tutorial use DockerHub.
 
 ### [OKD](https://okd.io)
 
@@ -1040,7 +1040,7 @@ The above values are each prepended with the name of each environment defined in
   QA_NODE_SELECTORS=
 ```
 
-Typical installations might have a Dev, QA (covering all test environments), and Prod image repository, but it is also possible have a single image repository shared among all environments, or an image repository per environment.  Regardless, an entry for each named environment must be defined separately.
+Typical installations might have a Dev, QA (covering all test environments), and Prod Image Repository, but it is also possible have a single Image Repository shared among all environments, or an Image Repository per environment.  Regardless, an entry for each named environment must be defined separately.
 
 #### Jenkins Sizing and Configuration
 
@@ -1107,7 +1107,7 @@ The path to the read-only private deploy key for the el-CICD repositories.  The 
 * **EL_CICD_GIT_REPO_ACCESS_TOKEN_FILE**  
 An access token (**not** an ssh key) to an administrative account for the SCM.  This token will live in the Onboarding Automation Server.  For this reason, only administrators of the DevOps should have access to this server.  Write tokens for each project microservice's repository will be confined to the group that owns the project.
 * **<ENV_NAME>_PULL_TOKEN_FILE**  
-Path to the file holding the access token(s) to the image repository for each environment.  These will be used for the Build and for all image Deployments, and these tokens need push and pull access to each repository.  As the example above shows, each test environment must be defined separately, even if all the test environments use the same repository.
+Path to the file holding the access token(s) to the Image Repository for each environment.  These will be used for the Build and for all image Deployments, and these tokens need push and pull access to each repository.  As the example above shows, each test environment must be defined separately, even if all the test environments use the same repository.
 
 ### Permissions
 
@@ -1169,8 +1169,8 @@ Developers need to follow certain conventions for their microservice projects to
 * **A standard of one image produced per Git repository**  
   It will be assumed that only one microservice will be defined per Git repository per project.  This is not the same as one image deployed per Git repository; i.e. deployment configurations for supporting images, such as databases, or multiple configurations of the same image built, are perfectly reasonable deployment strategies.
 * **A Dockerfile must exist in the root directory of the microservice or component to be built**  
-  Every OKD BuildConfig will use the binary docker strategy to create and push an image to the Dev environment image repository.  el-CICD does not currently manage builds strictly for building artifacts consumed for builds by other microservices.
-* **All OKD deployment resources will be placed in a _.openshift_ directory under the root directory of the microservice.**
+  Every OKD BuildConfig will use the binary docker strategy to create and push an image to the Dev environment Image Repository.  el-CICD does not currently manage builds strictly for building artifacts consumed for builds by other microservices.
+* **All OKD deployment resources will be placed in a**_.openshift_**directory under the root directory of the microservice.**
 
 OKD Template reuse and patching via `kustomize` is relied on heavily for ease of use, but not necessary.
 
@@ -1179,31 +1179,33 @@ OKD Template reuse and patching via `kustomize` is relied on heavily for ease of
 ![Figure 8: The .openshift Directory](images/openshift-directory.png)
 
 **Figure 8**  
- _The .openshift directory_
+ _The **.openshift** directory_
 
 ### Structure
 
-The structure of the _.openshift_ directory follows a few simple rules:
+The structure of the **_.openshift_** directory follows a few simple rules:
 
-* All OKD Templates will be placed in the root _.openshift_ directory for processing
+* All OKD Templates will be placed in the root **_.openshift_** directory for processing
 * Optional subfolders will consist of the following:
-  * **default**
-Will all default YAML or JSON OKD resource definitions to be applied across environments
+  * **default**  
+    YAML or JSON OKD resource definitions to be applied across all environments
   * **_Environment specific folders_**
     * Should match the name of the environment exactly
     * Holds additional OKD resources in either YAML or JSON
-    * Overrides all _default_ folder contents
-    * Every environment that needs SealedSecrets will need all an environmental folder defined; unless otherwise specified, Sealed Secrets are namespace specific
+    * If the file names match any in the `default` folder, the ones found here will take precedence
+    * Every environment that needs a SealedSecret will need an environmental folder defined; unless otherwise specified, SealedSecrets are namespace specific
 
 ### OKD Templates and Default Examples
 
-Developers are encouraged to utilize [OKD Templates](https://docs.okd.io/latest/openshift_images/using-templates.html) to generate OKD resources such as DeploymentConfigs, Services, and Routes.  To that end, a number of basic templates are provided for ease of use for Developers to leverage, and they can be found in **_el-CICD-docs_** repository on GitHub under the**_ .openshift-examples_** folder.  In particular, the following will be of particular interest to speed the development process for developers:
+[**NOTE**: Future releases of el-CICD will also support Helm]
+
+Developers are encouraged to utilize [OKD Templates](https://docs.okd.io/latest/openshift_images/using-templates.html) to generate OKD resources such as DeploymentConfigs, Services, and Routes.  To that end, a number of basic templates are provided for ease of use for Developers to leverage, and they can be found in **_el-CICD-docs_** repository on GitHub under the **_.openshift-examples_** folder.  In particular, the following will be of particular interest to speed the development process for developers:
 
 * dc-svc-template.yaml
 * dc-svc-route-template.yaml
 * cronjob-template.yaml
 
-Each of these files defines a template for an OKD DeploymentConfig (dc), a Service (svc), an optional Route (route) as needed.  A third template defines a CronJob.  These files are fully parameterized, and except in very rare cases developers shouldn’t need to edit them directly.   Instead, Developers will leverages [patching](#template-patching) via kustomize.
+Each of these files defines a template for an OKD DeploymentConfig (dc), a Service (svc), and an optional Route (route) as needed.  A third template defines a CronJob.  Each of these files are fully parameterized, and except in very rare cases developers shouldn’t need to edit them directly.   Instead, Developers will leverages [patching](#template-patching) via `kustomize`.
 
 Developers can also find a number of other examples with which to bootstrap defining their configuration resources, including sample templates for ConfigMaps, HorizontalPodAutoscalers, kustomization patch files, etc.
 
@@ -1221,19 +1223,19 @@ All the above template parameters are automatically derived and applied to each 
 
 #### Template Patching
 
-OKD Templates are well suited to injecting values into predefined OKD resources, but they do not support injecting additional structure; e.g. dynamically defining and injecting environment variables, Persistent Volumes (pv), or Persistent Volume Claims (pvc).  To that end, el-CICD has leveraged kustomize with OKD Templates to create a much more flexible system for creating OKD resources on the fly with far less labor than previously needed.  This allows for greater flexibility and reuse by Templates, as well as easier development of common OKD resources.
+OKD Templates are well suited to injecting values into predefined OKD resources, but they do not support injecting additional structure; e.g. dynamically defining and injecting environment variables, PersistentVolumes (pv), or PersistentVolumeClaims (pvc).  To that end, el-CICD has leveraged `kustomize` with OKD Templates to create a much more flexible system for creating OKD resources on the fly with far less labor than previously needed.  This allows for greater flexibility and reuse by Templates, as well as easier development of common OKD resources.
 
 ##### kustomize Patch Files
 
-Unlike with standalone kustomize, kustomize Patch files are specified per template in the [template-defs.json](#template-definition-file)_ file, and can be overridden per environment.  They are specifically made in order to patch the **_env_** and **_volumeMounts_** section of a particular container, **_volumes_** section of a DeploymentConfig or CronJob template, or even the p**_parameters_** section of a Template, although they can be applied in any way that kustomize allows against any template.
+Unlike with standalone `kustomize`, `kustomize` Patch files are specified per template in the [template-defs.json](#template-definition-file) file, and can be overridden per environment.  They are specifically made in order to patch the **_env_** and **_volumeMounts_** section of a particular container, **_volumes_** section of a DeploymentConfig or CronJob template, or even the **_parameters_** section of a Template, although they can be applied in any way that `kustomize` allows against any template.
 
 ###### Patch File Naming Conventions
 
-All kustomize Patch files should use the extension *.patch.  This is non-standard, but helps avoid the system mistaking the file as an OKD resouce, and makes for easier identification within the project for Developers.
+All `kustomize` Patch files should use the extension *.patch.  This is non-standard considering they are YAML files, but helps avoid the system mistaking the file as an OKD resouce, and makes for easier identification within the project for Developers.
 
 ###### Example Patch File
 
-The following demonstrates how a patch file can be used for a DeploymentConfig, showing each of the four most common places a Developer might wish to enhance their Templates, environment variables, Persistent Volumes, Persistent Volume Claims, and Template Parameters:
+The following demonstrates how a patch file can be used to patch a DeploymentConfig, showing each of the four most common places a Developer might wish to enhance their Templates, environment variables, PersistentVolumes, PersistentVolumeClaims, and OKD Template Parameters:
 
 ```yaml
 - op: add
@@ -1274,26 +1276,28 @@ The following demonstrates how a patch file can be used for a DeploymentConfig, 
     required: true
 ```
 
-The first thing of note is the **_op_**, or operation, in kustomize.  In this example, as will happen with most uses of Template patching, will be an **_add_** operation; i.e. the specified data will be injected into the Template.
+The **_op_**, or operation, in `kustomize`.  In this example, as will happen with most uses of Template patching, will be an **_add_** operation; i.e. the specified data will be injected into the Template.
 
-The second thing of note for each entry is the **_path_**.  This refers to the YAML or JSON path in directory format to where the file should be operated on.  Of special interest are the numbers in the path: these refer to items in a YAML or JSON list.  There is currently no way to search for a particular item in an OKD resource list, so the structure of the file being operating upon must be known beforehand and the index hard-coded.  Overall, the path simply reflects the hierarchy of the Template.
+The second item of note for each entry is the **_path_**.  This refers to the YAML or JSON path in directory format to where the file should be operated on.  Of special interest are the numbers in the path: these refer to specific index in a YAML or JSON list.  There is currently no way to search for a particular item in an OKD resource list, so the structure of the file being operating upon must be known beforehand and the index hard-coded.  Overall, the path simply reflects the hierarchy of the Template.
 
-The **_value_** entry, which details the structure to be injected into the Template.  Also note how the above example inject a new parameter into the Template, which in combination with [template-defs.json](#template-definition-file) aids in adding even more flexibility to your Templates.
+The **_value_** entry, which details the structure to be injected into the Template.
 
-Also note the use of the **_APP_NAME_** parameter, which is an injected value.  APP_NAME defaults to the microservice name, but can be adapted to whatever the developer needs, and per environment.
+The first and last **_value_** examples demonstrates how to inject and use a new parameter into your Templates, which in combination with [template-defs.json](#template-definition-file) aids in adding even more flexibility.
 
-Please refer to the [kustomize](https://github.com/kubernetes-sigs/kustomize) documentation for further information.
+The **_APP_NAME_** parameter used above demonstrates how to dynamically refer to an ConfigMap defined in another file.  As mentioned [above](#injected-parameters), **APP_NAME** defaults to the microservice name, but can be adapted to whatever the developer needs, and per environment.
+
+While the **add** operation is going to be the most commonly used operation in your `kustomize` patches, please refer to the [kustomize](https://github.com/kubernetes-sigs/kustomize) documentation for more advanced and complete information of how to use use the tool.
 
 ### Template Definition File
 
-The processing of the OKD Templates in the _.openshift_ folder is driven by a _template-defs.json_.  It will have the following format:
+The processing of the OKD Templates in the**_.openshift_**folder is driven by a _template-defs.json_.  It will have the following format:
 
 ```json
 {
     "templates":[
         {
             "file": "<template-file-name>.yaml",
-            "appName": "<optional-app-name>"
+            "appName": "<optional-app-name>",
             "patchFile": "<patch-file-name>.patch",
             "params": {
                 "<some-key-1>": "<some-value-1>",
@@ -1315,30 +1319,32 @@ The processing of the OKD Templates in the _.openshift_ folder is driven by a _t
 }
 ```
 
-* **file: \<template-file-name>**
+* **file: \<template-file-name>**  
 File name of a OKD Template.  Can only be specified here.
-* **appName: \<optional-app-name>**
+* **appName: \<optional-app-name>**  
 Optional app name.  Defaults to microservice name if not specified.  Can only be specified here.
-* **patchFile: \<patch-file-name>**
+* **patchFile: \<patch-file-name>**  
 File name of the patch file.  Patch files should have the extension _*.patch_.  Can be overridden per environment.
-* **params**
-Specific parameter keys and values to be applied to the template listed in key values pairs below here.  May be specified as default values in the root Template listing, or with specific overrides under an environment.
-* **\<environment-name>**
+* **params**  
+Specific parameter keys and values to be applied to the OKD Template listed in key values pairs below here.  May be specified as default values in the root Template listing, or with specific overrides under an environment.
+* **\<environment-name>**  
 Name of a deployment environment.  Environment specific patch files and/or params may be defined here, and they will override all other parameters or values for that environment.
 
 The _template-def.json_ structure is a JSON array, with each OKD Template file and optional patch file and parameters with which to process the array at the root of each array entry.  Environmental specific overrides and additional key/value pairs can be added in environment sections as described above.
 
-The _appName_ key above overrides the **APP_NAME** OKD Template parameter value injected parameter, and is for defining a custom application name for the template to use that differs from the microservice name.  It's most practical to use this when there are multiple, unique deployed applications from a image built from a microserve, because each DeploymentConfig or CronJob requires a unique name and so is unable to rely on just the microservice name.
+The **_appName_** key above overrides the **APP_NAME** OKD Template parameter value injected parameter, and is for defining a custom application name for the template to use that differs from the microservice name.  It's most practical to use this when there are multiple, unique deployed applications from a image built from a microserve, because each DeploymentConfig or CronJob requires a unique name and so is unable to rely on just the microservice name.
 
 #### SealedSecrets
 
-In order to facilitate complete automation of deployments within OKD using el-CICD, and enable the versioning of Secrets, the SealedSecrets plugin has been incorporated into el-CICD.  SealedSecrets use asymmetric cryptography similar to SSL with a public/private key, and unlike OKD Secrets are safe to store in SCM repositories.  All Secrets need to be encrypted using the _kubeseal_ CLI tool provided by SealedSecrets and installed on the OKD cluster bastion VM during installation of el-CICD via the bootstrap scripts.  One SealedSecret per environment per OKD Secret must be created for full automation to be supported from a microservice’s Git Repository through deployment to production.  So that the system can automatically deploy the SealedSecret properly, each one should be put into its environment specific deployment folder in the _.openshift_ directory in the microservice’s Git repository.  More information on SealedSecrets and how to use it can be found [here](https://github.com/bitnami-labs/sealed-secrets#overview).
+In order to facilitate complete automation of deployments within OKD using el-CICD, and enable the versioning of Secrets, the SealedSecrets plugin has been incorporated into el-CICD.  The SealedSecrets plugin uses asymmetric cryptography similar to SSH with a public/private key, and unlike OKD Secrets are safe to store in SCM repositories.  All Secrets need to be encrypted using the `kubeseal` CLI tool provided by SealedSecrets and installed on the OKD cluster bastion machine during installation of el-CICD via the bootstrap scripts.  One SealedSecret per environment per OKD Secret must be created for full automation to be supported from a microservice’s Git Repository through deployment to production; otherwise, Secrets will have to be manually created by hand in each environment.  So that the system can automatically deploy the SealedSecret properly, each one should be put into its environment specific deployment folder in the **_.openshift_** directory in the microservice’s Git repository.  More information on SealedSecrets and how to use it can be found [here](https://github.com/bitnami-labs/sealed-secrets#overview).
 
 Sealed Secrets are not a necessity, and other strategies such as a vault may be used, but el-CICD must be manually configured to not install it by default.
 
 # Automation Server Pipelines
 
 The following will describe each pipeline, and how to use them.
+
+## Project Onboarding Pipelines
 
 ![Figure 9: Build and Deploy Microservices](images/el-cicd-non-prod-master-onboarding.png)
 
@@ -1350,8 +1356,6 @@ _el-CICD Non-prod Automation Server pipelines_
 **Figure 10**
 _el-CICD Prod Automation Server pipelines_
 
-## Project Onboarding Pipelines
-
 The project onboarding pipelines exist on the el-CICD master servers. All onboarding pipelines will do the following:
 
 * Create the RBAC group namespace for the Automation Server if it doesn't exist
@@ -1359,7 +1363,7 @@ The project onboarding pipelines exist on the el-CICD master servers. All onboar
 * Create the Automation Server
 * Create all pipelines
   * Non-prod
-    * [Build to Dev](#build-and-deploy-microservices)
+    * [Build-to-Dev](#build-and-deploy-microservices), one for each microservice
     * [Build and Deploy Microservices](#build-and-deploy-microservices)
     * [Promotion/Removal](#promotionremoval)
     * [Redeploy/Removal](#redeployremoval)
@@ -1367,34 +1371,35 @@ The project onboarding pipelines exist on the el-CICD master servers. All onboar
     * [Redeploy Release Candidate](#redeploy-release-candidate)
   * Prod
     * [Deploy To Production](#deploy-to-production)
-* Add all necessary credentials to the Jenkins instance for image repositories and Git
+* Add all necessary credentials to the Jenkins instance for Image Repositories and Git
 
-Note that these pipelines is designed to be remotely triggered and complete automatically if necessary.  This allows oganizations that create outside project management software to integrate seamlessly with el-CICD.
+ Both onboarding pipelines are designed to be remotely triggered and complete automatically if necessary.  This allows oganizations that have external project management software to more easily integrate with el-CICD.  See the Jenkins documentation for how to trigger piplines via its RESTful API.
 
 ![Figure 11: Non-prod Project Onboarding Pipeline](images/non-prod-project-onboarding-build.png)
 
 **Figure 11**
-_el-CICD Non-prod Project Onb pipelines_
+_el-CICD Non-prod Project Onboarding Pipeline
 
 ![Figure 12: Prod Project Onboarding Pipeline](images/prod-project-onboarding-build.png)
 
 **Figure 12**
-_el-CICD Prod Automation Server pipelines_
+_el-CICD Prod Project Onboarding Pipeline
 
 ## Non-prod Automation Server Pipelines
 
-The following pipelines exist on the Non-prod Automation Server.  All except the [Build to Dev](#build-and-deploy-microservices) pipeline(s) are shared among all projects owned by the RBAC group controlling the server.  Only the Build to Dev pipelines are designed to be remotely triggered.  All other pipelines are designed such that human intervention is necessary for them to complete.
+The following pipelines exist on the Non-prod Automation Server.  All except the [Build-to-Dev](#build-and-deploy-microservices) pipeline(s) are shared among all projects owned by the RBAC group controlling the server.  Only the Build-to-Dev pipelines are designed to be remotely triggered.  All other pipelines are designed such that human intervention is necessary for them to complete.
 
 ![Figure 13: Non-prod Automation Server Pipelines](images/non-prod-automation-servier-pipelines.png)
 
 **Figure 13**
 _Non-prod Automation Server pipelines for RBC Group `devops` and project `test-cicd`_
 
-### Build to Dev
+### Build-to-Dev
 
-There is one Build to Dev pipeline per each microservice defined in the [Project Definition File](#project-definition-file).  The pipeline will do the following:
+There is one Build-to-Dev pipeline per each microservice defined in the [Project Definition File](#project-definition-file).  The pipeline will do the following:
 
-* Download the latest microservice code the project's development branch, optionally another branch as entered by the user
+* Download the latest microservice code from the project's Development Branch
+  * Users may optionally enter another branch to build
 * Build, test, and scan microservice in the Jenkins agent
 * Build and push an image of the microservice to the Dev Image Repository
   * Tag the image with the Dev environment name, all lower case
@@ -1402,7 +1407,7 @@ There is one Build to Dev pipeline per each microservice defined in the [Project
 * Build and process the Dev environment OKD templates
 * Deploy the microservice to Dev, or to one of the Sandbox environments as chosen by the user
   
-Build to Dev is usually triggered via a webhook from Git whenever the development branch for a particular microservice's development branch is updated, and the pipeline attempts to build and deploy the microservice to the Dev environment.  If the user chooses to execute the pipeline manually, they may choose:
+Build-to-Dev is usually triggered via a webhook from Git whenever the Development Branch for a particular microservice's has a new commit, and the pipeline attempts to build and deploy the microservice to the Dev environment.  If the user chooses to execute the pipeline manually, they may choose:
 
 * The Git branch to build from
 * Whether to remove the currently deployed microservice first before redeploying
@@ -1413,7 +1418,7 @@ Start the pipeline manually by going the _Build with Parameters_ screen of the p
 ![Figure 14: Build and Deploy Microservices](images/build-to-dev-build.png)
 
 **Figure 14**
-_Build with Parameters screen for the Build to Dev pipeline_
+_Build with Parameters screen for the Build-to-Dev pipeline_
 
 ### Build and Deploy Microservices
 
@@ -1422,10 +1427,10 @@ The Build and Deploy Microservices pipleline is meant for the building and deplo
 * Choose to deploy to the Dev environment or a Sandbox
 * Choose the branch to build from the chosen microservices of the project
 * Build all microservices
-* Recreate all microservices; i.e. remove all currently deployed microservices below deploying new builds
+* Recreate all microservices; i.e. remove all currently deployed microservices before deploying new builds
 * Build selected microservices of the project
 
-The pipeline builds a number of microservices in parallel using Jenkins' parallel build capability.  The builds and deployments for each microservice are triggered by calling each individual Build to Dev pipleline of each microservice.
+The pipeline builds a number of microservices in parallel using Jenkins' parallel build capability.  The builds and deployments for each microservice are triggered by calling each individual Build-to-Dev pipleline of each microservice.
 
 Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
 
@@ -1441,17 +1446,19 @@ From the console of the running build, enter the input screen and select how you
 **Figure 16**
 _Choose what microservices build and where to deploy to_
 
+`buildAll` will build all the microservices in the project.  `recreateAll` will remove all previously deployed microservices from the enviroment before deploying anything, and this functionality can be used without building any microservices as a means of cleaning the Dev or Sandox environments.
+
 ### Promotion/Removal
 
 The Promotion/Removal pipeline's purpose is to promote one or more microservices of a project from one environment to the next as defined both in the general el-CICD settings and using only the specific test environments as listed in the [Project Definition File](#project-definition-file),  For each microservice the user has selected for promotion the pipeline will:
 
-* Verify the image(s) to be promoted have been deployed in the previous environment
-* If the previous environment is a test environment, confirm a Deployment Branch exists
+* Verify each image to be promoted has been deployed in the previous environment
+* If the previous environment is a test environment, confirm a Deployment Branch for the previous environment exists
 * Create a new Deployment Branch from the previous Deployment Branch for the current environment if one does not exist
-* Copy the image from the previous environment's image repository to the current environment's image repository
-  * Tag the image with the current environment name, all lower case
+* Copy the image from the previous environment's Image Repository to the current environment's Image Repository
+  * Tag the image with the current environment name, all lower case, marking it as the image currently or most recently (if later removed) deployed to that environment; e.g. `qa`
   * Tag the image with current environment name and source commit hash; e.g. `qa-skd76dg`
-* Deploy the microservice using the environment's deployment configuration from the Deployment Branch and the image from the environment's image repository that was just copied
+* Deploy the microservice using the environment's deployment configuration from the Deployment Branch and the image from the environment's Image Repository that was just copied
 
 Before deploying the newly copied images, any microservices selected for removal will be removed.
 
@@ -1475,12 +1482,12 @@ _Select microservices to promote or remove_
 
 ### Redeploy/Removal
 
-The Redeploy/Removal pipeline's purpose is to redeploy one or more microservices of a project back into its environment, usually because the configuration of those microservices have changed and been pushed to the microservices repository, or the user wished to peform a rollback/rollforward to a particular microservice image in the environment.  For each microservice the user has selected for redeployment the pipeline will:
+The Redeploy/Removal pipeline's purpose is to redeploy one or more microservices of a project back into its environment, usually because the configuration of those microservices have changed and been pushed to the microservice's Git repository, or the user wishes to peform a rollback or roll-forward operation to a particular microservice image in the environment.  For each microservice the user has selected for redeployment the pipeline will:
 
-* Verify the image still exists in the environment's image repository
+* Verify the image still exists in the environment's Image Repository
 * Confirm a Deployment Branch exists for the image
 * Tag the image with the current environment name, all lower case, marking it as the current image deployed in the environment
-* Deploy the microservice using the environment's deployment configuration from the Deployment Branch and the image from the environment's image repository that was just tagged
+* Deploy the microservice using the environment's deployment configuration from it's Deployment Branch and the image from the environment's Image Repository that was just tagged
 
 Before redeploying any images, any microservices selected for removal will be removed.
 
@@ -1496,7 +1503,7 @@ _Build with Parameters screen for the Redeploy/Removal pipeline_
 **Figure 20**
 _Select environment to redeploy to_
 
-After entering the project name and choosing an environment, the user may choose a previous version of any microservice 
+After entering the project name and choosing an environment, the user may choose the version of any microservice they wish to deploy, or removal of some or all of the images: 
 
 ![Figure 21: Promotion/Removal](images/redeploy-removal-pipeline.png)
 
@@ -1505,9 +1512,9 @@ _Select microservices to redeploy or remove_
 
 ### Create Release Candidate
 
-The Create Release Candidate pipeline's purpose is to take a collection of images from those currently deployed in the Pre-prod environment that the user selects and tag them each as a candidate for a release to production.  For each microservice the user has selected for tagging  the pipeline will:
+The Create Release Candidate pipeline's purpose is to define a collection of images from those currently deployed in the Pre-prod environment (the penultimate test environment before being deployed to Prod) that the user selects and tag them each as a candidate for a release to production.  For each microservice the user has selected for tagging  the pipeline will:
 
-* Verify images in the Pre-prod image repository with the Release Candidate Tag do not already exist
+* Verify images in the Pre-prod Image Repository with the Release Candidate Tag do not already exist
 * Tag the Pre-Prod Deployment Branch's latest commit with the Release Candidate Tag
 
 Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
@@ -1517,7 +1524,7 @@ Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
 **Figure 22**
 _Build with Parameters screen for the Redeploy/Removal pipeline_
 
-After entering the project name and entering a release candidate tag, the user should select the microservices that will be part of the release.
+After entering the project name and entering a Release Candidate Tag, the user should select the microservices that will be part of the release.
 
 ![Figure 23: Create Release Candidate](images/create-release-candidate.png)
 
@@ -1526,7 +1533,7 @@ _Select environment to redeploy to_
 
 ### Redeploy Release Candidate
 
-The Redeploy Release Candidate pipeline's purpose is redeploy the images in the Pre-prod image repository tagged as a particular release candidate back into the Pre-prod environment.  User will want to do this for testing purposes, or to set the environment up quickly to create a hotfix.  After entering the Project ID and the Release Candidate Tag the pipeline will:
+The Redeploy Release Candidate pipeline's purpose is to redeploy the images in the Pre-prod Image Repository tagged as a particular Release Candidate back into the Pre-prod environment.  Users will want to do this for testing purposes, or to set the environment up quickly to create a hotfix.  After entering the Project ID and the Release Candidate Tag the pipeline will:
 
 * Verify both images and a Git tag exist that match the Release Candidate Tag
 * Ask the user to confirm the deployment of the Release Candidate, and removal of all microservices not part of the Release Candidate
@@ -1535,7 +1542,7 @@ If the user approves the deployment, the pipeline will continue and:
 
 * Tag all images of the Release Candidate with the Pre-prod environment name, all lower case, marking it as the current image deployed in the environment
 * Remove all currently deployed microservices in Pre-prod
-* Deploy all microservices of the Release Candidate into Pre-prod, using the latest commit from the Deployment Branch for the Pre-prod environment
+* Deploy all microservices of the Release Candidate into Pre-prod, using the latest commit from the Deployment Branch for the Pre-prod environment [**IMPORTANT**: if further deployments of the Release Candidate took place after promoting to Prod, it's possible the Release Candidate may not completely resemble the original Release Candidate.] 
 
 **WARNING**: when redeploying a Release Candidate, the latest commit of the Deployment Branch is what is used, meaning the deployment may **NOT** have the same deployment configuration as when the Release Candidate was created.
 
@@ -1546,7 +1553,7 @@ Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
 **Figure 24**
 _Build with Parameters screen for the Redeploy Release Candidate pipeline_
 
-After entering the project name and entering a release candidate tag, the user should select the microservices that will be part of the release.
+After entering the project name and entering a Release Candidate Tag, the user should select the microservices that will be part of the release.
 
 ![Figure 25: Redeploy Release Candidate Confirmation](images/redeploy-release-candidate.png)
 
@@ -1564,13 +1571,12 @@ The Deploy to Production pipeline's purpose is to create a Release Version by pr
 If the Release Candidate exists, then
 
 * Ask for confirmation from the user whether to deploy the Release Version
-  * The confirmation will not whether this is a redeployment or promotion
-* If they do not already exist
-  * Copy the Release Candidate images into the Prod image repository
-  * Release Version Tag is the Release Candidate Tag prefixed with a 'v'
-    * `v<relase-candidate-tag>`; e.g. `v2.0`
-  * Create the Release Version Deployment Branch
-    * Branch created from commit of Release Version Tag in Git
+* If the Release Version does not already exist
+  * Copy the Release Candidate images into the Prod Image Repository
+  * Tag each image as a Release Version
+    * `v<Release-Candidate-Tag>`; e.g. `v2.0` for Release Candidate `2.0`
+  * Create each Release Version Deployment Branch
+    * Branch created from the commit of the Pre-prod Deployment Branch that also has the Release Version Tag in Git
 * Deploy the microservices to the Prod environment that are part of Release Version
 * Remove all resources and microservices that are not part of the Release Version
 
@@ -1581,12 +1587,14 @@ Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
 **Figure 26**
 _Build with Parameters screen for the Deploy to Production pipeline_
 
-After entering the project name and entering a release candidate tag, the user should select the microservices that will be part of the release.
+After entering the project name and entering a Release Candidate Tag, the user should select the microservices that will be part of the release.
 
 ![Figure 27: Deploy to Production Confirmation](images/deploy-to-production-confirmation.png)
 
 **Figure 27**
 _Confirm promoting or redeploying the Release Version into Prod_
+
+The pipeline is smart enough to realize on redeployments whether the Deployment Branch has changed since the last deployment for each microservice, and will only deploy those microservices that have changed.  If you wish all microservices to be redeployed, set the DEPLOY_ALL parameter to `true`.  Compare the `Microservices in this release` to the `Microservices to be deployed` section to see what the pipeline will do for each redeployment.
 
 # Advanced SDLC Patterns
 
@@ -1596,11 +1604,11 @@ It is important to remember that while el-CICD manages branching and tagging for
 
 ## Staggered Release Teams
 
-Staggered releases are a strategy whereby two different teams within the same project work on different releases.  In order to support this type of development strategy, teams should create two different Project Definiton Files.  Each Project Definition File needs only refer to a different development branch, one for each team.
+Staggered releases are a strategy whereby two different teams within the same project work on different releases in parallel, and release at different times one after the other.  In order to support this type of development strategy, teams should create two different Project Definition Files.  Each Project Definition File needs only refer to a different Development Branch, one for each team.
 
-The result of this strategy is that two separate sets of environments for deployments will be created in the Non-prod cluster, one for each team.  This is all that is needed.  From an RBAC Group perspective, only one needs be created, allowing developers to move between the teams easily.  In Prod, only one of the two teams Automation Servers need be created, because the tags in the image repositories do not directly belong to any particular project.
+The result of this strategy is that two separate sets of environments for deployments will be created in the Non-prod cluster, one for each team, and two different Build-to-Dev pipelines for the same microservice referring to different Development Branches.  This is all that is needed.  In Prod, only one of the two teams Automation Servers need be created, because the Release Candidate and Release Version Tags in the Image Repositories do not directly belong to any particular project.
 
 ## Hotfixing
 
-Hotfixing a Release Version while development continues on the Development Branch of a project can be tricky, but el-CICD makes it trivial.  Create a copy of the Project Definition File
+Hotfixing a Release Version while development continues on the Development Branch of a project can be tricky, but el-CICD can support this scenario.  Create a copy of the Project Definition File, and only whitelist the Pre-prod environment in the copy.  Create a `hotfix` branch in Git for each microservice from the latest commit of the Release Version's Deployment Branch, and make this the Development Branch of the Hotfix Project.  Assuming you didn't change the source code as instructed, this will contain the source each image of the Release Version was created from, as well as the each image's deployment configuration.  Redeploy the Release Candidate into the hotfix projects Pre-prod environment, develop against the `hotfix` branch as usual, except now you only have a single test environment before production for faster deployments into Prod, which is what you want with a hotfix.  Each hotfix is considered a new Release Version by el-CICD, but it is advisable to come up with a separate version tagging strategy in order to tell them apart from normal Release Candidates and Release Versions.
 
