@@ -780,7 +780,7 @@ The Project Definition File is a file that defines each project, and **the name 
 ```yaml
 rbacGroup: devops                    # The OKD RBAC group the project belongs to
 scmHost: github.com                  # The SCM hostname of the project
-scmOrganization: hippyod             # The SCM organization of the project
+scmOrganization: elcicd             # The SCM organization of the project
 gitBranch: development               # The dev branch name of all microservices
 microServices:                       # List of microservices in project
 - gitRepoName: Test-CICD1            # The Git repository name of the microservce
@@ -914,15 +914,15 @@ Note that except for the node selectors, for the most part this information can 
 ```properties
   GIT_CREDS_POSTFIX=git-repo-private-key
 
-  EL_CICD_GIT_REPO=git@github.com:hippyod/el-CICD.git
+  EL_CICD_GIT_REPO=git@github.com:elcicd/el-CICD.git
   EL_CICD_BRANCH_NAME=master
   EL_CICD_READ_ONLY_GITHUB_PRIVATE_KEY_ID=el-cicd-read-only-git-repo-private-key
 
-  EL_CICD_UTILS_GIT_REPO=git@github.com:hippyod/el-CICD-utils.git
+  EL_CICD_UTILS_GIT_REPO=git@github.com:elcicd/el-CICD-utils.git
   EL_CICD_UTILS_BRANCH_NAME=master
   EL_CICD_UTILS_READ_ONLY_GITHUB_PRIVATE_KEY_ID=el-cicd-utils-read-only-git-repo-private-key
 
-  EL_CICD_PROJECT_INFO_REPOSITORY=git@github.com:hippyod/el-CICD-project-repository.git
+  EL_CICD_PROJECT_INFO_REPOSITORY=git@github.com:elcicd/el-CICD-project-repository.git
   EL_CICD_PROJECT_INFO_REPOSITORY_BRANCH_NAME=master
   EL_CICD_PROJECT_INFO_REPOSITORY_READ_ONLY_GITHUB_PRIVATE_KEY_ID=el-cicd-project-info-repository-git-repo-private-key
 
@@ -1071,7 +1071,7 @@ Depending on how you choose to manage your different Onboarding Automation Serve
   GIT_PROVIDER=github
 
   EL_CICD_HOST=github.com
-  EL_CICD_ORGANIZATION=hippyod
+  EL_CICD_ORGANIZATION=elcicd
 
   EL_CICD_SSH_READ_ONLY_PUBLIC_DEPLOY_KEY_TITLE=el-cicd-read-only-public-key
   EL_CICD_SSH_READ_ONLY_DEPLOY_KEY_FILE=../cicd-secrets/el-CICD-deploy-key

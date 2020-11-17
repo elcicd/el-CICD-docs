@@ -294,18 +294,18 @@ This tutorial assumes you will be using [GitHub](github.com) as your Git reposit
 
 The following el-CICD repositories should be forked, and the **master** branch is what you should default to using:
 
-* [el-CICD](https://github.com/hippyod/el-CICD)
-* [el-CICD-utils](https://github.com/hippyod/el-CICD-utils)
-* [el-CICD-project-repository](https://github.com/hippyod/el-CICD-project-repository)
+* [el-CICD](https://github.com/elcicd/el-CICD)
+* [el-CICD-utils](https://github.com/elcicd/el-CICD-utils)
+* [el-CICD-project-repository](https://github.com/elcicd/el-CICD-project-repository)
 
 The following demonstration repositories should be forked, and the **development** branch is what you should default to using: 
 
-* [Test-CICD1](https://github.com/hippyod/Test-CICD1)
-* [test_CICD2](https://github.com/hippyod/test_CICD2)
-* [TeSt-CiCd3](https://github.com/hippyod/TeSt-CiCd3)
-* [Test_CICD4](https://github.com/hippyod/Test_CICD4)
-* [test-cicd-R](https://github.com/hippyod/test-cicd-R)
-* [test-cicd-stationdemo](https://github.com/hippyod/test-cicd-stationdemo)
+* [Test-CICD1](https://github.com/elcicd/Test-CICD1)
+* [test_CICD2](https://github.com/elcicd/test_CICD2)
+* [TeSt-CiCd3](https://github.com/elcicd/TeSt-CiCd3)
+* [Test_CICD4](https://github.com/elcicd/Test_CICD4)
+* [test-cicd-R](https://github.com/elcicd/test-cicd-R)
+* [test-cicd-stationdemo](https://github.com/elcicd/test-cicd-stationdemo)
 
 The odd spelling of the Git repositories was purposefully used for testing purposes. 
 
@@ -424,7 +424,7 @@ For each of the three image repositories you creates above, create a read/write 
 
 In `el-cicd-bootstrap.config`, you need adjust the values to reference your accounts and image repositories.
 
-Replace all instances of `hippyod` with the name of the account where you cloned your fork the of the el-CICD repositories.
+Replace all instances of `elcicd` with the name of the account where you cloned your fork the of the el-CICD repositories.
 
 * `EL_CICD_GIT_REPO=git@github.com:<your-github-account>/el-CICD.git`
 * `EL_CICD_UTILS_GIT_REPO=git@github.com:<your-github-account>/el-CICD-utils.git`
