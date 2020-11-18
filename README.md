@@ -778,22 +778,23 @@ The _el-CICD-project-repository's_ purpose is to version every [Project Definiti
 The Project Definition File is a file that defines each project, and **the name of the file must match the project's name.**.  It can be written in either YAML or JSON, must be names the same as the project, and has the following content:
 
 ```yaml
-rbacGroup: devops                    # The OKD RBAC group the project belongs to
-scmHost: github.com                  # The SCM hostname of the project
-scmOrganization: elcicd             # The SCM organization of the project
-gitBranch: development               # The dev branch name of all microservices
-microServices:                       # List of microservices in project
-- gitRepoName: Test-CICD1            # The Git repository name of the microservce
-  codeBase: python                   # The codebase to build the microservice
-  tester: pytest                     # Overridden tester to use during builds
-  active: true                       # If the microservice is active or not
-- gitRepoName: test-cicd-stationdemo
-  codeBase: java-maven
-  active: true
-enabledTestEnvs:
-- qa                                 # Unordered list of test environments
-- stg
-sandboxEnvs: 5                       # Number of sandboxes needed
+  rbacGroup: devops                    # The OKD RBAC group the project belongs to
+  scmHost: github.com                  # The SCM hostname of the project
+  scmRestApiHost: api.github.com       # RESTful API hostname for the Git provider (used for managing webhooks and deploy keys)
+  scmOrganization: elcicd              # The SCM organization of the project
+  gitBranch: development               # The dev branch name of all microservices
+  microServices:                       # List of microservices in project
+  - gitRepoName: Test-CICD1            # The Git repository name of the microservce
+    codeBase: python                   # The codebase to build the microservice
+    tester: pytest                     # Overridden tester to use during builds
+    active: true                       # If the microservice is active or not
+  - gitRepoName: test-cicd-stationdemo
+    codeBase: java-maven
+    active: true
+  enabledTestEnvs:
+  - qa                                 # Unordered list of test environments
+  - stg
+  sandboxEnvs: 5                       # Number of sandboxes needed
 ```
 
 This file will be processed every time the project is referenced or built in a pipeline.
@@ -1070,32 +1071,37 @@ Depending on how you choose to manage your different Onboarding Automation Serve
 ```properties
   GIT_PROVIDER=github
 
-  EL_CICD_HOST=github.com
+  # Domain to call Git host provider RESTful API
+  EL_CICD_GIT_API_DOMAIN=api.github.com
+
+  # Organization/account where el-CICD repos are hosted
   EL_CICD_ORGANIZATION=elcicd
 
+  SECRET_FILE_DIR=../cicd-secrets
+
   EL_CICD_SSH_READ_ONLY_PUBLIC_DEPLOY_KEY_TITLE=el-cicd-read-only-public-key
-  EL_CICD_SSH_READ_ONLY_DEPLOY_KEY_FILE=../cicd-secrets/el-CICD-deploy-key
+  EL_CICD_SSH_READ_ONLY_DEPLOY_KEY_FILE=${SECRET_FILE_DIR}/el-CICD-deploy-key
 
   EL_CICD_UTILS_SSH_READ_ONLY_PUBLIC_DEPLOY_KEY_TITLE=el-cicd-utils-read-only-public-key
-  EL_CICD_UTILS_SSH_READ_ONLY_DEPLOY_KEY_FILE=../cicd-secrets/el-CICD-utils-deploy-key
+  EL_CICD_UTILS_SSH_READ_ONLY_DEPLOY_KEY_FILE=${SECRET_FILE_DIR}/el-CICD-utils-deploy-key
 
   EL_CICD_PROJECT_INFO_REPOSITORY_READ_ONLY_DEPLOY_KEY_TITLE=el-cicd-project-info-repository-read-only-public-key
-  EL_CICD_PROJECT_INFO_REPOSITORY_READ_ONLY_DEPLOY_KEY_FILE=../cicd-secrets/el-cicd-project-info-repository-github-deploy-key
+  EL_CICD_PROJECT_INFO_REPOSITORY_READ_ONLY_DEPLOY_KEY_FILE=${SECRET_FILE_DIR}/el-cicd-project-info-repository-github-deploy-key
 
-  EL_CICD_GIT_REPO_ACCESS_TOKEN_FILE=../cicd-secrets/el-cicd-git-repo-access-token
+  EL_CICD_GIT_REPO_ACCESS_TOKEN_FILE=${SECRET_FILE_DIR}/el-cicd-git-repo-access-token
 
-  DEV_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-dev-pull-token
+  DEV_PULL_TOKEN_FILE=${SECRET_FILE_DIR}/el-cicd-dev-pull-token
 
-  QA_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-non-prod-pull-token
+  QA_PULL_TOKEN_FILE=${SECRET_FILE_DIR}/el-cicd-non-prod-pull-token
 
-  UAT_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-non-prod-pull-token
+  UAT_PULL_TOKEN_FILE=${SECRET_FILE_DIR}/el-cicd-non-prod-pull-token
 
-  STG_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-non-prod-pull-token
+  STG_PULL_TOKEN_FILE=${SECRET_FILE_DIR}/el-cicd-non-prod-pull-token
 
-  PROD_PULL_TOKEN_FILE=../cicd-secrets/el-cicd-prod-pull-token
+  PROD_PULL_TOKEN_FILE=${SECRET_FILE_DIR}/el-cicd-prod-pull-token
 ```
 
-* **EL_CICD_HOST  
+* **EL_CICD_GIT_API_DOMAIN  
   EL_CICD_ORGANIZATION**  
 The el-CICD SCM host and organization.  Note that the system is built assuming the el-CICD repositories are stored in the same SCM as the project repositories it will be managing.
 * **EL_CICD_SSH_READ_ONLY_PUBLIC_DEPLOY_KEY_TITLE EL_CICD_UTILS_SSH_READ_ONLY_PUBLIC_DEPLOY_KEY_TITLE
