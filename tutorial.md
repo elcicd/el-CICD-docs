@@ -57,7 +57,6 @@ or send a letter to
     * [Download CRC and Deploy Key](#download-crc-and-deploy-key)
         * [CURRENT TESTED VERSION OF CRC: **1.18**](#current-tested-version-of-crc-118)
     * [Add the following to your .bashrc or .zshrc](#add-the-following-to-your-bashrc-or-zshrc)
-    * [For Fedora 33 Users **ONLY**](#for-fedora-33-users-only)
     * [CRC Setup and Install](#crc-setup-and-install)
   * [Setup, Configure, and Bootstrap el-CICD](#setup-configure-and-bootstrap-el-cicd)
     * [Fork and Clone el-CICD Repositories](#fork-and-clone-el-cicd-repositories)
@@ -150,7 +149,7 @@ You will also need to check that the path to your `CRC_INSTALL_DIR` is properly 
 
     # PREFERRED CRC OPTIONS
     # MINUMUM VALUES ARE 6 vCPUs and 36864M memory
-    # PREFERRED VALUES ARE 12 CORES and 48G memory
+    # PREFERRED VALUES ARE 12 CORES and 49152M memory
     # 100G DISK
     CRC_V_CPU=12
     CRC_MEMORY=49152
@@ -168,39 +167,13 @@ You will also need to check that the path to your `CRC_INSTALL_DIR` is properly 
         eval-oc-env
     fi
 
-    function crc-setup() {
-        crc setup
-        echo ''
-        echo 'Initial start of CRC'
-        echo ''
-        crc-start
-        echo ''
-        echo ' Shutting down CRC for disk resize'
-        echo ''
-        crc stop
-        echo ''
-        echo 'Resizing disk...'
-        echo''
-        qemu-img resize ${HOME}/.crc/machines/crc/crc.qcow2 +${CRC_DISK}G
-        sed -i 's/"DiskCapacity": 33285996544,/"DiskCapacity": 140660178944,/' ${HOME}/.crc/machines/crc/config.json
-        echo ''
-        echo 'Restarting CRC with disk properly resized'
-        echo''
-        crc-start
-        echo ''
-        echo 'Adding oc autocompletion'
-        echo ''
-        eval-oc-env
-    }
-
     function crc-start() {
         echo "Starting CRC with ${CRC_V_CPU} vCPUs, ${CRC_MEMORY}M memory, and ${CRC_DISK}G disk"
         echo "If you want to change the above values, run 'crc delete' and recreate the VM from scratch."
         echo ''
 
-        crc start -p ${CRC_INSTALL_DIR}/crc/pull-secret -c ${CRC_V_CPU} -m ${CRC_MEMORY}
-     }
-
+        crc start -p ${CRC_INSTALL_DIR}/crc/pull-secret -c ${CRC_V_CPU} -m ${CRC_MEMORY} -d ${CRC_DISK}
+    }
 
     function crc-pwd-admin {
         echo "copy kubeadmin to system clipboard"
@@ -219,65 +192,11 @@ You will also need to check that the path to your `CRC_INSTALL_DIR` is properly 
     }
 ```
 
-### For Fedora 33 Users **ONLY**
-
-Fedora 33 changed the way network name resolution to local applications is handled, so when CRC is [installed](#initial-crc-setup-and-install), the wildcard network for deployed applications onto the cluster will not work.  To fix this, you need to do the following:
-
-* Create the following script in a file called `10-crc` and put it in the directory `/etc/NetworkManager/dispatcher.d`:
-
-    ```bash
-    #!/bin/sh
-    # This is a NetworkManager dispatcher script to configure split DNS for
-    # the 'crc' libvirt network.
-
-    export LC_ALL=C
-
-    if [ "$1" = crc ] && [ "$2" = up ]; then
-        echo "$1 $2: configuring domain name resolution crc.testing apps-crc.testing"
-        resolvectl domain crc crc.testing apps-crc.testing
-        resolvectl dns crc 192.168.130.11
-        resolvectl default-route crc false
-        echo "$1 $2: domain name resolution configured for crc.testing apps-crc.testing"
-    fi
-
-    exit 0
-    ```
-
-* Change the file to be execuble:
-
-    ```bash
-    sudo chmod 755 /etc/NetworkManager/dispatcher.d/10-crc
-    ```
-
-* Restart the `NetworkManager` service:
-
-    ```bash
-    sudo systemctl restart NetworkManager.service
-    ```
-
-Your system should now properly pick up the CRC network when trying to access deployed applications even if you reboot your machine.  If you recreate the CRC VM (see below) you might need to restart `systemd-resolved.service`.
-
 ### CRC Setup and Install
 
-Run
-
 ```bash
-    # PAY ATTENTION TO THE DASH IN THE COMMAND!!
-    # Does the extra work needed to properly size the CRC VM
-    crc-setup
-```
+    crc setup
 
-This will complete initial setup, create the virtual machine image for CRC with the requested vCPUs and memory, resize the virtual disk, and start the CRC VM for use.
-
-To stop the CRC VM, use 
-
-```bash
-    crc stop
-```
-
-To start it up again
-
-```bash
     # PAY ATTENTION TO THE DASH IN THE COMMAND!!
     # Uses the pull secret automatically
     # Copies it to the clipboard for easy login through apps or console in browser
