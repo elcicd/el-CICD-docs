@@ -709,7 +709,7 @@ Each deployment resource defined by the microservice in it’s Source Code Repos
 
 Each deployment of a microservice will automatically have created and deployed an OKD ConfigMap that contains data and labels that mirror the microservice meta-information defined in the previous section, and it will be named using the following format:
 
-**<Project ID>-<microservice name>-meta-info**
+**\<Project ID>-\<microservice name>-meta-info**
 
 * **<Project ID>:** the Project ID of the application, per OKD resource naming rules
 * **<microservice name>:** name of the microservice as derived from the Git repository name to conform to OKD resource naming conventions
@@ -718,8 +718,8 @@ Each deployment of a microservice will automatically have created and deployed a
 
 Each deployment into production will have an additional OKD ConfigMap automatically created and deployed that contains data and labels reflecting the Project ID and the Release Version currently deployed.  It will be named using the following format:
 
-**<Project ID>-meta-info**
-* **<Project ID>:** the Project ID of the application
+**\<Project ID>-meta-info**
+* **\<Project ID>:** the Project ID of the application
 
 This resource will only exist in Prod.
 
