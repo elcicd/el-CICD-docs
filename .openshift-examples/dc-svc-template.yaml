@@ -116,7 +116,7 @@ parameters:
   required: true
 
 - description: The image repository pull secret
-  displayName: Image Repository Pull Secret
+  displayName: Image Repository Pull
   name: PULL_SECRET
   required: true
 
