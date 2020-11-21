@@ -132,6 +132,11 @@ parameters:
   name: IMAGE_REPOSITORY
   required: true
 
+- description: The image repository pull secret
+  displayName: Image Repository Pull Secret
+  name: PULL_SECRET
+  required: true
+
 - description: The name for the microservice, derived by el-CICD from the name of the Git repository
   displayName: Microservice Name
   name: MICROSERVICE_NAME
