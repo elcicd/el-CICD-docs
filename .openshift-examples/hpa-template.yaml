@@ -38,19 +38,19 @@ parameters:
   displayName: Deployment application name
   name: APP_NAME
   required: true
-  
+
 - description: Maximum Number of Replicas to Scale to 
   displayName: Maximum Number of Replicas
   name: MAX_REPLICAS
   required: true
   value: "3"
-  
+
 - description: Minimum Number of Replicas 
   displayName: Minimum Number of Replicas
   name: MIN_REPLICAS
   required: true
   value: "1"
-  
+
 - description: CPU Utilization Threshold to Trigger Scaling 
   displayName: CPU Utilization Threshold 
   name: SCALE_PERCENTAGE

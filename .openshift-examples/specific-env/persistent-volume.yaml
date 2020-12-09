@@ -15,7 +15,7 @@ spec:
 #######################################################################################
 ## Specify the size of the requested volume using Mi for megabytes, or Gi for gigabytes
 #######################################################################################
-    storage: 1000Gi
+    storage: <size>Gi
 #######################################################################################
 ## Specify the access mode. Choices are "ReadWriteMany" for volumes to be shared across microservices,
 ## "ReadWriteOnce" for volumes accessed by a single microservice, or "ReadOnly", which as implies,

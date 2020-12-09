@@ -62,7 +62,7 @@
     - name: <name-of-volume>
       configMap:
         name: <config-map-name>
-x
+
 - op: add
   path: /objects/0/spec/template/spec/volumes
   value:

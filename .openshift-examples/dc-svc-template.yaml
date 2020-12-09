@@ -124,7 +124,7 @@ parameters:
   displayName: Microservice Name
   name: MICROSERVICE_NAME
   required: true
-  
+
 - description: The name for the app.  Set this value manually through the template-defs.json file for multiple deployments of the same image.
   displayName: Application Name
   name: APP_NAME
@@ -150,7 +150,7 @@ parameters:
   name: CPU_REQ
   required: true
   value: 100m
-  
+
 - description: Maximum CPU Resource Limit allowed; see OKD docs for more info
   displayName: CPU Resource Limit
   name: CPU_LIMIT
@@ -162,7 +162,7 @@ parameters:
   name: MEM_REQ
   required: true
   value: 50Mi
- 
+
 - description: Memory Resource Limit (Ceiling) in Mi or Gi; see OKD docs for more info
   displayName: Memory Resource Limit in Mi or Gi
   name: MEM_LIMIT
