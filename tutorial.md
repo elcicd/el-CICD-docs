@@ -66,7 +66,7 @@ or send a letter to
       * [Create el-CICD Repo Read Only Private Keys](#create-el-cicd-repo-read-only-private-keys)
       * [Gather el-CICD Access Token](#gather-el-cicd-access-token)
       * [Gather Image Repo Access Tokens](#gather-image-repo-access-tokens)
-    * [el-cicd-bootstrap.config](#el-cicd-bootstrapconfig)
+    * [el-cicd-system.config](#el-cicd-bootstrapconfig)
     * [Bootstrapping the Non-prod Onboarding Automation Server](#bootstrapping-the-non-prod-onboarding-automation-server)
       * [Setting Your Cluster's Sealed Secrets Decryption Key](#setting-your-clusters-sealed-secrets-decryption-key)
   * [Onboarding a Project Into the Engineering Cluster](#onboarding-a-project-into-the-engineering-cluster)
@@ -339,9 +339,9 @@ For each of the three image repositories you creates above, create a read/write 
 * `el-cicd-non-prod-pull-token`
 * `el-cicd-prod-pull-token`
 
-### el-cicd-bootstrap.config
+### el-cicd-system.config
 
-In `el-cicd-bootstrap.config`, you need adjust the values to reference your accounts and image repositories.
+In `el-cicd-system.config`, you need adjust the values to reference your accounts and image repositories.
 
 Replace all instances of `elcicd` with the name of the account where you cloned your fork the of the el-CICD repositories.
 
@@ -351,8 +351,8 @@ Replace all instances of `elcicd` with the name of the account where you cloned 
 
 Replace the following values for the image repositories for each environment.  You will find more concrete examples of what this should look like with the default values in the file.
 
-* `<ENV>_IMAGE_REPO_USERNAME=<unique-demo-name><env>`
-* `<ENV>_IMAGE_REPO=docker.io/<unique-demo-name><env>`
+* `<ENV>${el.cicd.IMAGE_REPO_USERNAME_POSTFIX}=<unique-demo-name><env>`
+* `<ENV>${el.cicd.IMAGE_REPO_POSTFIX}=docker.io/<unique-demo-name><env>`
 
 el-CICD is now fully configured and ready to be installed and run on your CRC cluster.
 

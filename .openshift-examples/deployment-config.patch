@@ -42,6 +42,41 @@
 
 #####################################################################################
 ##
+## Define startup, readiness and liveliness checks here.  The values sections below
+## only cover a single example among many for each type of probe.  Refer to the OKD
+## docs for more information
+##
+#####################################################################################
+
+- op: add
+  path: /objects/0/spec/template/spec/startupProbe
+  value:
+    exec:
+      command:
+      - cat # sameple command to run in shell only
+      - /tmp/healthy
+    failureThreshold: <some-failure-threshold>
+    periodSeconds: <some-period-in-seconds>
+
+- op: add
+  path: /objects/0/spec/template/spec/readinessProbe
+  value:
+    httpGet:
+      host: <some-host-name>
+      scheme: <some-scheme-eg-https>
+      path: <some-relative-path-to-health-check-url>
+      port: <some-port-number>
+
+- op: add
+  path: /objects/0/spec/template/spec/livenessProbe
+  value:
+    tcpSocket:
+      port: <some-port-number>
+    initialDelaySeconds: <some-number-secs
+    timeoutSeconds: <some-timeout-secs>
+
+#####################################################################################
+##
 ## Define volumes and volumemounts here.
 ##
 ## Mount name should match the name of the volume.  Volumes can be ConfigMaps, Secrets,

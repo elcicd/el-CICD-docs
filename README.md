@@ -180,7 +180,7 @@ Features not supported, but on the immediate investigate/TODO list:
       * [Code Base Folders](#code-base-folders)
       * [Build Scripts](#build-scripts)
   * [Configuration](#configuration)
-    * [el-cicd-bootstrap.config](#el-cicd-bootstrapconfig)
+    * [el-cicd-system.config](#el-cicd-systemconfig)
       * [el-CICD Basic info](#el-cicd-basic-info)
       * [Git Repository Information](#git-repository-information)
         * [el-CICD Read Only Deploy Key Title](#el-cicd-read-only-deploy-key-title)
@@ -189,7 +189,7 @@ Features not supported, but on the immediate investigate/TODO list:
       * [Environment Definitions](#environment-definitions)
       * [Jenkins Sizing and Configuration](#jenkins-sizing-and-configuration)
       * [Other](#other)
-    * [el-cicd-secrets.config](#el-cicd-secretsconfig)
+    * [el-cicd-bootstrap.config](#el-cicd-bootstrapconfig)
     * [Permissions](#permissions)
   * [Deployment](#deployment)
     * [el-cicd-non-prod-bootstrap.sh](#el-cicd-non-prod-bootstrapsh)
@@ -886,17 +886,17 @@ The above snippet from the [Project Definition File](#project-definition-file) e
 
 ## Configuration
 
-After forking the el-CICD repositories, el-CICD needs to be configured.  This requires defining which such information as test environments your engineering cluster will support, specifying the cluster's wildcard domain, creating and/or deciding which image repositories will back each environment, gathering the Git and Image Repository tokens as secrets for access, credentials, and sizing information for your Jenkins instances.  There are two files, [el-cicd-bootstrap.config](#el-cicd-bootstrapconfig) and [el-cicd-secrets.config](#el-cicd-secretsconfig), and both are sourced during bootstrapping.
+After forking the el-CICD repositories, el-CICD needs to be configured.  This requires defining which such information as test environments your engineering cluster will support, specifying the cluster's wildcard domain, creating and/or deciding which image repositories will back each environment, gathering the Git and Image Repository tokens as secrets for access, credentials, and sizing information for your Jenkins instances.  There are two files, [el-cicd-system.config](#el-cicd-bootstrapconfig) and [el-cicd-bootstrap.config](#el-cicd-secretsconfig), and both are sourced during bootstrapping.
 
-### el-cicd-bootstrap.config
+### el-cicd-system.config
 
 This configuration file defines most of the values needed to configure an el-CICD installation, as well as defining the SDLC environments and promotion flow, among other things.  The file are sourced when running either bootstrap shell script for the Onboarding Automation Servers, and then used to create a ConfigMap holding this information in every CICD Jenkins namespace subsequently created by the system.
 
 #### el-CICD Basic info
 
 ```properties
-  EL_CICD_NON_PROD_MASTER_NAMEPACE=el-cicd-non-prod-master
-  EL_CICD_NON_PROD_MASTER_NODE_SELECTORS=
+  EL_CICD_MASTER_NAMESPACE=el-cicd-non-prod-master
+  EL_CICD_MASTER_NODE_SELECTORS=
 
   EL_CICD_PROD_MASTER_NAMEPACE=el-cicd-prod-master
   EL_CICD_PROD_MASTER_NODE_SELECTORS=
@@ -941,7 +941,7 @@ These variables define the branch to check out for each el-CICD repository.
 * ***_READ_ONLY_GITHUB_PRIVATE_KEY**  
 These Jenkins credential IDs are passed onto project specific Jenkins for read only access to the el-CICD repositories for each Non-prod and Prod Automation Server.
 * **GIT_SITE_WIDE_ACCESS_TOKEN_ID**  
-This ID references the token stored in Jenkins for an administrative service account for access to all project Git repositories.  This is needed in order to add a writable deploy key and a webhook for automated builds for each microservice Git repository.  More on this will be described below in the [el-cicd-secrets.config](#el-cicd-secretsconfig)
+This ID references the token stored in Jenkins for an administrative service account for access to all project Git repositories.  This is needed in order to add a writable deploy key and a webhook for automated builds for each microservice Git repository.  More on this will be described below in the [el-cicd-bootstrap.config](#el-cicd-secretsconfig)
 
 ##### el-CICD Read Only Deploy Key Title
 
@@ -955,8 +955,8 @@ These deploy keys are the titles used to read only store access keys up on the G
 #### Non-Prod and Prod Automation Server Namespace Postfix
 
 ```properties
-  CICD_NON_PROD=cicd-Non-prod
-  CICD_PROD=cicd-prod
+  EL_CICD_GROUP_NAMESPACE_POSTFIX=cicd-non-prod
+  EL_CICD_GROUP_NAMESPACE_POSTFIX=cicd-prod
 ```
 
 Namespaces for the each RBAC Group's namespace will have these values appended to the RBAC group name; e.g. if a project's group is _devops_, the resulting Non-prod and Prod Automation Servers will reside in _devops-cicd-non-prod_ and  _devops-cicd-prod_, respectively.
@@ -1003,10 +1003,10 @@ This will define a set of environments with the following SDLC flow:
   DEV_NODE_SELECTORS=
 
   <TEST_ENV>_IMAGE_REPO_DOMAIN=docker.io
-  <TEST_ENV>_IMAGE_REPO_USERNAME=elcicdnonprod
-  <TEST_ENV>_IMAGE_REPO=docker.io/elcicdnonprod
-  <TEST_ENV>_IMAGE_REPO_PULL_SECRET=el-cicd-image-repo-non-prod-pull-secret
-  <TEST_ENV>_IMAGE_REPO_ACCESS_TOKEN_ID=image-repo-non-prod-access-token
+  <TEST_ENV>${el.cicd.IMAGE_REPO_USERNAME_POSTFIX}=elcicdnonprod
+  <TEST_ENV>${el.cicd.IMAGE_REPO_POSTFIX}=docker.io/elcicdnonprod
+  <TEST_ENV>${el.cicd.IMAGE_REPO_PULL_SECRET_POSTFIX}=el-cicd-image-repo-non-prod-pull-secret
+  <TEST_ENV>${el.cicd.IMAGE_REPO_ACCESS_TOKEN_POSTFIX}=image-repo-non-prod-access-token
   <TEST_ENV>_NODE_SELECTORS=
 
   PROD_IMAGE_REPO_DOMAIN=docker.io
@@ -1021,13 +1021,13 @@ After the environment name and SDLC flow is defined, each environment's configur
 
 * **\<ENV>_IMAGE_REPO_DOMAIN**  
 Image repository domain.
-* **\<ENV>_IMAGE_REPO_USERNAME**  
+* **\<ENV>${el.cicd.IMAGE_REPO_USERNAME_POSTFIX}**  
 Image repository username or organization ID
-* **\<ENV>_IMAGE_REPO**  
-Image repository url; i.e *_IMAGE_REPO_DOMAIN/*_IMAGE_REPO_USERNAME
-* **\<ENV>_IMAGE_REPO_PULL_SECRET**  
+* **\<ENV>${el.cicd.IMAGE_REPO_POSTFIX}**  
+Image repository url; i.e *_IMAGE_REPO_DOMAIN/*${el.cicd.IMAGE_REPO_USERNAME_POSTFIX}
+* **\<ENV>${el.cicd.IMAGE_REPO_PULL_SECRET_POSTFIX}**  
 Image pull secret name; secret is generated at startup with this name.
-* **\<ENV>_IMAGE_REPO_ACCESS_TOKEN_ID**  
+* **\<ENV>${el.cicd.IMAGE_REPO_ACCESS_TOKEN_POSTFIX}**  
 Jenkins credentials ID referring to the pull secret
 
 The above values are each prepended with the name of each environment defined in the previous section.  For a test environment called QA, you're final config entry would look like the following:
@@ -1062,7 +1062,7 @@ Sizing information in memory and persistent storage capacity for each Jenkins cr
 
 SonarQube url and Jenkins credentials ID if in use.
 
-### el-cicd-secrets.config
+### el-cicd-bootstrap.config
 
 A secondary configuration file is used by el-CICD on bootstrap, and it holds a few minor configuration values that don't need to be referenced from the running el-CICD system or project environments, as well as a number variables that provide paths to files that hold the actual secret SSH keys and access tokens that will be onloaded into Jenkins.
 
