@@ -125,7 +125,7 @@
 ##
 #####################################################################################
 - op: add
-  path: /parameters/0
+  path: /parameters
   value:
     description: <parameter-description>
     displayName: <parameter-display-name>
