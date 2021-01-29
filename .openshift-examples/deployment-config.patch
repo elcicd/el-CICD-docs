@@ -127,8 +127,8 @@
 - op: add
   path: /parameters
   value:
-    description: <parameter-description>
-    displayName: <parameter-display-name>
-    name: <parameter-name>
-    required: <if-parameter-required>
-    value: <optional-default-value>
+    - description: <parameter-description>
+      displayName: <parameter-display-name>
+      name: <parameter-name>
+      required: <if-parameter-required>
+      value: <optional-default-value>
