@@ -58,10 +58,10 @@
 - op: add
   path: /objects/0/spec/jobTemplate/spec/template/spec/volumes
   value:
-    - name: <name-of-volume>
-      configMap:
-        name: <config-map-name>
-x
+    name: <name-of-volume>
+    configMap:
+      name: <config-map-name>
+
 - op: add
   path: /objects/0/spec/jobTemplate/spec/template/spec/volumes
   value:
