@@ -49,7 +49,7 @@
 #####################################################################################
 
 - op: add
-  path: /objects/0/spec/template/spec/startupProbe
+  path: /objects/0/spec/template/spec/containers/0/startupProbe
   value:
     exec:
       command:
@@ -59,16 +59,18 @@
     periodSeconds: <some-period-in-seconds>
 
 - op: add
-  path: /objects/0/spec/template/spec/readinessProbe
+  path: /objects/0/spec/template/spec/containers/0/readinessProbe
   value:
     httpGet:
       host: <some-host-name>
       scheme: <some-scheme-eg-https>
       path: <some-relative-path-to-health-check-url>
       port: <some-port-number>
+    initialDelaySeconds: 5
+    periodSeconds: 10
 
 - op: add
-  path: /objects/0/spec/template/spec/livenessProbe
+  path: /objects/0/spec/template/spec/containers/0/livenessProbe
   value:
     tcpSocket:
       port: <some-port-number>
@@ -86,27 +88,27 @@
 ##
 #####################################################################################
 - op: add
-  path: /objects/0/spec/template/spec/containers/0/volumeMounts
+  path: /objects/0/spec/template/spec/containers/0/volumeMounts/-
   value:
     - mountPath: <mount-path>
       name: <name-of-valume>
 
 - op: add
-  path: /objects/0/spec/template/spec/volumes
+  path: /objects/0/spec/template/spec/volumes/-
   value:
     - name: <name-of-volume>
       configMap:
         name: <config-map-name>
 
 - op: add
-  path: /objects/0/spec/template/spec/volumes
+  path: /objects/0/spec/template/spec/volumes/-
   value:
     - name: <name-of-volume>
       secret:
         secretName: <secret-name>
 
 - op: add
-  path: /objects/0/spec/template/spec/volumes
+  path: /objects/0/spec/template/spec/volumes/-
   value:
     - name: <name-of-volume>
       persistentVolumeClaim:
@@ -125,10 +127,19 @@
 ##
 #####################################################################################
 - op: add
-  path: /parameters
+  path: /parameters/-
   value:
-    - description: <parameter-description>
-      displayName: <parameter-display-name>
-      name: <parameter-name>
-      required: <if-parameter-required>
-      value: <optional-default-value>
+    description: <1st-parameter-description>
+    displayName: <1st-parameter-display-name>
+    name: <1st-parameter-name>
+    required: <1st-if-parameter-required (optional, if required = true)>
+    value: <1st-optional-default-value (optional, put default value here)>
+
+- op: add
+  path: /parameters/-
+  value:
+    description: <2nd-parameter-description>
+    displayName: <2nd-parameter-display-name>
+    name: <2nd-parameter-name>
+    required: <2nd-if-parameter-required (optional, if required = true)>
+    value: <2nd-optional-default-value (optional, put default value here)>
