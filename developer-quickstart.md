@@ -69,6 +69,7 @@ or send a letter to
       * [params](#params)
       * [Environmental Overrides](#environmental-overrides)
     * [Managed OKD Templates](#managed-okd-templates)
+    * [How to Know What the Template Parameters Are](#how-to-know-what-the-template-parameters-are)
     * [Custom OKD Templates](#custom-okd-templates)
   * [kustomize.patch](#kustomizepatch)
     * [Patches Are Applied BEFORE OKD Templates are Processed](#patches-are-applied-before-okd-templates-are-processed)
@@ -231,6 +232,40 @@ metadata:
 _Snippet of the_ `dc-svc-template`.
 
 To use a Managed OKD Template merely reference it in the `template-defs` file of your microservice as the example above demonstrates.  el-CICD will find and use the default template based on the name, obviating the need for the developer to manage the file directly.
+
+### How to Know What the Template Parameters Are
+
+Copy of any of the Managed OKD Templates to a local directory which also has the `oc` CLI binary installed, and run the following command:
+
+```
+oc process -f managed-okd-templates/<template-file>.yml --parameters
+```
+
+This will print out a table of all the parameters of the template and what they are.  For example:
+
+```
+oc process -f managed-okd-templates/dc-svc-template.yml --parameters
+```
+
+produces the following output in your terminal:
+
+NAME|DESCRIPTION|GENERATOR|VALUE
+|---|---|---|---|
+|IMAGE_REPOSITORY|The image repository from where to fetch the image|||
+|IMAGE_PULL_POLICY|The image pull policy||Always|
+|PULL_SECRET|The image repository pull secret|||
+|MICROSERVICE_NAME|The name for the microservice, derived by el-CICD from the name of the Git repository|||
+|APP_NAME|The name for the app.  Set this value manually through the template-defs.json file for multiple deployments of the same image.|||
+|PROJECT_ID |The Project ID|||
+|ENV|The name of the environment the image is being deployed to.  Used to help define unique routes.|||
+|IMAGE_TAG|Image Tag used to pull image from image repository|||
+|CPU_REQ|CPU Resource Request; see OKD docs for more info||100m|
+|CPU_LIMIT|Maximum CPU Resource Limit allowed; see OKD docs for more info||200m|
+|MEM_REQ|Memory Resource Request; see OKD docs for more info||50Mi|
+|MEM_LIMIT|Memory Resource Limit (Ceiling) in Mi or Gi; see OKD docs for more info||500Mi|
+|REPLICAS|The number of replicas for this deployment; see OKD docs for more info|||                                                                              1
+|SVC_PORT|Service port; see OKD docs for more info||8080|
+|STRATEGY|Deployment strategy; see OKD docs for more info||Rolling|
 
 ### Custom OKD Templates
 
