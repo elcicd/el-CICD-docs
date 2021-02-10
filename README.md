@@ -245,7 +245,7 @@ A SDLC typically includes a number of deployment phases before ultimately being 
 
 Environments are a key concept that needs to be supported by any CICD system.  While deployments to each environment should ideally be exactly the same from Dev to Prod, there are many reasons why this is rarely true based on need and other practical matters; however, best practices are to design deployments to each environment as close to production as possible, and the closer to a production environment a deployment gets the closer the environment should resemble production.  While not always the case, environments are usually organized as a linear sequence; e.g. from Dev to QA  to Stage to Prod.  el-CICD supports a configurable, linear sequence of environments, with a few exceptions to be described below.
 
-![Figure 1: Environment Flow](images/enviroments.png)
+![Figure 1: Environment Flow](images/readme/enviroments.png)
 
 **Figure 1**  
  _Environment flow from SCM Git to Prod_
@@ -499,7 +499,7 @@ SealedSecrets is an OSS tool providing a mechanism for encrypting secrets for ex
 
 With the tools and products defined, the components that make up the el-CICD system can now be defined.
 
-![Figure 2: Enviroment Flow](images/components.png)
+![Figure 2: Enviroment Flow](images/readme/components.png)
 
 **Figure 2**  
 _The relationship between the basic components that comprise el-CICD_
@@ -536,7 +536,7 @@ A microservice is comprised of two repositories, Source Code and Image, and each
 
 A design decision was made early on that all SCM repositories comprising a single project would have a Development Branch of the same name; e.g. _development_ or _hotfix_.  Regardless of team or the component worked on, all developers are expected to eventually merge their latest changes to this branch, and the CICD system to be automatically triggered to run the [Build-to-Dev](#build-to-dev) pipeline whenever code is delivered.  All [Deployment Branches](#deployment-branches) will ultimately stem from the Development Branch, of which each commit hash will represent an image that was built along with the initial deployment configuration for that image for each environment of the project.
 
-![Figure 3: Development Branch](images/dev-branch.png)
+![Figure 3: Development Branch](images/readme/dev-branch.png)
 
 **Figure 3**  
 _The Development Branch with four separate commits and their hash.  In general, each commit represents a distinct build and a distinct image._
@@ -566,7 +566,7 @@ For example, when an image is promoted from Dev to QA with a commit hash of 8d7d
 
 Only changes that affect the deployment of the image to QA or its downstream environments will be acknowledged and used by the CICD system.
 
-![Figure 4: Deployment Branch](images/deployment-branch.png)
+![Figure 4: Deployment Branch](images/readme/deployment-branch.png)
 
 **Figure 4**
 
@@ -608,7 +608,7 @@ mentioned earlier as part of the testing and tuning process, and that the projec
 
 The image deployed in Stg will similarly be tagged as 1.0.0-8d7dh3g in its Image Repository.  The application is now available for promotion to production.
 
-![Figure 5: Release Candidate Tag](images/release-candidate-tag.png)
+![Figure 5: Release Candidate Tag](images/readme/release-candidate-tag.png)
 
 **Figure 5**
 
@@ -634,7 +634,7 @@ Any changes to the deployment configuration of any release deployed in productio
 
 Any other changes on the Release Deployment Branches, as with all Deployment Branches, are ignored, and will make creating a proper hotfix branch more difficult.  When applying changes to one or more Release Deployment Branches, simply redeploy the release into production, and the system is smart enough to figure out which microservices have changed and only redeploy those unless otherwise requested.
 
-![Figure 6: Release Version Deployment Branch](images/release-version-branch.png)
+![Figure 6: Release Version Deployment Branch](images/readme/release-version-branch.png)
 
 **Figure 6**
 
@@ -856,7 +856,7 @@ agentDefs = [base: 'image-registry.openshift-image-registry.svc:5000/openshift/j
 The **_builder-steps_** directory holds the functional files that are loaded and executed for each build.
 
 
-![Figure 7: The builder-steps Directory](images/builder-steps-directory.png)
+![Figure 7: The builder-steps Directory](images/readme/builder-steps-directory.png)
 
 **Figure 7**  
  _The builder-steps directory_
@@ -1182,7 +1182,7 @@ OKD Template reuse and patching via `kustomize` is relied on heavily for ease of
 
 ## The ._openshift_ Directory
 
-![Figure 8: The .openshift Directory](images/openshift-directory.png)
+![Figure 8: The .openshift Directory](images/readme/openshift-directory.png)
 
 **Figure 8**  
  _The **.openshift** directory_
@@ -1352,12 +1352,12 @@ The following will describe each pipeline, and how to use them.
 
 ## Project Onboarding Pipelines
 
-![Figure 9: Build and Deploy Microservices](images/el-cicd-non-prod-master-onboarding.png)
+![Figure 9: Build and Deploy Microservices](images/readme/el-cicd-non-prod-master-onboarding.png)
 
 **Figure 9**
 _el-CICD Non-prod Automation Server pipelines_
 
-![Figure 10: Build and Deploy Microservices](images/el-cicd-prod-master-onboarding.png)
+![Figure 10: Build and Deploy Microservices](images/readme/el-cicd-prod-master-onboarding.png)
 
 **Figure 10**
 _el-CICD Prod Automation Server pipelines_
@@ -1381,12 +1381,12 @@ The project onboarding pipelines exist on the el-CICD master servers. All onboar
 
  Both onboarding pipelines are designed to be remotely triggered and complete automatically if necessary.  This allows oganizations that have external project management software to more easily integrate with el-CICD.  See the Jenkins documentation for how to trigger piplines via its RESTful API.
 
-![Figure 11: Non-prod Project Onboarding Pipeline](images/non-prod-project-onboarding-build.png)
+![Figure 11: Non-prod Project Onboarding Pipeline](images/readme/non-prod-project-onboarding-build.png)
 
 **Figure 11**
 _el-CICD Non-prod Project Onboarding Pipeline
 
-![Figure 12: Prod Project Onboarding Pipeline](images/prod-project-onboarding-build.png)
+![Figure 12: Prod Project Onboarding Pipeline](images/readme/prod-project-onboarding-build.png)
 
 **Figure 12**
 _el-CICD Prod Project Onboarding Pipeline
@@ -1395,7 +1395,7 @@ _el-CICD Prod Project Onboarding Pipeline
 
 The following pipelines exist on the Non-prod Automation Server.  All except the [Build-to-Dev](#build-and-deploy-microservices) pipeline(s) are shared among all projects owned by the RBAC group controlling the server.  Only the Build-to-Dev pipelines are designed to be remotely triggered.  All other pipelines are designed such that human intervention is necessary for them to complete.
 
-![Figure 13: Non-prod Automation Server Pipelines](images/non-prod-automation-servier-pipelines.png)
+![Figure 13: Non-prod Automation Server Pipelines](images/readme/non-prod-automation-servier-pipelines.png)
 
 **Figure 13**
 _Non-prod Automation Server pipelines for RBC Group `devops` and project `test-cicd`_
@@ -1421,7 +1421,7 @@ Build-to-Dev is usually triggered via a webhook from Git whenever the Developmen
 
 Start the pipeline manually by going the _Build with Parameters_ screen of the pipeline.
 
-![Figure 14: Build and Deploy Microservices](images/build-to-dev-build.png)
+![Figure 14: Build and Deploy Microservices](images/readme/build-to-dev-build.png)
 
 **Figure 14**
 _Build with Parameters screen for the Build-to-Dev pipeline_
@@ -1440,14 +1440,14 @@ The pipeline builds a number of microservices in parallel using Jenkins' paralle
 
 Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
 
-![Figure 15: Build and Deploy Microservices](images/build-and-deploy-microservices-build.png)
+![Figure 15: Build and Deploy Microservices](images/readme/build-and-deploy-microservices-build.png)
 
 **Figure 15**
 _Build with Parameters screen for the Build and Deploy Microservices pipeline_
 
 From the console of the running build, enter the input screen and select how you want the project built and deployed.
 
-![Figure 16: Build and Deploy Microservices](images/build-and-deploy-microservices.png)
+![Figure 16: Build and Deploy Microservices](images/readme/build-and-deploy-microservices.png)
 
 **Figure 16**
 _Choose what microservices build and where to deploy to_
@@ -1470,7 +1470,7 @@ Before deploying the newly copied images, any microservices selected for removal
 
 Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
 
-![Figure 17: Promotion/Removal](images/promotion-removal-pipeline-build.png)
+![Figure 17: Promotion/Removal](images/readme/promotion-removal-pipeline-build.png)
 
 **Figure 17**
 _Build with Parameters screen for the Promotion/Removal pipeline_
@@ -1481,7 +1481,7 @@ After entering the project name, the user may choose:
 * Choose a default action (do nothing, promote, or remove) for all microservices
 * Choose an action for a specific microservice
 
-![Figure 18: Promotion/Removal](images/promotion-removal-pipeline.png)
+![Figure 18: Promotion/Removal](images/readme/promotion-removal-pipeline.png)
 
 **Figure 18**
 _Select microservices to promote or remove_
@@ -1499,19 +1499,19 @@ Before redeploying any images, any microservices selected for removal will be re
 
 Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
 
-![Figure 19: Promotion/Removal Build](images/redeploy-removal-pipeline-build.png)
+![Figure 19: Promotion/Removal Build](images/readme/redeploy-removal-pipeline-build.png)
 
 **Figure 19**
 _Build with Parameters screen for the Redeploy/Removal pipeline_
 
-![Figure 20: Promotion/Removal Build Select Env](images/redeploy-removal-pipeline-select-env.png)
+![Figure 20: Promotion/Removal Build Select Env](images/readme/redeploy-removal-pipeline-select-env.png)
 
 **Figure 20**
 _Select environment to redeploy to_
 
 After entering the project name and choosing an environment, the user may choose the version of any microservice they wish to deploy, or removal of some or all of the images: 
 
-![Figure 21: Promotion/Removal](images/redeploy-removal-pipeline.png)
+![Figure 21: Promotion/Removal](images/readme/redeploy-removal-pipeline.png)
 
 **Figure 21**
 _Select microservices to redeploy or remove_
@@ -1525,14 +1525,14 @@ The Create Release Candidate pipeline's purpose is to define a collection of ima
 
 Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
 
-![Figure 22: Create Release Candidate Build](images/create-release-candidate-build.png)
+![Figure 22: Create Release Candidate Build](images/readme/create-release-candidate-build.png)
 
 **Figure 22**
 _Build with Parameters screen for the Redeploy/Removal pipeline_
 
 After entering the project name and entering a Release Candidate Tag, the user should select the microservices that will be part of the release.
 
-![Figure 23: Create Release Candidate](images/create-release-candidate.png)
+![Figure 23: Create Release Candidate](images/readme/create-release-candidate.png)
 
 **Figure 23**
 _Select environment to redeploy to_
@@ -1554,14 +1554,14 @@ If the user approves the deployment, the pipeline will continue and:
 
 Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
 
-![Figure 24: Redeploy Release Candidate Build](images/redeploy-release-candidate-build.png)
+![Figure 24: Redeploy Release Candidate Build](images/readme/redeploy-release-candidate-build.png)
 
 **Figure 24**
 _Build with Parameters screen for the Redeploy Release Candidate pipeline_
 
 After entering the project name and entering a Release Candidate Tag, the user should select the microservices that will be part of the release.
 
-![Figure 25: Redeploy Release Candidate Confirmation](images/redeploy-release-candidate.png)
+![Figure 25: Redeploy Release Candidate Confirmation](images/readme/redeploy-release-candidate.png)
 
 **Figure 25**
 _Confirm redeploying the Release Candidate into Pre-prod_
@@ -1588,14 +1588,14 @@ If the Release Candidate exists, then
 
 Start the pipeline by going the _Build with Parameters_ screen of the pipeline.
 
-![Figure 26: Deploy to Production Build](images/deploy-to-production-build.png)
+![Figure 26: Deploy to Production Build](images/readme/deploy-to-production-build.png)
 
 **Figure 26**
 _Build with Parameters screen for the Deploy to Production pipeline_
 
 After entering the project name and entering a Release Candidate Tag, the user should select the microservices that will be part of the release.
 
-![Figure 27: Deploy to Production Confirmation](images/deploy-to-production-confirmation.png)
+![Figure 27: Deploy to Production Confirmation](images/readme/deploy-to-production-confirmation.png)
 
 **Figure 27**
 _Confirm promoting or redeploying the Release Version into Prod_

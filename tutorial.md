@@ -1,4 +1,4 @@
-# el-CICD Tutorial
+# el-CICD Administration Tutorial
 
 It is strongly suggested that new users to el-CICD work through this tutorial.  This will demonstrate most of the requirements and features of the el-CICD system from setup through the different usage scenarios you'll use as part of your software development lifecycle (SDLC).  Hands on learning is always the best type of education.
 
@@ -48,7 +48,7 @@ or send a letter to
 
 # Table of Contents
 
-* [el-CICD Tutorial](#el-cicd-tutorial)
+* [el-CICD Administration Tutorial](#el-cicd-administration-tutorial)
   * [Preamble](#preamble)
   * [License](#license)
 * [Table of Contents](#table-of-contents)
@@ -66,7 +66,7 @@ or send a letter to
       * [Create el-CICD Repo Read Only Private Keys](#create-el-cicd-repo-read-only-private-keys)
       * [Gather el-CICD Access Token](#gather-el-cicd-access-token)
       * [Gather Image Repo Access Tokens](#gather-image-repo-access-tokens)
-    * [el-cicd-system.config](#el-cicd-bootstrapconfig)
+    * [el-cicd-system.config](#el-cicd-systemconfig)
     * [Bootstrapping the Non-prod Onboarding Automation Server](#bootstrapping-the-non-prod-onboarding-automation-server)
       * [Setting Your Cluster's Sealed Secrets Decryption Key](#setting-your-clusters-sealed-secrets-decryption-key)
   * [Onboarding a Project Into the Engineering Cluster](#onboarding-a-project-into-the-engineering-cluster)
@@ -133,7 +133,7 @@ We move the CRC directory containing the decompressed files to a generic directo
 
 **You also need to copy or download your CRC pull secret to a file called `pull-secret` in the same directory where CRC has been installed (see figure below).  The helper scripts described below that you'll add to your `.bashrc` or `.zshrc` depend on it to function correctly.**
 
-![Figure 1: CRC install directory structure](tutorial-images/crc-install-directory.png)
+![Figure 1: CRC install directory structure](images/tutorial/crc-install-directory.png)
 
 **Figure 1**  
 _CRC install directory structure with pull-secrets file and original *.tar.xz CRC download included_
@@ -238,7 +238,7 @@ You will need to modify the contents of these repositories and/or run scripts co
 
 You should also create a sibling directory to the `el-CICD`, `cicd-secrets`, that will contain a collection of secrets you will need to gather to run this tutorial.  Your final local el-CICD directory should look like the following:
 
-![Figure 2: code bases mapped to their Jenkins Agents](tutorial-images/local-el-cicd-dirs.png)
+![Figure 2: code bases mapped to their Jenkins Agents](images/tutorial/local-el-cicd-dirs.png)
 
 **Figure 2**  
 _Cloned Git repositories and `cicd-secrets` directory_
@@ -286,12 +286,12 @@ This script will create a base agent to run the shared pipelines, and agents for
 To see how these Agents are tied into the el-CICD Build Framework, take a look at the file `vars/elCicdNode.groovy` in the `el-CICD-utils` repository.  This utility defines the Agent using the Jenkins Kubernetes plugin, and at the top is a map from the Project Definition File's _codebase_ to the Jenkins Agent images required for the build.  Should you wish to add new build definitions to your installation, you will create a new Agent image as above, and map the _codebase_ key to the to your agent image.
 
 
-![Figure 3: code bases mapped to their Jenkins Agents](tutorial-images/microservices-project-defintion-file.png)
+![Figure 3: code bases mapped to their Jenkins Agents](images/tutorial/microservices-project-defintion-file.png)
 
 **Figure 3**  
 _codebases defined in the microservices section of the Project Definition File_
 
-![Figure 4: code bases mapped to their Jenkins Agents](tutorial-images/agent-defs-map.png)
+![Figure 4: code bases mapped to their Jenkins Agents](images/tutorial/agent-defs-map.png)
 
 **Figure 4**  
 _codebases mapped to their Jenkins Agent images in elCicdNode.groovy_
@@ -426,7 +426,7 @@ After successfully logging in, the browser will ask you to _Authorize Access_.  
 
 From the main page on the left, click `Credentials` to take you to the Jenkins credentials screen.  If you configured everything correctly, it should look like the following.
 
-![Figure 5: Non-prod Onboarding Automation Server Credentials](tutorial-images/devops-non-prod-jenkins-credentials.png)
+![Figure 5: Non-prod Onboarding Automation Server Credentials](images/tutorial/devops-non-prod-jenkins-credentials.png)
 
 **Figure 5**  
 _Non-prod Onboarding Automation Server Credentials_
@@ -437,14 +437,14 @@ If something is missing, then check your configuration, fix any issues, and you 
 
 Click on the Jenkins logo in the upper left corner of the browser window, and then click on the `el-cicd-non-prod-master` folder in the center of the Jenkins browser screen, and again on the `el-cicd-non-prod-master/non-prod-project-onboarding` to get to the `non-prod-project-onboarding` pipeline screen.
 
-![Figure 6: non-prod-project-onboarding Pipeline](tutorial-images/non-prod-onboarding-pipeline-screen.png)
+![Figure 6: non-prod-project-onboarding Pipeline](images/tutorial/non-prod-onboarding-pipeline-screen.png)
 
 **Figure 6**  
 _non-prod-project-onboarding Pipeline_
 
 Click `Build with Parameters` on the left, enter `test-cicd` as the PROJECT_ID, and then click the `Build` button.  This will begin the `non-prod-project-onboarding` Pipeline.
 
-![Figure 7: Entering the test-cicd PROJECT_ID for the Onboarding Pipeline](tutorial-images/entering-non-prod-onboarding-pipeline-parameters.png)
+![Figure 7: Entering the test-cicd PROJECT_ID for the Onboarding Pipeline](images/tutorial/entering-non-prod-onboarding-pipeline-parameters.png)
 
 **Figure 7**  
 _Entering `test-cicd` for the PROJECT_ID when kicking off the Onboarding Pipeline_
@@ -487,14 +487,14 @@ Open your browser to the new [Non-prod Automation Server](https://jenkins-devops
 
 [**NOTE**: In the real world, the project would belong to an actual group, whether in OKD directly or as part of your organization's authentication mechanism, and you would log in as an authenticated OKD user and **not** admin.  el-CICD makes every member of the project's group an OKD namespace admin for the Non-prod Automation Server of the group.]
 
-![Figure 8: Non-prod Jenkins Credentials](tutorial-images/devops-non-prod-jenkins-credentials.png)
+![Figure 8: Non-prod Jenkins Credentials](images/tutorial/devops-non-prod-jenkins-credentials.png)
 
 **Figure 8**  
 _Non-prod Jenkins Credentials_
 
 Then click on the Jenkins logo in the upper right, and click through the folder link in the center of the window `devops-cicd-non-prod` until you see all the pipelines created.
 
-![Figure 9: Non-prod Jenkins Pipelines](tutorial-images/non-prod-devops-test-cicd-project-pipelines.png)
+![Figure 9: Non-prod Jenkins Pipelines](images/tutorial/non-prod-devops-test-cicd-project-pipelines.png)
 
 **Figure 9**  
 _Non-prod Jenkins Pipelines_
@@ -636,7 +636,7 @@ Next, checkout the deployment branch from the meta-information ConfigMap for `te
 
 In your favorite source code editor, open the file `Test_CICD1/.openshift/template-defs.json`.  Go to the bottom of the file, and find the section with `"appName": "test-cicd-configmap"` in it.  In the `"qa" -> "params"` section, change the param `TOPIC_NAME` from `"qa topic"` to `"qa topic changed for el-CICD tutorial"`:
 
-![Figure 10: Non-prod Jenkins Pipelines](tutorial-images/template-defs-changed-redeploy.png)
+![Figure 10: Non-prod Jenkins Pipelines](images/tutorial/template-defs-changed-redeploy.png)
 
 **Figure 10**  
 _**qa** section of template-defs.json changed for redeployment demonstration_
@@ -689,7 +689,7 @@ First, check out the `test-cicd1` development branch:
 
 To be able to see how a rollback works, a new build needs to be created.  As before, in your favorite source code editor, open the file `Test_CICD1/.openshift/template-defs.json`.  Go to the bottom of the file and find the section with `"appName": "test-cicd-configmap"` in it.  In the `"qa" -> "params"` section, change the param `TOPIC_NAME` from `"qa topic"` to `"qa topic changed"`
 
-![Figure 11: Non-prod Jenkins Pipelines](tutorial-images/template-defs-changed.png)
+![Figure 11: Non-prod Jenkins Pipelines](images/tutorial/template-defs-changed.png)
 
 **Figure 11**  
 _**qa** section of template-defs.json changed_
@@ -834,7 +834,7 @@ After successfully logging in, CRC will ask you _Authorize Access_.  This will h
 
 From the main page on the left, click `credentials` to take you to the Jenkins credentials screen.  If you configured everything correctly, it should look exactly like the Non-prod Onboarding Automation Server credentials, except the image repository credentials should refer to the Prod image repository instead of the Dev image repository.
 
-![Figure 12: Non-prod Onboarding Automation Server Credentials](tutorial-images/prod-onboarding-jenkins-credentials.png)
+![Figure 12: Non-prod Onboarding Automation Server Credentials](images/tutorial/prod-onboarding-jenkins-credentials.png)
 
 **Figure 12**  
 _Non-prod Onboarding Automation Server Credentials_
@@ -845,14 +845,14 @@ If something is missing, then check your configuration, fix any issues, and run 
 
 Click on the Jenkins logo in the upper left corner of the browser window, and the click on the `el-cicd-prod-master` folder in the center of the screen, and again on the `el-cicd-prod-master/dev-project-onboarding` to get to the prod-project-onboarding pipeline screen.
 
-![Figure 13: dev-project-onboarding Pipeline](tutorial-images/prod-onboarding-pipeline-screen.png)
+![Figure 13: dev-project-onboarding Pipeline](images/tutorial/prod-onboarding-pipeline-screen.png)
 
 **Figure 13**  
 _prod-project-onboarding Pipeline_
 
 Click `Build with Parameters` on the left, enter `test-cicd` as the PROJECT_ID and `devops` for the RBAC_GROUP, and then click the `Build` button.  This will begin the `prod-project-onboarding` Pipeline.
 
-![Figure 14: Entering the test-cicd PROJECT_ID for the Onboarding Pipeline](tutorial-images/entering-prod-onboarding-pipeline-parameters.png)
+![Figure 14: Entering the test-cicd PROJECT_ID for the Onboarding Pipeline](images/tutorial/entering-prod-onboarding-pipeline-parameters.png)
 
 **Figure 14**  
 _Entering `test-cicd` for the PROJECT_ID when kicking off the Onboarding Pipeline_
@@ -886,14 +886,14 @@ You should see a `el-cicd-image-repo-prod-pull-secret` Sealed Secret and Secret 
 
 Open your browser to the new [devops Prod Automation Server](https://jenkins-devops-cicd-prod.apps-crc.testing/).  As before, click through the privacy warning, and login as the `kubeadmin` again (enter `crc-admin-login` on the command line to copy the pull secret to the clipboard for simplicity's sake).  Once in, click on the `Credentials` link on the left hand side of the window, confirming general el-CICD read-only credentials, image repository pull keys, and specific microservice deploy keys have been properly added.
 
-![Figure 15: Non-prod Jenkins Credentials](tutorial-images/devops-prod-jenkins-credentials.png)
+![Figure 15: Non-prod Jenkins Credentials](images/tutorial/devops-prod-jenkins-credentials.png)
 
 **Figure 15**  
 _Non-prod Jenkins Credentials_
 
 Then click on the Jenkins logo in the upper right, and click through the folder link in the center of the window `devops-cicd-prod` until you see the single deployment pipeline created.
 
-![Figure 16: Prod Jenkins Pipeline](tutorial-images/prod-devops-test-cicd-project-pipelines.png)
+![Figure 16: Prod Jenkins Pipeline](images/tutorial/prod-devops-test-cicd-project-pipelines.png)
 
 **Figure 16**  
 _Prod Jenkins Pipelines_
