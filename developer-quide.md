@@ -1,8 +1,6 @@
 # el-CICD Developer Guide
 
-The purpose of this document is to aid developers new to el-CICD in how to adapt their Git repositories to build and deploy with el-CICD.  This document is **not** meant to be a comprehensive tutorial, but rather a basic reference for software developers whose Projects are to be built and deployed by el-CICD.  _**For a deeper explanation of el-CICD as a whole and its functionality, read the full manual in the README file in this repository.**_
-
-This document assumes that the reader has working knowledge of JSON, YAML, Kubernetes, OKD and/or OpenShift, OKD Templates, Git, and is a software developer.  For the remainder of the document wherever OKD is referenced, OpenShift may be safely inferred.
+**The purpose of this document is to aid developers new to el-CICD in how to adapt their Git repositories to build and deploy with el-CICD.**
 
 ## Preamble
 
@@ -53,6 +51,7 @@ or send a letter to
   * [Preamble](#preamble)
   * [License](#license)
 * [Table of Contents](#table-of-contents)
+* [Overview](#overview)
 * [Project](#project)
   * [One Git Repository Per Microservice or Component](#one-git-repository-per-microservice-or-component)
     * [A Quick Note About Builds](#a-quick-note-about-builds)
@@ -84,6 +83,24 @@ or send a letter to
     * [OKD Templates in Environment Directories](#okd-templates-in-environment-directories)
     * [Sealed Secrets](#sealed-secrets)
   * [Further Examples](#further-examples)
+
+# Overview
+
+This developer guide will help explain what is needed to adopt a software project to build and deploy to OKD with el-CICD. This document is **not** meant to be a comprehensive tutorial, but rather a basic reference for software developers whose projects are to be built and deployed by el-CICD.  _**For a deeper explanation of el-CICD as a whole and its functionality, read the full manual in the README file in this repository.**  There are also number of test projects in this repository that can be used as a basic, functional reference.
+
+_A short overview of the steps developers need to undertake is as follows:
+
+* Decompose each application's microservices/components into individual Git repositories
+  * One Git repository per Docker image built
+* Add a Dockerfile to the root of each microservice repository
+* Add an `.openshift` directory to the root of each Git repository
+* Create and define a `template-defs` file in the `.openshift` directory
+  * This will reference all OKD templates and parameters they use per SDLC environment
+* Create one or more kustomize *.patch files to customize the OKD template(s) for each microservice's deployment
+* Convert all secrets into Sealed Secrets to commit into each Environment Directory in the `.openshift` directory
+  * Static OKD resources are also added to the Environment Directories
+
+The rest of this document will explain these steps and the `.openshift` directory and its contents in more detail.  This document assumes that the reader has working knowledge of JSON, YAML, Kubernetes, OKD and/or OpenShift, OKD Templates, Git, and is a software developer.  For the remainder of the document wherever OKD is referenced, OpenShift may be safely inferred.
 
 # Project
 
