@@ -1,3 +1,6 @@
+# WARNING: in the middle of a complete overhaul to document massive changes and updates.  Done in a few days time.  Hopefully.
+
+
 # el-CICD
 
 **A complete CICD System for use on OKD or Red Hat® OpenShift® Platform**
@@ -79,6 +82,7 @@ Features not supported, but on the TODO list:
 
 # TABLE OF CONTENTS
 
+* [WARNING: in the middle of a complete overhaul to document massive changes and updates.  Done in a few days time.  Hopefully.](#warning-in-the-middle-of-a-complete-overhaul-to-document-massive-changes-and-updates--done-in-a-few-days-time--hopefully)
 * [el-CICD](#el-cicd)
   * [Preamble](#preamble)
   * [License](#license)
