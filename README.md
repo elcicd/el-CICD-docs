@@ -30,13 +30,11 @@ This library is distributed in the hope that it will be useful, but **WITHOUT AN
 
 You should have received a copy of the GNU Lesser General Public License along with this library; if not, write to
 
-```text
-    The Free Software Foundation, Inc.
-    51 Franklin Street
-    Fifth Floor
-    Boston, MA
-        02110-1301
-```
+>    The Free Software Foundation, Inc.  
+>    51 Franklin Street  
+>    Fifth Floor  
+>    Boston, MA  
+>        02110-1301  
 
 This document is licensed under the [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/legalcode). To view a copy of this license, visit
 
@@ -44,12 +42,11 @@ http://creativecommons.org/licenses/by/4.0/
 
 or send a letter to
 
-```text
-  Creative Commons
-  PO Box 1866
-  Mountain View, CA
-      94042, USA.
-```
+>  Creative Commons  
+>  PO Box 1866  
+>  Mountain View, CA  
+>      94042, USA
+
 
 ## PREFACE
 
@@ -139,7 +136,7 @@ Features not supported, but on the TODO list:
     * [GitHub](#github)
     * [Jenkins](#jenkins)
     * [skopeo](#skopeo)
-    * [DockerHub, [Quay](https://quay.io)](#dockerhub-quay)
+    * [DockerHub](#dockerhub)
     * [OKD](#okd)
     * [Kustomize](#kustomize)
     * [SealedSecrets](#sealedsecrets)
@@ -147,11 +144,18 @@ Features not supported, but on the TODO list:
     * [el-CICD Repository](#el-cicd-repository)
     * [el-CICD-config Repository](#el-cicd-config-repository)
     * [el-CICD-docs Repository](#el-cicd-docs-repository)
-  * [el-CICD Components](#el-cicd-components)
-    * [el-cicd Shell Utility](#el-cicd-shell-utility)
-    * [Onboarding Automation Server](#onboarding-automation-server)
+  * [el-CICD Component Overview](#el-cicd-component-overview)
+    * [el-CICD Install Utility](#el-cicd-install-utility)
+    * [Non-prod Onboarding Automation Server](#non-prod-onboarding-automation-server)
+      * [Non-prod Onboarding Automation Server Pipelines](#non-prod-onboarding-automation-server-pipelines)
+      * [non-prod-project-project-onboarding Pipeline](#non-prod-project-project-onboarding-pipeline)
+      * [refresh-credentials Pipeline](#refresh-credentials-pipeline)
+      * [non-prod-project-delete Pipeline](#non-prod-project-delete-pipeline)
+    * [Prod Onboarding Automation Server](#prod-onboarding-automation-server)
+      * [Access Considerations](#access-considerations)
     * [CICD Automation Server](#cicd-automation-server)
-* [Bootstrapping](#bootstrapping)
+    * [el-CICD-config](#el-cicd-config)
+* [Installation](#installation)
   * [Configuration](#configuration)
     * [el-CICD Configuration Files](#el-cicd-configuration-files)
       * [Framework](#framework)
@@ -168,9 +172,9 @@ Features not supported, but on the TODO list:
       * [Other](#other)
     * [el-cicd-bootstrap.config](#el-cicd-bootstrapconfig)
     * [Permissions](#permissions)
-  * [Deployment](#deployment)
+  * [Bootstrap](#bootstrap)
     * [Running the el-cicd Shell Utility](#running-the-el-cicd-shell-utility)
-      * [Bootstrap](#bootstrap)
+      * [Standing Up the Onboarding Automation Servers](#standing-up-the-onboarding-automation-servers)
       * [Refresh Credentials](#refresh-credentials)
       * [Jenkins and Jenkins Agent Image Builds](#jenkins-and-jenkins-agent-image-builds)
     * [Script Extensions](#script-extensions)
@@ -186,7 +190,7 @@ Features not supported, but on the TODO list:
     * [Sandbox Environments](#sandbox-environments)
   * [Builder Framework](#builder-framework)
     * [Jenkins Agents](#jenkins-agents)
-    * [_builder-steps_ Directory](#builder-steps-directory)
+    * [builder-steps](#builder-steps)
       * [Code Base Folders](#code-base-folders)
       * [Build Scripts](#build-scripts)
   * [The ._openshift_ Directory](#the-openshift-directory)
@@ -468,11 +472,11 @@ Creating a Release Candidate is the first step in defining a release of an Appli
 
 #### Deploy-to-Prod
 
-When the final decision has been made that a Release Candidate should be deployed into production, the actual Deploy-to-Prod workflow can be triggered.  Along with the actual deployment of images into the production environment, this process will re-tag all the Release Candidates's images  in the Image Repository and branch associated deployment configuration source commits in the SCM at the point of the Release Candidate tag. The actual implementation of this process is described in more detail [below](#repository-and-runtime-integration-strategy).
+When the final decision has been made that a Release Candidate should be deployed into production, the actual Deploy-to-Prod workflow can be triggered.  Along with the actual deployment of images into the production environment, this process will re-tag all the Release Candidate's images  in the Image Repository and branch associated deployment configuration source commits in the SCM at the point of the Release Candidate tag. Production Deployment branches will be created in each Git repository at the commit where the Release Candidate was tagged.  The actual implementation of this process is described in more detail [below](#repository-and-runtime-integration-strategy).
 
 ##### Release Version
 
-The collection of images and deployment configurations tagged as a result of being deployed to production are collectively known as a _Release Version_.
+The collection of images and deployment branches tagged and created by the Deploy-to-Prod process are collectively known as a _Release Version_.  These are used to deploy and redeploy an application into production.
 
 ##### Production Rollback/Forward/Deployment Patching
 
@@ -502,9 +506,9 @@ Jenkins is an open source software (OSS) Automation Server, and used for definin
 
 A command line utility for the copying, tagging, deleting, and inspection of images on OCI and Docker v2 compliant Image Repositories.
 
-### [DockerHub](https://hub.docker.com), [Quay](https://quay.io)
+### [DockerHub](https://hub.docker.com)
 
-Any online or or on premise Image Repository that is compatible with podman/buildah/skopeo or Docker is compatible for use with el-CICD.  The examples in our accompanying tutorial use DockerHub.
+Any online or or on premise Image Repository that is compatible with Podman/Buildah/Bkopeo or Docker is compatible for use with el-CICD.  The examples in the accompanying tutorial use DockerHub, but Quay](https://quay.io) or any other OCI compliant Image Repository could also have been used.
 
 ### [OKD](https://okd.io)
 
@@ -522,62 +526,169 @@ SealedSecrets is an OSS tool providing a mechanism for encrypting secrets for ex
 
 el-CICD is designed as a COTS solution, meaning it was built as an incomplete piece of software that is meant to be adapted and configured by the end-user organization to their specific needs.  The el-CICD system consists of three repositories, including the documentation repository that this document resides in. 
 
-**_We strongly advise organizations to fork  the [el-CICD Repository](#el-cicd-repository) and the [el-CICD-config](#el-cicd-config-repository)._**  The latter needs to be modified for use by the end user, and the former is the functional heart of el-CICD.  These repositories are part of an OSS project that resides on a publicly hosted service, and no guarantee that they will continue to host el-CICD in the future is given, made, or implied.
+**_Organizations must fork both the [el-CICD](#el-cicd-repository) and the [el-CICD-config](#el-cicd-config-repository) repositories._**  The latter needs to be modified by the end user to adapt to the organizations needs, and the former holds all the functional code.  These repositories are part of an OSS project that resides on a publicly hosted service, and no guarantee that they will continue to host el-CICD in the future is given, made, or implied.  Both of these repositories are pulled on every pipeline run, which has the added advantage of instant updates of functionality and configuration for CICD Automation Servers.
 
 ### el-CICD Repository
 
 The el-CICD Repository is the functional heart of el-CICD, and is **NOT** meant to be modified by the end user.  It holds all bootstrap scripts, internal template files, BuildConfig definitions, and the [Jenkins shared library](https://www.jenkins.io/doc/book/pipeline/shared-libraries/) that forms the bulk of el-CICD's pipeline functionality.
 
-This repository holds the following content:
+The repository directory structure is as follows:
 
-* **el-CICD** Directory
-Holds the `el-cicd.sh` script, the main bootstrap and management utility for el-CICD.
-  * **resources** Directory
+* **el-CICD**  
+The root directory holds the main bootstrap and management utility for el-CICD, `el-cicd.sh`.
+  * **resources**  
   Holds the BuildConfig YAML files, and a number of script style templates used throughout the system for deploying el-CICD Automation Servers and end user microservices.
-  * **scripts** Directory
+  * **scripts**  
   Holds a number of shell scripts that define functions and functionality used by `el-cicd.sh`.
-  * **vars** Directory
+  * **vars**  
   Holds all *.groovy files that form the functionality of the pipelines in el-CICD as part of a [Jenkins Shared Library]([https://www.jenkins.io/doc/book/pipeline/shared-libraries/](https://www.jenkins.io/doc/book/pipeline/shared-libraries/)).
-
-This repository is checked out for every pipeline build.
 
 ### el-CICD-config Repository
 
-This repository holds all the files that end users will configure to install and run el-CICD.
+This repository holds all the files that end users will configure to install and run el-CICD.  Everything in this file can be modified by end users to define their install of el-CICD.
 
-This repository holds the following content:
+The repository directory structure is as follows:
 
-* **vars Directory**  
-  Standards global variable directory for a Jenkins Shared Library.
-  
-This design allowed all utilities and Jenkins step extensions to be loaded as globally accessible variables, and easily used among each other.
+* **el-CICD-config**
+The root directory typically holds the main bootstrap configuration files defining an install of el-CICD.
+  * **bootstrap**  
+  Holds additional bootstrap configuration files and any user-defined bootstrap extension scripts.
+  * **builder-steps**  
+  Holds the [builder-steps](#builder-steps) implementations which define the Build for each Code Base.
+  * **hook-scripts**  
+  Holds the user-defined pipeline extensions scripts.
+  * **jenkins**  
+  Holds Dockerfiles that define the el-CICD Jenkins image and Jenkins Agent images.
+  * **managed-okd-templates**  
+  Holds definitions of Managed OKD Templates for the developers to reference.
+  * **project-defs**  
+  Holds every [Project Definition File](#project-definition-file).
+  * **resource-quotas**  
+  Holds the different ResourceQuotas that can be assigned to Project namespaces.
 
 ### el-CICD-docs Repository
 
-Holds all the documentation for el-CICD, including this document, developer guide, and tutorial.
+Holds all the documentation for el-CICD, including this document, a developer guide, and an el-CICD tutorial.
 
-## el-CICD Components
-
-With the tools and products defined, the components that make up the el-CICD system can now be defined.
+## el-CICD Component Overview
 
 ![Figure 2: Environment Flow](images/readme/components.png)
 
 **Figure 2**  
 _The relationship between the basic components that comprise el-CICD_
 
-### el-cicd Shell Utility
+### el-CICD Install Utility
 
 The [el-cicd.sh](#) script, located in root directory of the [el-CICD Repository](#el-cicd-repository) will drive the bootstrapping of el-CICD [Onboarding Automation Servers](#Onboarding Automation Server), refresh their credentials, and build Jenkins and Jenkins' Agent images.
 
-### Onboarding Automation Server
+```text
+Usage: el-cicd.sh [OPTION] [root-config-file]
 
-The Onboarding Automation Server, or el-CICD Master, is responsible for onboarding a Project onto the OKD cluster.  Once the server is created by its bootstrap script, the onboarding pipeline can be launched either via a REST call into Jenkins or manually through the Jenkins UI.   The pipeline takes the name of the Project to be onboarded, downloads the Project's definition for from Project Definition Repository, and then creates either the Non-prod or Prod Jenkins for the group the Project belongs to if it doesn't already exist, and The Build pipelines for each microservice in the Project.
+el-CICD Install Utility
+
+Options:
+    -N,   --non-prod:        bootstraps Non-prod el-CICD Onboarding Automation Server
+    -n,   --non-prod-creds:  refresh Non-prod el-CICD Onboarding Automation Server credentials
+    -P,   --prod:            bootstraps Prod el-CICD Onboarding Automation Server
+    -p,   --prod-creds:      refresh Prod el-CICD Onboarding Automation Server credentials
+    -c,   --cicd-creds:      run the refresh-credentials pipeline
+    -s,   --sealed-secrets:  reinstall/upgrade Sealed Secrets
+    -j,   --jenkins:         only build el-CICD Jenkins image
+    -a,   --agents:          only build el-CICD Jenkins agent images
+    -A,   --jenkins-agents:  build el-CICD Jenkins and Jenkins agent images
+          --help:            display this help text and exit
+
+root-config-file:
+    file name or path to a root configuration file relative the root of the el-CICD-config directory
+```
+
+### Non-prod Onboarding Automation Server
+
+Non-prod Onboarding Automation Servers are responsible for deploying, configuring, and setting the credentials of Non-prod CICD Automation Servers, and onboard and remove Projects.
+
+**ACCESS TO A NON-PROD ONBOARDING AUTOMATION SERVER SHOULD BE RESTRICTED TO CLUSTER ADMINS ONLY.**  
+
+All Onboarding Automation Servers require Git site-wide access, and have service accounts with OKD cluster admin privileges.  Allowing unprivileged users direct access to an Onboarding Automation Server would constitute security risk.
+
+#### Non-prod Onboarding Automation Server Pipelines
+
+![Figure 9: Build and Deploy Microservices](images/readme/el-cicd-non-prod-onboarding-master.png)
+
+**Figure 9**
+_el-CICD Non-prod Automation Server pipelines_
+
+#### non-prod-project-project-onboarding Pipeline
+
+This pipeline is responsible for onboarding the necessary resources to support a Project's Non-prod SDLC.
+
+| Parameters | Description |
+| ---------- | ------------|
+| PROJECT_ID | The Project ID |
+| REBUILD_NON_PROD | If true, destroy and recreate all Project Non-prod SDLC namespaces environments |
+| REBUILD_SANDBOXES_ONLY | If true, destroy and recreate all Project Sandbox namespace environments |
+
+* Read the [Project Definition File](#project-definition-file)
+* Create a namespace for the CICD Automation Server if it doesn't exist
+  * `<RBAC-group>-el-cicd-non-prod-master`
+* Deploy the CICD Automation Server for the Project's RBAC Group, if necessary
+* Create all Non-prod Pipelines
+  * [Build and Deploy Microservices](#build-and-deploy-microservices)
+  * [Create Release Candidate](#create-release-candidate)
+  * [Promotion/Removal](#promotionremoval)
+  * [Redeploy/Removal](#redeployremoval)
+  * [Redeploy Release Candidate](#redeploy-release-candidate)
+* Add all necessary credentials to the CICD Automation Server for all Non-prod Image Repositories
+* Create [Build-to-Dev](#build-and-deploy-microservices) Pipelines, one for each microservice
+* (Re)Create the Project's SDLC namespaces, if necessary or requested
+  * Create any NFS shares for each namespace, if defined
+  * Set the assigned ResourceQuota on each namespace, if defined
+* Create Sandbox Environments, if any
+* Push a new read/write deploy key for each microservice to its Git repository and the CICD Automation Server
+
+ ```bash
+ curl https://<RBAC-group>-el-cicd-non-prod-master/job/el-cicd-non-prod-onboarding-master/job/el-cicd-non-prod-onboarding-master-non-prod-project-onboarding/buildWithParameters --user <OKD_SERV_ACCT>:<SERV_ACCT_TOKEN> --data PROJECT_ID=my-project-id
+ ```
+
+#### refresh-credentials Pipeline
+
+This pipeline will refresh all credentials on every CICD Automation Server referenced by all Projects defined in el-CICD-config.
+
+| Parameters | Description |
+| ---------- | ------------|
+| N/A |  |
+
+* Loops through every Project, and if the CICD Automation Server for the RBAC group exists
+  * Copies the ConfigMap containing the latest el-CICD system information into the CICD Automation Server namespace
+  * Copies the pull Secrets for all Non-prod Image Repositories into the CICD Automation Server namespace
+  * Updates all deploy keys and pull secrets on the CICD Automation Server (Jenkins credentials)
+  * If the Project's Non-prod SDLC namespace exists
+    * Copies the pull Secrets into each appropriate namespace
+      * e.g. the Dev Image Repository's pull Secret into the Dev namespace environment
+    * 
+ 
+#### non-prod-project-delete Pipeline
+
+### Prod Onboarding Automation Server
+
+Prod Onboarding Automation Servers are responsible for deploying, configuring, and setting the credentials of Prod CICD Automation Servers, and onboard Projects.
+
+#### Access Considerations
+
+**ACCESS TO ONBOARDING AUTOMATION SERVERS SHOULD BE RESTRICTED TO CLUSTER ADMINS ONLY.**  
+All Onboarding Automation Servers need Git site-wide access, as well act as OKD cluster admins.  Allowing unprivileged users direct access to an Onboarding Automation Server would constitute security risk.
+
 
 ### CICD Automation Server
 
-The CICD Automation Server is created up by the Onboarding Automation Server.  There will be one per group for each cluster where the group develops applications, and each group will be responsible for one or more Projects.  Which Project belongs to which group is defined in each Project's definition file stored in the Project Definition Repository. The Non-prod Automation Server will host every pipeline for each Project in the group except the Deploy-to-Prod pipelines.
+CICD Automation Servers are deployed and configured by the Onboarding Automation Server to manage individual Projects.  There are two flavors of the CICD Automation Server, Non-prod and Prod.  The engineering OKD cluster will host one CICD Automation Server per [OKD RBAC Group](https://docs.okd.io/latest/authentication/using-rbac.html) for managing the SDLC of a Project from Dev to the creation of Project's Release Candidate.  Each production cluster will host a Prod CICD Automation Server per OKD RBAC Group to support the [Deploy-to-Prod](#deploy-to-prod) process.  When the CICD Automation Servers are set up, they are restricted for use by the RBAC groups defined in the Projects they manage.
 
-# Bootstrapping
+[**NOTE**: Optionally splitting the Non-prod CICD Automation Server into separate Dev and Test flavors for finer grained access control is actively being worked on for a future versions of el-CICD.  This also includes optionally specifying the RBAC Group with access to the Prod CICD Automation Server, too.]
+
+### el-CICD-config
+
+As mentioned previously, the el-CICD-config repository defines almost every aspect of how each component is installed and its behavior.  This repository is controlled completely by the installing organization.
+
+# Installation
 
 While OKD is el-CICD's home, it's functional heart is Jenkins.  This document will not address anything regarding OKD administration outside of few details needed for configuring el-CICD.  This document will also not cover Jenkins administration, which can be found on the Jenkins site linked to above, but nothing should need to be done with regards Jenkins administration directly.   The system should be fully automated in this regard from bootstrapping to installing pipelines and necessary credentials based on an organization's needs.  Other concerns such as maintenance patching of images are outside the scope of el-CICD.
 
@@ -825,7 +936,7 @@ Path to the file holding the access token(s) to the Image Repository for each en
 It is strongly suggested that only responsible DevOps resources have access to the el-CICD repositories (`el-CICD` and `el-CICD-utils` and `el-CICD-Project-information-repository`) as well the Onboarding Automation Servers.  This ensures only DevOps resources can define system level changes, or have access across the Git repositories.  For the `el-CICD-Project-information-repository`, it also ensures Projects can't edit each other's Project definition files.
 
 
-## Deployment
+## Bootstrap
 
 
 Once each _*.config_ file has all the values properly entered, and all Image Repository pull and Git repository deploy tokens are saved in their proper locations, the bootstrap scripts can be run.
@@ -836,7 +947,7 @@ A typical, minimal installation of OKD has three clusters, a lab cluster to test
 
 ### Running the el-cicd Shell Utility
 
-#### Bootstrap
+#### Standing Up the Onboarding Automation Servers
 
 #### Refresh Credentials
 
@@ -956,7 +1067,7 @@ el-CICD can support any combination of build, test, and scanning per codebase.  
 Each [codebase](#code-base) will be mapped to specific Jenkins Agent where code will be built.  There will also be a generic, base agent defined that should hold shared tools like [Git](#git), [kustomize](#kustomize), and [skopeo](#skopeo).
 
 
-### _builder-steps_ Directory
+### builder-steps
 
 The **_builder-steps_** directory holds the functional files that are loaded and executed for each build.
 
