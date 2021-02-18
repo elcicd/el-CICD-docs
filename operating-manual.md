@@ -54,12 +54,14 @@ or send a letter to
   - [el-CICD SECURITY WARNING](#el-cicd-security-warning)
   - [Fundamentals](#fundamentals)
   - [Assumptions](#assumptions)
-- [The el-CICD Repositories](#the-el-cicd-repositories)
+- [Bootstrap Directory Structure](#bootstrap-directory-structure)
   - [el-CICD Repository](#el-cicd-repository)
   - [el-CICD-config Repository](#el-cicd-config-repository)
   - [el-CICD-docs Repository](#el-cicd-docs-repository)
+  - [cicd-secrets](#cicd-secrets)
+    - [builder-secrets](#builder-secrets)
 - [Configuration](#configuration)
-  - [Secrets Files](#secrets-files)
+  - [Gathering Credentials](#gathering-credentials)
     - [SSH Keys for el-CICD and el-CICD-config](#ssh-keys-for-el-cicd-and-el-cicd-config)
     - [GitHub Site Wide Access Token](#github-site-wide-access-token)
     - [Image Repository Pull Keys](#image-repository-pull-keys)
@@ -171,13 +173,19 @@ Operational concerns with el-CICD cover the following topics:
 
 It is assumed the reader has a basic understanding of the SDLC, Source Control Management (SCM) solutions and Git in particular, the concepts of branching and tagging in an SCM, Docker images and containers, microservice architectures, and OKD and Kubernetes concepts.
 
-# The el-CICD Repositories
+# Bootstrap Directory Structure
 
 el-CICD is designed as a COTS solution, meaning it was built as an incomplete piece of software that is meant to be adapted and configured by the end-user organization to their specific needs.  The el-CICD system consists of three repositories, including the documentation repository that this document resides in. 
 
 **_Organizations must fork both the [el-CICD](https://github.com/elcicd/el-CICD) and the [el-CICD-config](https://github.com/elcicd/el-CICD-config) repositories._**
 
-The [el-CICD-config](#el-cicd-config-repository) repository needs to be modified by the end user to adapt el-CICD to their organizational needs, and the [el-CICD](#el-cicd-config-repository) repository holds all the functional code.  These repositories are part of an OSS project that resides on a publicly hosted service, and **_no guarantee that they will continue to host el-CICD in the future is given, made, or implied_**.  Both of these repositories are pulled on every pipeline run, which has the added advantage of instant updates of functionality and configuration for CICD Automation Servers.
+The [el-CICD-config](#el-cicd-config-repository) repository needs to be modified by the end user to adapt el-CICD to their organizational needs, and the [el-CICD](#el-cicd-config-repository) repository holds all the functional code.  These repositories are part of an OSS project that resides on a publicly hosted service, and **_no guarantee that they will continue to host el-CICD in the future is given, made, or implied_**.
+
+Both of these repositories should be pulled to a local install directory on the bastion host where boostrap can be configured and run.  Both are pulled on every pipeline run, which has the added advantage of instant updates of functionality and configuration for Automation Servers.
+
+![Figure: Boostrap Directory Structure](images/operations-manual/install-directory-structure.png)  
+
+**Bootstrap Directory Structure**
 
 ## el-CICD Repository
 
@@ -221,17 +229,25 @@ The root directory typically holds the main bootstrap configuration files defini
 
 Holds all the documentation for el-CICD, including this document, a developer guide, and an el-CICD tutorial.
 
+## cicd-secrets
+
+End user should create another sibling folder to the el-CICD folders holding your forked repositories called `cicd-secrets`.  These will hold the [credentials you will gather](#gathering-credentials) to support el-CICD functionality.  This folder should **not** be committed to Git, since it will hold credentials that cannot be shared.
+
+### builder-secrets
+
+Another folder to create under the `cicd-secrets` folder is the `builder-secrets` folder.  Builder configuration files that contain secrets that need to be mounted in Jenkins Agents for builds (e.g. a `settings.xml` for Maven, or a `pip.conf` for Python) are placed here.
+
 # Configuration
 
 After all the el-CICD repositories are forked configuration of el-CICd for installation may begin.  This includes gathering credentials, defining the organization's SDLC, and defining the [Code Bases](#code-base-framework) supported.
 
-## Secrets Files
+## Gathering Credentials
 
-el-CICD requires a few secrets to be gathered for use in the Automation Servers, and for deployment of images into SDLC namespaces.  In particular, el-CICD needs
+el-CICD requires come credentials to be gathered for use in the [Automation Servers](foundation.md#automation-server), and for the pulling of images into the SDLC [namespaces](foundation.md#namespaces).  In particular, el-CICD needs
 
-- A read only SSH keys for el-CICD and el-CICD-config
+- Read only SSH keys for el-CICD and el-CICD-config
 - A site wide, GitHub, read-write access token
-- A pull key for each Image Repository the installing organization will use
+- Access tokens for each Image Repository the installing organization will use
 
 el-CICD is configured by default to expect a sibling directory be created on your bastion host to el-CICD and el-CICD-config called **cicd-secrets**.  All secrets for bootstrapping (i.e. standing up an [Onboarding Automation Server](#onboarding-automation-servers)) should be put in this folder.
 
@@ -357,7 +373,7 @@ The advantage to this migration strategy is that it allows development teams to 
 
 #### el-cicd-meta-info ConfigMap
 
-All el-CICD namespaces that host Automation Servers will contain a ConfigMap named `el-cicd-meta-info` that holds all values defined in the Root Configuration File and INCLUDE_SYSTEM_FILES.
+All el-CICD namespaces that host Automation Servers will contain a ConfigMap named `el-cicd-meta-info` that holds all values defined in the Root Configuration File and INCLUDE_SYSTEM_FILES.  Values defined in INCLUDE_BOOTSTRAP_FILES will not be expressed in the ConfigMap, and are only meant to be used during bootstrap.
 
 ### Configuration Contents
 
@@ -525,65 +541,92 @@ EL_CICD_GIT_REPO_ACCESS_TOKEN_FILE=${SECRET_FILE_DIR}/el-cicd-git-repo-access-to
 
 #### Build Secrets
 
+If any of your organizations builds make use of a settings files for builds that contain secrets (e.g.`settings.xml` for Maven builds, or a `pip.conf` for Python), then these files should be place here.
+
 In `el-cicd-non-prod.conf`:
 
 ```properties
+# Name of the secrets that holds all the files that were placed in the builder-secrets directory
 EL_CICD_BUILD_SECRETS_NAME=el-cicd-build-secrets
 
+# Path to directory where EL_CICD_BUILD_SECRETS_NAME should be mounted in the Jenkins Agents
 BUILDER_SECRETS_DIR=/mnt
-```
-
-In `el-cicd-prod.conf`:
-
-```properties
 ```
 
 In `el-cicd-default-bootstrap.conf`:
 
 ```properties
+# Name and path of the builder-secrets directory
 BUILD_SECRET_FILE_DIR=${SECRET_FILE_DIR}/builder-secrets
 ```
 
 ##### Naming Convention Definitions
 
+There are a number of naming conventions used by el-CICD in order to easily allow configuration fo the SDLC by end users, and one prefix is for NFS Persistent Volumes in order to easily identify them.
+
 In `el-cicd-default-system.conf`:
 
 ```properties
+# Each postfix below is used to defined the Image Repository details per SDLC environment
+#     e.g. For the DEV environment, the key to define the username for access is DEV_IMAGE_REPO_USERNAME
+# This makes lookup of these values scriptable by environment, without having to know the environment in advance
+
+# Defines the pull token file location
 PULL_TOKEN_FILE_POSTFIX=_PULL_TOKEN_FILE
+
+# Username (account) that has privileged access to an Image Repository
 IMAGE_REPO_USERNAME_POSTFIX=_IMAGE_REPO_USERNAME
+
+# URL to domain of Image Repository
 IMAGE_REPO_POSTFIX=_IMAGE_REPO
+
+# Postfix for naming all OKD secrets for that environment across all projects
+#     e.g. dev-
 IMAGE_REPO_PULL_SECRET_POSTFIX=_IMAGE_REPO_PULL_SECRET
+
+# ID of credentials stored in Jenkins for referencing in pipelines
 IMAGE_REPO_ACCESS_TOKEN_ID_POSTFIX=_IMAGE_REPO_ACCESS_TOKEN_ID
 
+# The postfix below is used to defined the node selectors per SDLC environment
 NODE_SELECTORS_POSTFIX=_NODE_SELECTORS
 
+# The prefix below is used when create a NFS Persistent Volume for easy identification by name
 NFS_PV_PREFIX=nfs
 ```
 
 #### SDLC Definition
 
+Defining the organization's SDLC is conceptually the most important part of the configuration.  Whatever is defined in these files will determine how Projects are onboarded with el-CICD and into OKD.  Project Definition Files, namespaces, Image tags, where images are pushed and proomoted, and Git Deployment Branch names.
 
 ##### Lifecycle Definition
+
+Defines the supported environments and the possible environment promotion scheme used by the organization.  DEV_ENV, PRE_PROD, and PROD **must** be defined.  TEST_ENVS are list in order of promotion (e.g. QA is promoted to UAT in the example below) in a colon delimited list, and are optional.
 
 In `el-cicd-default-system.conf`:
 
 ```properties
+# Environment builds are initially deployed to
 DEV_ENV=DEV
 
+# Optional test environments in a colon delimited list from first to last in order of promotion
 TEST_ENVS=QA:UAT
 
+# The Pre-prod is the penultimate environment the last test environment (or DEV, if none) will promote to
 PRE_PROD_ENV=STG
 
+# The production environment
 PROD_ENV=PROD
 ```
 
-
 ##### Image Repositories
+
+Each environment must be tied to an Image Repository in which images are built and deployed to (DEV) or promoted to (all the other environments), and from which each environment pulls from for deployments.  Compare the keys used below to the values defined in [Naming Convention Definitions](#naming-convention-definitions).
 
 In `el-cicd-non-prod.conf`:
 
 ```properties
-DEV_PULL_TOKEN_FILE=${SECRET_FILE_DIR}/el-cicd-dev-pull-token
+# The following demonstrates how to define the values needed by el-CICD to integrate with the Image Repository.
+# Note the postfix of each value that was defined in Naming Convention Definitions above.
 DEV_IMAGE_REPO_USERNAME=elcicddev
 DEV_IMAGE_REPO=docker.io/elcicddev
 DEV_IMAGE_REPO_PULL_SECRET=el-cicd-image-repo-dev-pull-secret
@@ -755,9 +798,9 @@ el-CICD can support any combination of build, test, and scanning per codebase.  
 The **_builder-steps_** directory holds the functional files that are loaded and executed for each build.
 
 
-![Figure 7: The builder-steps Directory](images/readme/builder-steps-directory.png)
+![Figure: The builder-steps Directory](images/readme/builder-steps-directory.png)
 
-**Figure 7**  
+**Figure**  
  _The builder-steps directory_
 
 #### Code Base Folders

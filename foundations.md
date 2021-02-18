@@ -8,13 +8,13 @@ This document is part of the el-CICD Project, a complete CICD system for the OKD
 Copyright (C) 2020 Evan "Hippy" Slatis  
 email: hippyod -at- yahoo -dot- com
 
-**===================================**
+-*===================================**
 
-**Red Hat® OpenShift® Platform is a trademark of Red Hat, Inc., and supported and owned by Red Hat, Inc.**
+-*Red Hat® OpenShift® Platform is a trademark of Red Hat, Inc., and supported and owned by Red Hat, Inc.**
 
-**el-CICD IS NEITHER SUPPORTED OR AFFILIATED IN ANY WAY WITH RED HAT, INC., OR ANY OF ITS PROJECTS.**
+-*el-CICD IS NEITHER SUPPORTED OR AFFILIATED IN ANY WAY WITH RED HAT, INC., OR ANY OF ITS PROJECTS.**
 
-**===================================**
+-*===================================**
 
 ## License
 
@@ -58,16 +58,16 @@ or send a letter to
   - [CICD Patterns and Concepts](#cicd-patterns-and-concepts)
     - [Concepts](#concepts)
     - [Environments](#environments)
-      - [Dev](#dev)
-      - [Test](#test)
-      - [Prod](#prod)
+      - [Dev Environment](#dev-environment)
+      - [Test Environments](#test-environments)
+      - [Prod Environment](#prod-environment)
     - [Project](#project)
     - [Build Once, Deploy Many](#build-once-deploy-many)
     - [Continuous Integration](#continuous-integration)
       - [Code Base](#code-base)
       - [The Build](#the-build)
-        - [Compile](#compile)
-        - [Test](#test-1)
+        - [Build](#build)
+        - [Test](#test)
         - [Scan](#scan)
         - [Assembly](#assembly)
         - [Deploy](#deploy)
@@ -118,12 +118,12 @@ This document will cover the conceptual and architectural underpinnings of el-CI
 
 Key characteristics the system was designed and implemented with include:
 
-* Support and enforcement of standards recognized as software development best practices
-* Ease of maintenance
-* Ease of integration for software development teams
-* Transparency to all users
-* The ability to collect and collate metrics from all software development Projects
-* Full automation of builds and deployments of applications onto OKD
+- Support and enforcement of standards recognized as software development best practices
+- Ease of maintenance
+- Ease of integration for software development teams
+- Transparency to all users
+- The ability to collect and collate metrics from all software development Projects
+- Full automation of builds and deployments of applications onto OKD
 
 ## Goals
 
@@ -149,25 +149,25 @@ Environments are a key concept that needs to be supported by any CICD system.  W
 
 ![Figure 1: Environment Flow](images/readme/enviroments.png)
 
-**Figure 1**  
+-*Figure 1**  
  _Environment flow from Git to Prod_
 
-#### Dev
+#### Dev Environment
 
 The Dev, or development, environment represents the initial build and deployment of a software Project as it currently exists in its SCM repository.  It should be a direct reflection of that code at all times.  If at any time the current build in Dev does not reflect the current state of the SCM, then The Build is considered to be broken.  This is at the very heart of what continuous integration means.
 
-#### Test
+#### Test Environments
 
-Test can actually represent a number of environments.  Examples include:
+Test can represent one or more environments.  Examples include:
 
-* **Quality Assurance (QA)**: for the testing of whether the software meets its functional and business requirements
-* **User Acceptance Testing (UAT)**: for the testing by end users as to whether it meets their requirements for being usable
-* **Stage (Stg):** A catch-all environment for performance or load testing
-* **Pre-production (Pre-prod):** an exact duplicate of the production environment, used for testing that the production deployment configuration works, and that the software in the production will work as expected
+- **Quality Assurance (QA)**: for the testing of whether the software meets its functional and business requirements
+- **User Acceptance Testing (UAT)**: for the testing by end users as to whether it meets their requirements for being usable
+- **Stage (Stg):** A catch-all environment for performance or load testing
+- **Pre-production (Pre-prod):** an exact duplicate of the production environment, used for testing that the production deployment configuration works, and that the software in the production will work as expected
 
 Which environments a Project actually uses depends on such factors as the size and needs of the Project and the organization.
 
-#### Prod
+#### Prod Environment
 
 The final environment, production, in which the software is considered to released into the world and available to end users.  The software is considered to be functionally complete and has passed all necessary testing before being deployed into this environment.
 
@@ -193,15 +193,15 @@ Each Project will be developed using one or more programming languages and/or pl
 
 The Build is an overloaded term, and in CI is colloquially referred to as “_The Build_".  It is actually comprised of five steps, compiling, testing, scanning, assembly, and eventually a successful deployment.  If any of these steps fail, the Project should be considered to be in a bad state, and all efforts should be directed at fixing it immediately.  If a team is following modern software development best practices, it is reasonable for a team to expect that the source is never, or at least extremely rarely, in a bad state; i.e. for every source code delivery
 
-* All code compiles successfully
-* All tests run and pass
-* Security scans and linting find no problems
-* Artifacts produced during compilation are successfully assembled into a deployable package
-* The software successfully deploys
+- All code compiles successfully
+- All tests run and pass
+- Security scans and linting find no problems
+- Artifacts produced during compilation are successfully assembled into a deployable package
+- The software successfully deploys
 
-##### Compile
+##### Build
 
-If a Project has a Code Base that needs to be compiled then the CICD system should execute this step.  Not all Code Bases will require this step; e.g. Python or PHP.  As a counter-example, Java is packaged into *.jar or *.war files after compilation.  If the code fails to compile, The Build is considered to have failed.
+If a Project has a Code Base that needs to be compiled then the CICD system should execute this step.  Not all Code Bases will require this step; e.g. Python or PHP.  As a counter-example, Java is packaged into \*.jar or \*.war files after compilation.  If the code fails to compile, The Build is considered to have failed.
 
 ##### Test
 
@@ -299,7 +299,7 @@ Modern application architectures favor a microservice architecture approach, in 
 
 #### Namespaces
 
-Namespaces act as a virtual Container Orchestration Platform, allowing the running containers acting as an application to appear to operate in virtual isolation.  This concept will be leveraged to represent environments
+Namespaces act as a virtual Container Orchestration Platform, allowing the running containers acting as an application to appear to operate in virtual isolation.  This concept will be leveraged to represent environments.
 
 [**NOTE**: Kubernetes initiated the concept of namespaces in the container orchestration space, and OKD extended that concept and refers to them as _Projects_.  This can be confusing at times when referring to a Project in el-CICD or in OKD, so el-CICD uses the namespace monicker whenever possible.]
 
@@ -379,7 +379,7 @@ The SCM used by el-CICD.  No others are currently supported.
 
 GitHub is a third party application for hosting Git repositories, and [github.org](github.org) is where el-CICD is currently hosted.   This Project was developed using GitHub, and it is currently the only Git repository hosting application supported by el-CICD.
 
-**NOTE**: el-CICD considers it a priority to support other Git repository hosting sites, and it is currently a top priority on our TODO list.
+-*NOTE**: el-CICD considers it a priority to support other Git repository hosting sites, and it is currently a top priority on our TODO list.
 
 ### [Jenkins](https://www.jenkins.io/)
 
