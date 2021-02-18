@@ -51,6 +51,7 @@ or send a letter to
   - [License](#license)
 - [TABLE OF CONTENTS](#table-of-contents)
 - [Overview](#overview)
+  - [el-CICD SECURITY WARNING](#el-cicd-security-warning)
   - [Fundamentals](#fundamentals)
   - [Assumptions](#assumptions)
 - [The el-CICD Repositories](#the-el-cicd-repositories)
@@ -62,6 +63,7 @@ or send a letter to
     - [SSH Keys for el-CICD and el-CICD-config](#ssh-keys-for-el-cicd-and-el-cicd-config)
     - [GitHub Site Wide Access Token](#github-site-wide-access-token)
     - [Image Repository Pull Keys](#image-repository-pull-keys)
+    - [Changing the Default Secret File Configuration](#changing-the-default-secret-file-configuration)
   - [System Configuration Files](#system-configuration-files)
     - [Root Configuration File](#root-configuration-file)
     - [Composing Configuration Files](#composing-configuration-files)
@@ -95,7 +97,7 @@ or send a letter to
       - [Code Base Folders](#code-base-folders)
       - [Build Scripts](#build-scripts)
 - [el-CICD Components](#el-cicd-components)
-  - [el-cicd Administration Utility](#el-cicd-administration-utility)
+  - [el-cicd Admin Utility](#el-cicd-admin-utility)
     - [Bootstrapping Onboarding Automation Servers](#bootstrapping-onboarding-automation-servers)
     - [Refreshing Credentials](#refreshing-credentials)
     - [Building Jenkins Images](#building-jenkins-images)
@@ -142,6 +144,12 @@ or send a letter to
 el-CICD, pronounced like [El Cid](https://en.wikipedia.org/wiki/El_Cid), is a Configurable off the Shelf (COTS) Continuous Integration/Continuous Delivery (CICD) supporting multiple Projects of one or more microservices or components per group or team for building and deploying software onto OKD.  The system is expected to support all delivery and deployment aspects of the Software Development Lifecycle (SDLC) of projects running on OKD, from building the source and deploying into a development environment through deployment into production.
 
 This document will cover the configuration, installation, and maintenance of el-CICD Onboarding Automation Servers.  The target audience are operational personnel that will install and maintain el-CICD, and those responsible for onboarding projects onto el-CICD.
+
+## el-CICD SECURITY WARNING
+
+> **el-CICD [ONBOARDING AUTOMATION SERVERS](#onboarding-automation-servers) REQUIRE BOTH CLUSTER ADMIN PRIVILEGES AND GIT SITE WIDE READ-WRITE PRIVILEGES.**
+>
+> **ACCESS TO el-CICD ONBOARDING AUTOMATION SERVERS SHOULD BE RESTRICTED TO CLUSTER ADMINS ONLY.**
 
 ## Fundamentals
 
@@ -236,6 +244,9 @@ For creating the el-CICD and el-CICD SSH keys and using the default configuratio
 
     ssh-keygen -b 2048 -t rsa -f 'el-cicd-config-github-deploy-key' -q -N '' -C 'Jenkins Deploy key for el-CICD-config'
 ```
+
+**The read-only keys are assumed to be shared among all installs of el-CICD**, regardless the type of install or number of clusters involved.  They are read-only keys accessing projects which are mostly comprised of either OSS code or non-critical configuration, and therefore represent a low security risk at worst.
+
 ### GitHub Site Wide Access Token
 
 Create a service account for your organization on GitHub that has site wide administrator access, and then [create an access token for it](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token).  Copy the access token to
@@ -246,7 +257,15 @@ This token will allow el-CICD to create each microservice's Git repo's webhook f
 
 ### Image Repository Pull Keys
 
-A service account to manage each Image Registry your installation of el-CICD will use needs to be created, and from each service account an access token.  The default configuration for el-CICD assumes you have a Dev Image Registry, a Non-prod Image Registry which holds images deployed to any environment not part of Dev or Prod, and a Prod Image Registry.  They are expected to 
+Each Image Repository el-CICD uses needs a service account, and each service account should have an access token.  The default configuration for el-CICD assumes you have a Dev Image Registry, a Non-prod Image Registry which holds images deployed to any environment not part of Dev or Prod, and a Prod Image Registry.  They are expected to save in the following locations:
+
+- `cicd-secrets/el-cicd-dev-pull-token`
+- `cicd-secrets/el-cicd-non-prod-pull-token`
+- `cicd-secrets/el-cicd-prod-pull-token`
+
+### Changing the Default Secret File Configuration
+
+In the [System Configuration Files](#system-configuration-files), all the configuration used to boostrap el-CICD is explained, and it includes how these files are referenced by the [el-CICD Admin Utility](#el-cicd-administration-utility).  Follow the instructions to change which files need to be created and how they are referenced with regards o 
 
 ## System Configuration Files
 
@@ -271,6 +290,7 @@ There are two, colon delimited lists of files that can be defined in the root co
 Both of these lists are assumed to reference files relative to the _bootstrap_ directory in el-CICD-config.
 
 The order of precedence of keys defined in each file are
+
 1. Root configuration files
 2. INCLUDE_SYSTEM_FILES
 3. INCLUDE_BOOTSTRAP_FILES
@@ -438,12 +458,6 @@ OCP_VERSION=4
 Note that the differences between OKD 3 and 4 are minor, but there are a few places (such as the URL to the internal OKD registry) where el-CICD needs to know them to  function properly.
 
 #### Git Repository Information
-
-> **WARNING:**
->
-> **el-CICD ONBOARDING SERVERS REQUIRE BOTH CLUSTER ADMIN PRIVILEGES AND GIT SITE_WIDE READ-WRITE PRIVELEGES.**
->
-> **FOR THIS REASON, ACCESS TO AN el-CICD ONBOARDING AUTOMATION SERVER MUST BE RESTRICTED.**
 
 In `el-cicd-non-prod.conf`:
 
@@ -786,9 +800,9 @@ OKD Template reuse and patching via `kustomize` is relied on heavily for ease of
 **Figure 2**  
 _The relationship between the basic components that comprise el-CICD_
 
-## el-cicd Administration Utility
+## el-cicd Admin Utility
 
-The el-cicd Administration Utility, located in root directory of the [el-CICD Repository](#el-cicd-repository) will drive the bootstrapping of el-CICD [Onboarding Automation Servers](#Onboarding Automation Server), refresh their credentials, and build Jenkins and Jenkins' Agent images.
+The el-cicd Admin Utility, located in root directory of the [el-CICD Repository](#el-cicd-repository) will drive the bootstrapping of el-CICD [Onboarding Automation Servers](#Onboarding Automation Server), refresh their credentials, and build Jenkins and Jenkins' Agent images.
 
 ```text
 Usage: el-cicd.sh [OPTION] [root-config-file]
