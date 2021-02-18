@@ -58,8 +58,11 @@ or send a letter to
   - [el-CICD-config Repository](#el-cicd-config-repository)
   - [el-CICD-docs Repository](#el-cicd-docs-repository)
 - [Configuration](#configuration)
+  - [Secrets Files](#secrets-files)
+    - [SSH Keys for el-CICD and el-CICD-config](#ssh-keys-for-el-cicd-and-el-cicd-config)
+    - [GitHub Site Wide Access Token](#github-site-wide-access-token)
+    - [Image Repository Pull Keys](#image-repository-pull-keys)
   - [System Configuration Files](#system-configuration-files)
-    - [Secrets Files](#secrets-files)
     - [Root Configuration File](#root-configuration-file)
     - [Composing Configuration Files](#composing-configuration-files)
       - [Deploying to Different OKD Versions](#deploying-to-different-okd-versions)
@@ -151,7 +154,7 @@ Operational concerns with el-CICD cover the following topics:
    Running el-CICD Administration Utility to bootstrap the Onboarding Automation Servers for Non-Prod and Prod.
 
 1. **Onboarding**
-   Running the Onboarding Automation Server's onboarding pipeline to stand up a CICD Automation Server for an OKD RBAC group, if necessary, and create and configure all necessary SDLC namespaces for a [Project](foundation.md#Project).
+   Running the [Onboarding Automation Server's](#onboarding-automation-servers) onboarding pipeline to stand up a CICD Automation Server for an OKD RBAC group, if necessary, and create and configure all necessary SDLC namespaces for a [Project](foundation.md#Project).
 
 1. **Maintenance**
    Refreshing credentials, updating [Sealed Secrets](#sealed-secrets) updating Jenkin's and Jenkins' Agent images.
@@ -166,7 +169,7 @@ el-CICD is designed as a COTS solution, meaning it was built as an incomplete pi
 
 **_Organizations must fork both the [el-CICD](https://github.com/elcicd/el-CICD) and the [el-CICD-config](https://github.com/elcicd/el-CICD-config) repositories._**
 
-The [el-CICD-config](#el-cicd-config-repository) needs to be modified by the end user to adapt el-CICD to their organizational needs, and the [el-CICD](#el-cicd-config-repository) repository holds all the functional code.  These repositories are part of an OSS project that resides on a publicly hosted service, and **_no guarantee that they will continue to host el-CICD in the future is given, made, or implied_**.  Both of these repositories are pulled on every pipeline run, which has the added advantage of instant updates of functionality and configuration for CICD Automation Servers.
+The [el-CICD-config](#el-cicd-config-repository) repository needs to be modified by the end user to adapt el-CICD to their organizational needs, and the [el-CICD](#el-cicd-config-repository) repository holds all the functional code.  These repositories are part of an OSS project that resides on a publicly hosted service, and **_no guarantee that they will continue to host el-CICD in the future is given, made, or implied_**.  Both of these repositories are pulled on every pipeline run, which has the added advantage of instant updates of functionality and configuration for CICD Automation Servers.
 
 ## el-CICD Repository
 
@@ -214,13 +217,40 @@ Holds all the documentation for el-CICD, including this document, a developer gu
 
 After all the el-CICD repositories are forked configuration of el-CICd for installation may begin.  This includes gathering credentials, defining the organization's SDLC, and defining the [Code Bases](#code-base-framework) supported.
 
+## Secrets Files
+
+el-CICD requires a few secrets to be gathered for use in the Automation Servers, and for deployment of images into SDLC namespaces.  In particular, el-CICD needs
+
+- A read only SSH keys for el-CICD and el-CICD-config
+- A site wide, GitHub, read-write access token
+- A pull key for each Image Repository the installing organization will use
+
+el-CICD is configured by default to expect a sibling directory be created on your bastion host to el-CICD and el-CICD-config called **cicd-secrets**.  All secrets for bootstrapping (i.e. standing up an [Onboarding Automation Server](#onboarding-automation-servers)) should be put in this folder.
+
+### SSH Keys for el-CICD and el-CICD-config
+
+For creating the el-CICD and el-CICD SSH keys and using the default configuration, run the following commands in the `cicd-secrets` directory:
+
+```bash
+    ssh-keygen -b 2048 -t rsa -f 'el-cicd-deploy-key' -q -N '' -C 'Jenkins Deploy key for el-CICD'
+
+    ssh-keygen -b 2048 -t rsa -f 'el-cicd-config-github-deploy-key' -q -N '' -C 'Jenkins Deploy key for el-CICD-config'
+```
+### GitHub Site Wide Access Token
+
+Create a service account for your organization on GitHub that has site wide administrator access, and then [create an access token for it](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token).  Copy the access token to
+
+`cicd-secrets/el-cicd-git-repo-access-token`
+
+This token will allow el-CICD to create each microservice's Git repo's webhook for automated builds and it's read-write deploy key for creating [Deployment Branches](foundations.md#deployment-branch).
+
+### Image Repository Pull Keys
+
+A service account to manage each Image Registry your installation of el-CICD will use needs to be created, and from each service account an access token.  The default configuration for el-CICD assumes you have a Dev Image Registry, a Non-prod Image Registry which holds images deployed to any environment not part of Dev or Prod, and a Prod Image Registry.  They are expected to 
+
 ## System Configuration Files
 
 All system configuration files for el-CICD end with *.conf by convention.  They will define the el-CICD installation at bootstrap, for the Onboarding Automation Servers, and the CICD Automation Servers.  They are simple _key=value_ files with standard shell comments allowed.  They will be _sourced_ like any other Linux source file.
-
-### Secrets Files
-
-el-CICD requires a few secrets to be gathered for use in the Automation Servers, and for deployment of images into SDLC namespaces.
 
 ### Root Configuration File
 

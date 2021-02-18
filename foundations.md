@@ -47,65 +47,66 @@ or send a letter to
 
 # TABLE OF CONTENTS
 
-* [el-CICD Foundations](#el-cicd-foundations)
-  * [Preamble](#preamble)
-  * [License](#license)
-* [TABLE OF CONTENTS](#table-of-contents)
-* [Overview](#overview)
-  * [Key Characteristics](#key-characteristics)
-  * [Goals](#goals)
-  * [Assumptions](#assumptions)
-  * [CICD Patterns and Concepts](#cicd-patterns-and-concepts)
-    * [Concepts](#concepts)
-    * [Environments](#environments)
-      * [Dev](#dev)
-      * [Test](#test)
-      * [Prod](#prod)
-    * [Project](#project)
-    * [Build Once, Deploy Many](#build-once-deploy-many)
-    * [Continuous Integration](#continuous-integration)
-      * [Code Base](#code-base)
-      * [The Build](#the-build)
-        * [Compile](#compile)
-        * [Test](#test-1)
-        * [Scan](#scan)
-        * [Assembly](#assembly)
-        * [Deploy](#deploy)
-      * [Standardization](#standardization)
-    * [Continuous Delivery](#continuous-delivery)
-    * [Continuous Deployment](#continuous-deployment)
-  * [Tools](#tools)
-    * [Project Definition Repository](#project-definition-repository)
-      * [Project Definition File](#project-definition-file)
-    * [Source Control Management (SCM)](#source-control-management-scm)
-    * [Scanner](#scanner)
-    * [Artifact Repository](#artifact-repository)
-    * [Automation Server](#automation-server)
-    * [Pipeline](#pipeline)
-    * [Container Orchestration Platform](#container-orchestration-platform)
-      * [Namespaces](#namespaces)
-    * [Secret Encryption](#secret-encryption)
-  * [CICD Development Workflow Patterns](#cicd-development-workflow-patterns)
-    * [Build-to-Dev](#build-to-dev)
-    * [Promotion](#promotion)
-    * [Deployment Patching](#deployment-patching)
-    * [Component Rollback and Roll-Forward](#component-rollback-and-roll-forward)
-    * [Deploy To Prod](#deploy-to-prod)
-      * [Application, or Project, Releases](#application-or-project-releases)
-      * [Pre-prod](#pre-prod)
-      * [Release Candidate](#release-candidate)
-      * [Deploy-to-Prod](#deploy-to-prod-1)
-        * [Release Version](#release-version)
-        * [Production Rollback/Forward/Deployment Patching](#production-rollbackforwarddeployment-patching)
-  * [Supporting Projects](#supporting-projects)
-    * [Git](#git)
-    * [GitHub](#github)
-    * [Jenkins](#jenkins)
-    * [skopeo](#skopeo)
-    * [DockerHub](#dockerhub)
-    * [OKD](#okd)
-    * [Kustomize](#kustomize)
-    * [SealedSecrets](#sealedsecrets)
+- [el-CICD Foundations](#el-cicd-foundations)
+  - [Preamble](#preamble)
+  - [License](#license)
+- [TABLE OF CONTENTS](#table-of-contents)
+- [Overview](#overview)
+  - [Key Characteristics](#key-characteristics)
+  - [Goals](#goals)
+  - [Assumptions](#assumptions)
+  - [CICD Patterns and Concepts](#cicd-patterns-and-concepts)
+    - [Concepts](#concepts)
+    - [Environments](#environments)
+      - [Dev](#dev)
+      - [Test](#test)
+      - [Prod](#prod)
+    - [Project](#project)
+    - [Build Once, Deploy Many](#build-once-deploy-many)
+    - [Continuous Integration](#continuous-integration)
+      - [Code Base](#code-base)
+      - [The Build](#the-build)
+        - [Compile](#compile)
+        - [Test](#test-1)
+        - [Scan](#scan)
+        - [Assembly](#assembly)
+        - [Deploy](#deploy)
+      - [Standardization](#standardization)
+    - [Continuous Delivery](#continuous-delivery)
+    - [Continuous Deployment](#continuous-deployment)
+  - [Tools](#tools)
+    - [Project Definition Repository](#project-definition-repository)
+      - [Project Definition File](#project-definition-file)
+    - [Source Control Management (SCM)](#source-control-management-scm)
+    - [Scanner](#scanner)
+    - [Artifact Repository](#artifact-repository)
+    - [Automation Server](#automation-server)
+    - [Pipeline](#pipeline)
+    - [Container Orchestration Platform](#container-orchestration-platform)
+      - [Namespaces](#namespaces)
+    - [Secret Encryption](#secret-encryption)
+  - [CICD Development Workflow Patterns](#cicd-development-workflow-patterns)
+    - [Build-to-Dev](#build-to-dev)
+    - [Promotion](#promotion)
+    - [Deployment Branch](#deployment-branch)
+    - [Deployment Patching](#deployment-patching)
+    - [Component Rollback and Roll-Forward](#component-rollback-and-roll-forward)
+    - [Deploy To Prod](#deploy-to-prod)
+      - [Application, or Project, Releases](#application-or-project-releases)
+      - [Pre-prod](#pre-prod)
+      - [Release Candidate](#release-candidate)
+      - [Deploy-to-Prod](#deploy-to-prod-1)
+        - [Release Version](#release-version)
+        - [Production Rollback/Forward/Deployment Patching](#production-rollbackforwarddeployment-patching)
+  - [Supporting Projects](#supporting-projects)
+    - [Git](#git)
+    - [GitHub](#github)
+    - [Jenkins](#jenkins)
+    - [skopeo](#skopeo)
+    - [DockerHub](#dockerhub)
+    - [OKD](#okd)
+    - [Kustomize](#kustomize)
+    - [SealedSecrets](#sealedsecrets)
 
 # Overview
 
@@ -318,13 +319,17 @@ The initial CICD process.  This workflow will pull source from the SCM, build it
 
 ### Promotion
 
-This workflow implements the process of image promotion and deployment from one non-production environment to the next, always starting from Dev; e.g. from Dev to QA, or QA to UAT.  Promotion will always follow a predefined, linear path.
+This workflow implements the process of image promotion and deployment from one non-production environment to the next, always starting from Dev; e.g. from Dev to QA, or QA to UAT.  Promotion will always follow a predefined, linear path.  Deployment Patching and Deployment Branching are two new concepts unique to el-CICD to support the Promotion workflow.
+
+### Deployment Branch
+
+Images by definition are an immutable binary and stored in the Image Repository, but the deployment configuration is mutable source code and stored in the SCM.  As an image is promoted from one SDLC environment to the next, it's deployment configuration with OKD may change, and while the image doesn't change, the source on the SCM branch that built it most likely has and will continue to change.
+
+To solve the problem of changing and versioning the source deployment code of the image being deployed independently of the SCM branch that created the image, the concept of a _Deployment Branch_ was created.  This branch is defined as a branch created at the source commit where the image was created, and it's purpose is to allow the changing of the deployment resources versioned in the branch, without changing the source code of the application and not holding up the Development Branch, or using deployment resources out of sync with the Development Branch.
 
 ### Deployment Patching
 
-On occasion a deployed image running in a container needs to have its deployment configuration patched (i.e. modified), perhaps for testing, tuning, or maintenance reasons. Images by definition are an immutable binary and stored in the Image Repository, but the deployment configuration is mutable source code and stored in the SCM.  This workflow encompasses the process of applying updates to the deployment configuration in the SCM,  and then redeploying the same image to a container in the environment with the new configuration.
-
-This workflow does not apply to the Dev environment, since that environment is meant to represent the latest state of the code in the SCM, and thus the term _patching_ makes no sense in that context.
+In practical terms, _Deployment Patching_ refers to the process of modifying the deployment resources of an image on a [Deployment Branch](#deployment-branch). This keeps deployment resources in sync with the code that created the image, allows the deployment resources of the image to be versioned, and doesn't interfere with ongoing develepment on the Development Branch.
 
 ### Component Rollback and Roll-Forward
 
@@ -352,11 +357,11 @@ Creating a Release Candidate is the first step in defining a release of an Appli
 
 #### Deploy-to-Prod
 
-When the final decision has been made that a Release Candidate should be deployed into production, the actual Deploy-to-Prod workflow can be triggered.  Along with the actual deployment of images into the production environment, this process will re-tag all the Release Candidate's images  in the Image Repository and branch associated deployment configuration source commits in the SCM at the point of the Release Candidate tag. Production Deployment branches will be created in each Git repository at the commit where the Release Candidate was tagged.  The actual implementation of this process is described in more detail [below](#repository-and-runtime-integration-strategy).
+When the final decision has been made that a Release Candidate should be deployed into production, the actual Deploy-to-Prod workflow can be triggered.  Along with the actual deployment of images into the production environment, this process will re-tag all the Release Candidate's images in the Image Repository and branch associated deployment configuration source commits in the SCM at the point of the Release Candidate tag.
 
 ##### Release Version
 
-The collection of images and deployment branches tagged and created by the Deploy-to-Prod process are collectively known as a _Release Version_.  These are used to deploy and redeploy an application into production.
+The collection of images and branches tagged and created by the Deploy-to-Prod process are collectively known as a _Release Version_.  These are used to deploy and redeploy an application into production.
 
 ##### Production Rollback/Forward/Deployment Patching
 
