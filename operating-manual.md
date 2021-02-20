@@ -106,8 +106,7 @@ or send a letter to
         * [tester.groovy skeleton script](#testergroovy-skeleton-script)
         * [scanner.groovy skeleton script](#scannergroovy-skeleton-script)
         * [assembler.groovy skeleton script](#assemblergroovy-skeleton-script)
-* [el-CICD Components](#el-cicd-components)
-  * [Understanding Sealed Secrets](#understanding-sealed-secrets)
+* [Bootstrapping, Onboarding, and Operational Management](#bootstrapping-onboarding-and-operational-management)
   * [el-cicd Admin Utility](#el-cicd-admin-utility)
     * [Bootstrapping Onboarding Automation Servers](#bootstrapping-onboarding-automation-servers)
     * [Refreshing Credentials](#refreshing-credentials)
@@ -958,16 +957,11 @@ def assemble(def projectInfo, def microService) {
 return this
 ```
 
-# el-CICD Components
+# Bootstrapping, Onboarding, and Operational Management
 
 ![Figure 2: Environment Flow](images/readme/components.png)
 
-**Figure 2**  
-_The relationship between the main components that comprise el-CICD_
-
-## Understanding Sealed Secrets
-
-
+**Figure 2**
 
 ## el-cicd Admin Utility
 
