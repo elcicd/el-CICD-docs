@@ -94,7 +94,9 @@ or send a letter to
     * [ResourceQuotas](#resourcequotas)
     * [NFS Shares](#nfs-shares)
   * [Code Base Framework](#code-base-framework)
+    * [Code Base Name](#code-base-name)
     * [Jenkins Agents](#jenkins-agents)
+    * [Jenkins Agents Dockerfiles](#jenkins-agents-dockerfiles)
     * [Builder Steps](#builder-steps)
       * [Code Base Folders](#code-base-folders)
       * [Build Scripts](#build-scripts)
@@ -835,14 +837,28 @@ Persistent Volumes are usually created by the system by default whenever a Persi
 
 ## Code Base Framework
 
-A [Code Base](foundations.md#code-base) is what defines how a microservice in a Project is built, tested, scanned, and assembled.  It defines which Jenkins Agent is used for the microservice's Build.  The following will describe the el-CICD's Code Base Framework, and how to configure and extend it as needed.
+A [Code Base](foundations.md#code-base) is what defines how a microservice in a Project is built, tested, scanned, and assembled before being built into an image and pushed to the Image.  It also defines which Jenkins Agent is used for the microservice's Build.  The following will describe el-CICD's Code Base Framework, and how to configure and extend it as needed.
+
+### Code Base Name
+
+The Code Base name is how everything is tied together.  Dockerfile extensions, folder names for [Builder Steps](#builder-steps), and microservice definitions  will both reflect it.
 
 ### Jenkins Agents
+
+Each Code Base will have a different Jenkins Agent, and each Agent is expected be an image held in the OKD's internal Image Repository in the `openshift` namepsace. Each Agent will be names in the following fashion:
+
+\<Code Base Name>-\<JENKINS_AGENT_IMAGE_PREFIX>  
+
+This means given a configuration value of `JENKINS_AGENT_IMAGE_PREFIX=el-cicd-jenkins-agent`, the `base` and `java` Agents would be named `el-cicd-jenkins-agent-base` and `el-cicd-jenkins-agent-java`, respectively.  This naming convention is how the Code Base Framework is able to easily locate the appropriate Agent to conduct a Build.
+
+### Jenkins Agents Dockerfiles
+
+  Dockerfile foudn 
+
 
 ### Builder Steps
 
 The **_builder-steps_** directory holds the functional files that are loaded and executed for each build.
-
 
 ![Figure: The builder-steps Directory](images/readme/builder-steps-directory.png)
 
