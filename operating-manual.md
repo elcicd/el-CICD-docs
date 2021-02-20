@@ -96,11 +96,18 @@ or send a letter to
   * [Code Base Framework](#code-base-framework)
     * [Code Base Name](#code-base-name)
     * [Jenkins Agents](#jenkins-agents)
-    * [Jenkins Agents Dockerfiles](#jenkins-agents-dockerfiles)
+      * [Jenkins Agent Dockerfiles](#jenkins-agent-dockerfiles)
+      * [Manual Building of Jenkins Agents](#manual-building-of-jenkins-agents)
     * [Builder Steps](#builder-steps)
       * [Code Base Folders](#code-base-folders)
       * [Build Scripts](#build-scripts)
+        * [Overriding the Defaults Build Scripts](#overriding-the-defaults-build-scripts)
+        * [builder.groovy skeleton script](#buildergroovy-skeleton-script)
+        * [tester.groovy skeleton script](#testergroovy-skeleton-script)
+        * [scanner.groovy skeleton script](#scannergroovy-skeleton-script)
+        * [assembler.groovy skeleton script](#assemblergroovy-skeleton-script)
 * [el-CICD Components](#el-cicd-components)
+  * [Understanding Sealed Secrets](#understanding-sealed-secrets)
   * [el-cicd Admin Utility](#el-cicd-admin-utility)
     * [Bootstrapping Onboarding Automation Servers](#bootstrapping-onboarding-automation-servers)
     * [Refreshing Credentials](#refreshing-credentials)
@@ -767,8 +774,8 @@ The Project Definition File is a file that defines each Project.  It can be writ
   gitBranch: development               # The dev branch name of all microservices
   microServices:                       # List of microservices in Project
   - gitRepoName: Test-CICD1            # The Git repository name of the microservice
-    codeBase: python                   # The codebase to build the microservice
-    tester: pytest                     # Overridden tester to use during builds
+    codeBase: python                   # The Code Base to build the microservice
+    tester: pytest                     # Overridden tester that will look for pytest.groovy in the python Builder Folder
     status: ACTIVE                     # Optional status of the microservice
   - gitRepoName: test-cicd-stationdemo
     codeBase: java-maven
@@ -810,7 +817,7 @@ In order to encourage good practices and standardization within a Project, the P
 All microservices (aka Components for more traditional, monolithic applications) belonging to the Project will be listed here.  Specific information will be
 
 * the Git repo, from which the microservice name in the system is derived)
-* the codebase of the microservice, which drives how the system will build the microservice
+* the Code Base of the microservice, which drives how the system will build the microservice
 * By default The Build framework will look for build utility files with the following names
   * builder.groovy
   * tester.groovy
@@ -841,20 +848,31 @@ A [Code Base](foundations.md#code-base) is what defines how a microservice in a 
 
 ### Code Base Name
 
-The Code Base name is how everything is tied together.  Dockerfile extensions, folder names for [Builder Steps](#builder-steps), and microservice definitions  will both reflect it.
+The Code Base name is how the Code Base Framework ties everything together, and it's all by convention.  Dockerfile extensions, folder names for [Builder Steps](#builder-steps), and microservice definitions will all reflect it in their names.
 
 ### Jenkins Agents
 
-Each Code Base will have a different Jenkins Agent, and each Agent is expected be an image held in the OKD's internal Image Repository in the `openshift` namepsace. Each Agent will be names in the following fashion:
+Each Code Base will have a different Jenkins Agent, and each Agent is expected be an image held in the OKD's internal Image Repository in the `openshift` namespace. Each Agent will be names in the following fashion:
 
-\<Code Base Name>-\<JENKINS_AGENT_IMAGE_PREFIX>  
+\<JENKINS_AGENT_IMAGE_PREFIX>-\<Code Base Name>
 
-This means given a configuration value of `JENKINS_AGENT_IMAGE_PREFIX=el-cicd-jenkins-agent`, the `base` and `java` Agents would be named `el-cicd-jenkins-agent-base` and `el-cicd-jenkins-agent-java`, respectively.  This naming convention is how the Code Base Framework is able to easily locate the appropriate Agent to conduct a Build.
+This means given a configuration value of `JENKINS_AGENT_IMAGE_PREFIX=el-cicd-jenkins-agent`, the `base` and `java` Agents would be named `el-cicd-jenkins-agent-base` and `el-cicd-jenkins-agent-java`, respectively.  This naming convention, relying on the Code Base name, is how the Code Base Framework is able to easily locate the appropriate Agent to conduct a Build.
 
-### Jenkins Agents Dockerfiles
+#### Jenkins Agent Dockerfiles
 
-  Dockerfile foudn 
+el-CICD supports managing the Agent image builds by default.  The Dockerfiles are located in `'el-CICD-config/jenkins`, and are named  
 
+Dockerfile.<Code Base Name>
+
+where the extension is the name of Code Base.  Simply drop a new Dockerfile with a Code Base name extension, and it will be built by the [el-CICD Admin Utility](#el-cicd-admin-utility) automatically when agents are rebuilt to the el-CICD Jenkins Agent naming standard as described in [Jenkins Agents](#jenkins-agents).
+
+#### Manual Building of Jenkins Agents
+
+If you do not wish to have el-CICD manage your Jenkins Agents build, you will have to create ImageStreams in the `openshift` project which conform to the el-CICD Jenkins Agent naming standard as described in [Jenkins Agents](#jenkins-agents).  To disable el-CICD from building any Jenkins Agent Images, set the following value in your configuration file:
+
+JENKINS_SKIP_AGENT_BUILDS=true
+
+This value, by default, is found in `el-CICD-config/bootstrap/el-cicd-default-system.conf`.
 
 ### Builder Steps
 
@@ -866,44 +884,90 @@ The **_builder-steps_** directory holds the functional files that are loaded and
 
 #### Code Base Folders
 
-Each codebase must have a folder of the same name.created in the _builder-steps_ directory, and it must contain at least one builder, tester, and scanner script for the codebase to execute when building.  Even if the codebase doesn't execute the step, an empty script must be defined for the component.  The folders many also contain other folders or files to support builds; e.g. in Figure 7 above, the `r-lang` codebase has a `resources` folder for holding files defining linting instructions.
+Each Code Base **must have a folder named after it** created in the _builder-steps_ directory which will hold all [Build Scripts](#build-scripts) for the Code Base.  The Code Base folders many also contain other folders or files to support builds; e.g. in the default `r-lang` Code Base folder in `el-CICD-config` you can find a `resources` folder which has a file for defining R linting instructions.
 
 #### Build Scripts
 
-The builder framework is made up of three basic steps for each Build: building, testing, and scanning.  By default, the framework will look inside the codebase folder and look for the following files for each step:
+The builder framework is made up of four basic steps for each Build: building, testing, scanning, and assembling.  By default, the framework will look inside the Code Base folder and look for the following files for each step:
 
 * **Building**: `builder.groovy`
 * **Testing**: `tester.groovy`
 * **Scanning**: `scanner.groovy`
 * **Assembling**: `assembler.groovy`
 
-For microservices defined in a [Project Definition File](#Project-definition-file), there is no need to specifically name any of the defaults.  If a step is to be overridden by a file that does not follow the above naming conventions, then it does have to be named:
+
+##### Overriding the Defaults Build Scripts
+
+For microservices defined in a [Project Definition File](#Project-definition-file), there is no need to specifically name any of the default Build Step scripts.  If a Code Base needs to support more than type of Build Step, then both Build Step scripts can't be named the same in the directory.   For the file that does not follow the above naming conventions, it needs to be explicitly declared using the default script name as a key in the microservice definition of the Project Definition File; e.g. `builder` for a custom builder script, or `scanner` for a customer scanner script:
 
 ```yaml
-* gitRepoName: Test-CICD1            # The Git repository name of the microservce
-  codeBase: python                   # The codebase to build the microservice
-  tester: pytest                     # Overridden tester to use during builds
-  active: true                       # If the microservice is active or not
+- gitRepoName: Test-CICD1            # The Git repository name of the microservce
+  codeBase: python                   # The Code Base to build the microservice
+  tester: pytest                     # Overridden tester that will look for pytest.groovy in the python Builder Folder
 ```
 
-The above snippet from the [Project Definition File](#Project-definition-file) example above specifies that the `pytest.groovy` script (found in the `python` codebase folder) should be executed during the testing step of The Build.
+The above snippet from the [Project Definition File](#Project-definition-file) example above specifies that the `pytest.groovy` script (found in the `python` Code Base folder) should be executed during the testing step of The Build.
 
-Developers need to follow certain conventions for their microservice Projects to integrate into el-CICD.  In particular:
+One reason for a Code Base to need overridden Build Steps is that different Projects may use different test frameworks, code scanners, or even build tools.
 
-* **A standard of one image produced per Git repository**  
-  It will be assumed that only one microservice will be defined per Git repository per Project.  This is not the same as one image deployed per Git repository; i.e. deployment configurations for supporting images, such as databases, or multiple configurations of the same image built, are perfectly reasonable deployment strategies.
-* **A Dockerfile must exist in the root directory of the microservice or component to be built**  
-  Every OKD BuildConfig will use the binary docker strategy to create and push an image to the Dev environment Image Repository.  el-CICD does not currently manage builds strictly for building artifacts consumed for builds by other microservices.
-* **All OKD deployment resources will be placed in a**_.openshift_**directory under the root directory of the microservice.**
+##### builder.groovy skeleton script
 
-OKD Template reuse and patching via `kustomize` is relied on heavily for ease of use, but not necessary.
+If the microservice needs to be compiled, use this step.
+
+```groovy
+def build(def projectInfo, def microService) {
+    // add build logic here
+}
+
+return this
+```
+
+##### tester.groovy skeleton script
+
+Execute the microservice's unit and integration tests in this step.
+
+```groovy
+def test(def projectInfo, def microService) {
+    // add test execution logic here
+}
+
+return this
+```
+
+##### scanner.groovy skeleton script
+
+Scan and upload metrics of the microservice's code, tests, and dependencies here.
+
+```groovy
+def scan(def projectInfo, def microService) {
+    // add test execution logic here
+}
+
+return this
+```
+
+##### assembler.groovy skeleton script
+
+Any extra assembly or cleanup before the microservice's image is built should go here.
+
+```groovy
+def assemble(def projectInfo, def microService) {
+    // add test execution logic here
+}
+
+return this
+```
 
 # el-CICD Components
 
 ![Figure 2: Environment Flow](images/readme/components.png)
 
 **Figure 2**  
-_The relationship between the basic components that comprise el-CICD_
+_The relationship between the main components that comprise el-CICD_
+
+## Understanding Sealed Secrets
+
+
 
 ## el-cicd Admin Utility
 
@@ -912,7 +976,7 @@ The el-cicd Admin Utility, located in root directory of the [el-CICD Repository]
 ```text
 Usage: el-cicd.sh [OPTION] [root-config-file]
 
-el-CICD Install Utility
+el-CICD Admin Utility
 
 Options:
     -N,   --non-prod:        bootstraps Non-prod el-CICD Onboarding Automation Server
@@ -930,11 +994,66 @@ root-config-file:
     file name or path to a root configuration file relative the root of the el-CICD-config directory
 ```
 
+Users must have cluster admin privileges to use the utility, and sudo privileges on the OKD bastion host to install Sealed Secrets.
+
 ### Bootstrapping Onboarding Automation Servers
+
+The main purpose of the el-cicd Admin Utility is to bootstrap (i.e. install) the Onboarding Automation Servers.  The main points of bootstrapping are as follows:
+
+* Gathers the installation details
+* Summarizes the details and confirm with the user
+* Install the Sealed Secrets Controller
+* Update the default Jenkins image and create the el-CICD Jenkins image
+* Create the Onboarding Automation Server
+  * Delete and recreate the Onboarding Automation Server namespace
+  * Stand up an el-CICD Jenkins Container
+  * Create the Onboarding Automation Server piplines
+* Create the `el-cicd-meta-info` [ConfigMap](#el-cicd-meta-info-configmap)
+* Push all credentials out the Onboarding Automation Server and namespace
+  * Add Git credentials and Image Repository access tokens to Jenkins
+  * Push Credentials to GitHub
+  * Create initial copies of all SDLC pull secrets in the Onboarding Automation Server namespace
+* Build the Jenkins Agents
+
+To execute the command, run the following (assuming the default configuration file structure):  
+
+`./el-cicd.sh --non-prod el-cicd-non-prod.conf` to stand up a Non-prod Onboarding Automation Server, and
+
+`./el-cicd.sh --prod el-cicd-prod.conf` to stand up a Non-prod Onboarding Automation Server.
+
+Bootstrapping the Onboarding Automation Servers with the el-cicd Admin Utility is idempotent, and will not affect the CICD Automation Servers.  If Sealed Secrets is installed, you must run this on a bastion host so developers can use the utility to create Sealed Secrets.
 
 ### Refreshing Credentials
 
+The el-cicd Admin Utility can be used to refresh the credentials of any Obnboarding Automation Server.  Running this command will do the following:
+
+* Recreate the `el-cicd-meta-info` [ConfigMap](#el-cicd-meta-info-configmap)
+* Push all credentials out the Onboarding Automation Server and namespace
+  * Add Git credentials and Image Repository access tokens to Jenkins
+  * Push Credentials to GitHub
+  * Create initial copies of all SDLC pull secrets in the Onboarding Automation Server namespace
+
+To execute the command, run the following (assuming the default configuration file structure):  
+
+`./el-cicd.sh --non-prod-creds el-cicd-non-prod.conf` to refresh the credentials of a Non-prod Onboarding Automation Server, and
+
+`./el-cicd.sh --prod-creds el-cicd-prod.conf` to refresh the credentials of a Prod Onboarding Automation Server.
+
 ### Building Jenkins Images
+
+The el-cicd Admin Utility can be used to rebuild the el-CICD Jenkins Image and/or the el-CICD Jenkins Agent Images.  To execute the command, run the following (assuming the default configuration file structure):  
+
+`./el-cicd.sh --jenkins el-cicd-non-prod.conf` to rebuild the Non-prod Jenkins image, and
+
+`./el-cicd.sh --jenkins el-cicd-prod.conf` to rebuild the Prod Jenkins image.
+
+`./el-cicd.sh --agents el-cicd-non-prod.conf` to rebuild the Non-prod Jenkins Agent images, and
+
+`./el-cicd.sh --agents el-cicd-prod.conf` to rebuild the Prod Jenkins Agent image.
+
+`./el-cicd.sh --jenkins-agents el-cicd-non-prod.conf` to rebuild both for the Non-prod cluster, and
+
+`./el-cicd.sh --jenkins-agents el-cicd-prod.conf` to rebuild both for the Prod cluster.
 
 ### Updating Sealed Secrets
 
@@ -1024,4 +1143,5 @@ Prod Onboarding Automation Servers are responsible for deploying, configuring, a
 ### Access Considerations
 
 **ACCESS TO ONBOARDING AUTOMATION SERVERS SHOULD BE RESTRICTED TO CLUSTER ADMINS ONLY.**  
-All Onboarding Automation Servers need Git site-wide access, as well act as OKD cluster admins.  Allowing unprivileged users direct access to an Onboarding Automation Server would constitute security risk.
+
+All Onboarding Automation Servers need Git site-wide access, as well as act as OKD cluster admins.  Allowing unprivileged users direct access to an Onboarding Automation Server would constitute security risk.

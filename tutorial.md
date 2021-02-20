@@ -48,51 +48,51 @@ or send a letter to
 
 # Table of Contents
 
-- [el-CICD Administration Tutorial](#el-cicd-administration-tutorial)
-  - [Preamble](#preamble)
-  - [License](#license)
-- [Table of Contents](#table-of-contents)
-  - [Minimum Requirements](#minimum-requirements)
-  - [Install and Setup CodeReady Containers (CRC)](#install-and-setup-codeready-containers-crc)
-    - [Download CRC and Deploy Key](#download-crc-and-deploy-key)
-        - [CURRENT TESTED VERSION OF CRC: **1.18**](#current-tested-version-of-crc-118)
-    - [Add the following to your .bashrc or .zshrc](#add-the-following-to-your-bashrc-or-zshrc)
-    - [CRC Setup and Install](#crc-setup-and-install)
-  - [Setup, Configure, and Bootstrap el-CICD](#setup-configure-and-bootstrap-el-cicd)
-    - [Fork and Clone el-CICD Repositories](#fork-and-clone-el-cicd-repositories)
-    - [Create Image Repositories](#create-image-repositories)
-    - [Create the el-CICD Compatible Jenkins Agents](#create-the-el-cicd-compatible-jenkins-agents)
-    - [el-CICD Secrets](#el-cicd-secrets)
-      - [Create el-CICD Repo Read Only Private Keys](#create-el-cicd-repo-read-only-private-keys)
-      - [Gather el-CICD Access Token](#gather-el-cicd-access-token)
-      - [Gather Image Repo Access Tokens](#gather-image-repo-access-tokens)
-    - [el-cicd-system.config](#el-cicd-systemconfig)
-    - [Bootstrapping the Non-prod Onboarding Automation Server](#bootstrapping-the-non-prod-onboarding-automation-server)
-      - [Setting Your Cluster's Sealed Secrets Decryption Key](#setting-your-clusters-sealed-secrets-decryption-key)
-  - [Onboarding a Project Into the Engineering Cluster](#onboarding-a-project-into-the-engineering-cluster)
-    - [Access the Non-prod Onboarding Automation Server](#access-the-non-prod-onboarding-automation-server)
-    - [Onboarding the Test-CICD Project](#onboarding-the-test-cicd-project)
-      - [Confirm the Configuration of the `test-cicd` Project in Jenkins](#confirm-the-configuration-of-the-test-cicd-project-in-jenkins)
-      - [Confirm the Configuration of the `test-cicd` Project in GitHub](#confirm-the-configuration-of-the-test-cicd-project-in-github)
-  - [Non-prod SDLC Support](#non-prod-sdlc-support)
-    - [Building the Project](#building-the-project)
-    - [Promoting Microservices](#promoting-microservices)
-    - [Redeploying Microservices](#redeploying-microservices)
-    - [Image Roll Back and Roll Forward](#image-roll-back-and-roll-forward)
-      - [Build](#build)
-      - [Promote](#promote)
-      - [Rollback](#rollback)
-    - [Create the Release Candidates](#create-the-release-candidates)
-  - [Bootstrapping the Prod Onboarding Automation Server](#bootstrapping-the-prod-onboarding-automation-server)
-  - [Onboarding a Project Into the Production Cluster](#onboarding-a-project-into-the-production-cluster)
-    - [Access the Prod Onboarding Automation Server](#access-the-prod-onboarding-automation-server)
-    - [Onboarding the Test-CICD Project](#onboarding-the-test-cicd-project-1)
-      - [Confirm the Configuration of the `test-cicd` Project in Jenkins](#confirm-the-configuration-of-the-test-cicd-project-in-jenkins-1)
-      - [Confirm the Configuration of the `test-cicd` Project in GitHub](#confirm-the-configuration-of-the-test-cicd-project-in-github-1)
-  - [Prod SDLC Support](#prod-sdlc-support)
-      - [Deploy Version 1.0](#deploy-version-10)
-      - [Deploy Version 1.1](#deploy-version-11)
-      - [Rollback to Version 1.0](#rollback-to-version-10)
+* [el-CICD Administration Tutorial](#el-cicd-administration-tutorial)
+  * [Preamble](#preamble)
+  * [License](#license)
+* [Table of Contents](#table-of-contents)
+  * [Minimum Requirements](#minimum-requirements)
+  * [Install and Setup CodeReady Containers (CRC)](#install-and-setup-codeready-containers-crc)
+    * [Download CRC and Deploy Key](#download-crc-and-deploy-key)
+      * [CURRENT TESTED VERSION OF CRC: **1.18**](#current-tested-version-of-crc-118)
+    * [Add the following to your .bashrc or .zshrc](#add-the-following-to-your-bashrc-or-zshrc)
+    * [CRC Setup and Install](#crc-setup-and-install)
+  * [Setup, Configure, and Bootstrap el-CICD](#setup-configure-and-bootstrap-el-cicd)
+    * [Fork and Clone el-CICD Repositories](#fork-and-clone-el-cicd-repositories)
+    * [Create Image Repositories](#create-image-repositories)
+    * [Create the el-CICD Compatible Jenkins Agents](#create-the-el-cicd-compatible-jenkins-agents)
+    * [el-CICD Secrets](#el-cicd-secrets)
+      * [Create el-CICD Repo Read Only Private Keys](#create-el-cicd-repo-read-only-private-keys)
+      * [Gather el-CICD Access Token](#gather-el-cicd-access-token)
+      * [Gather Image Repo Access Tokens](#gather-image-repo-access-tokens)
+    * [el-cicd-system.config](#el-cicd-systemconfig)
+    * [Bootstrapping the Non-prod Onboarding Automation Server](#bootstrapping-the-non-prod-onboarding-automation-server)
+      * [Setting Your Cluster's Sealed Secrets Decryption Key](#setting-your-clusters-sealed-secrets-decryption-key)
+  * [Onboarding a Project Into the Engineering Cluster](#onboarding-a-project-into-the-engineering-cluster)
+    * [Access the Non-prod Onboarding Automation Server](#access-the-non-prod-onboarding-automation-server)
+    * [Onboarding the Test-CICD Project](#onboarding-the-test-cicd-project)
+      * [Confirm the Configuration of the `test-cicd` Project in Jenkins](#confirm-the-configuration-of-the-test-cicd-project-in-jenkins)
+      * [Confirm the Configuration of the `test-cicd` Project in GitHub](#confirm-the-configuration-of-the-test-cicd-project-in-github)
+  * [Non-prod SDLC Support](#non-prod-sdlc-support)
+    * [Building the Project](#building-the-project)
+    * [Promoting Microservices](#promoting-microservices)
+    * [Redeploying Microservices](#redeploying-microservices)
+    * [Image Roll Back and Roll Forward](#image-roll-back-and-roll-forward)
+      * [Build](#build)
+      * [Promote](#promote)
+      * [Rollback](#rollback)
+    * [Create the Release Candidates](#create-the-release-candidates)
+  * [Bootstrapping the Prod Onboarding Automation Server](#bootstrapping-the-prod-onboarding-automation-server)
+  * [Onboarding a Project Into the Production Cluster](#onboarding-a-project-into-the-production-cluster)
+    * [Access the Prod Onboarding Automation Server](#access-the-prod-onboarding-automation-server)
+    * [Onboarding the Test-CICD Project](#onboarding-the-test-cicd-project-1)
+      * [Confirm the Configuration of the `test-cicd` Project in Jenkins](#confirm-the-configuration-of-the-test-cicd-project-in-jenkins-1)
+      * [Confirm the Configuration of the `test-cicd` Project in GitHub](#confirm-the-configuration-of-the-test-cicd-project-in-github-1)
+  * [Prod SDLC Support](#prod-sdlc-support)
+    * [Deploy Version 1.0](#deploy-version-10)
+    * [Deploy Version 1.1](#deploy-version-11)
+    * [Rollback to Version 1.0](#rollback-to-version-10)
 
 ## Minimum Requirements
 
@@ -106,7 +106,7 @@ If you install Red Hat CodeReady Containers, you will need to be able to allocat
 This was tested using the above minimum specs, but note that more is always better.  el-CICD was developed with 12 vCPUs and 64GB RAM on a refurbished Dell R610 rack server homelab from the early 2010's.  It was tested running under Fedora 32 and 33, and the instructions will need to be adapted if you're running under a non-Red Hat based OS.
 
 This tutorial does not setup a scanner component, and the default code executes a non-functional code scan during all builds.  This will need to be implemented by the user when put into production if scanning code is a requirement.
- 
+
 You need sudo privileges on the machine running this tutorial, and cluster admin rights on an OKD cluster if CRC is not used.
 
 This tutorial assumes you have some familiarity with Git, CICD, and Kubernetes concepts.
@@ -117,7 +117,7 @@ Optional.  If you have a working OKD or OpenShift cluster you can use as a lab, 
 
 ### Download CRC and Deploy Key
 
-##### CURRENT TESTED VERSION OF CRC: **1.18**
+#### CURRENT TESTED VERSION OF CRC: **1.18**
 
 Download CRC from [here](https://developers.redhat.com/products/codeready-containers/overview).  Registration will be required, but it's free.
 
@@ -161,7 +161,7 @@ You will also need to check that the path to your `CRC_INSTALL_DIR` is properly 
         eval $(crc oc-env)
         source <(oc completion ${CRC_SHELL})
     }
-    
+
     if [[ -f ~/.crc/machines/crc/crc.qcow2 ]]
     then
         eval-oc-env
@@ -455,16 +455,16 @@ In summary, the pipeline will do the following:
 
 * Download the Project Information Repository, and find and parse the `test-cicd` Project Definition File
 * Confirms the `devops` RBAC group's Non-prod Automation Server, a persistent Jenkins instance, does not exist, so it
-    * Creates the `devops-cicd-non-prod` namespace
-    * Creates the persistent Jenkins instance from a stock OpenShift template
-    * Creates all the Non-prod Automation Server's pipeline (defined by BuildConfigs)
-    * Copies all read-only el-CICD credentials into the new Jenkins pod instance
+  * Creates the `devops-cicd-non-prod` namespace
+  * Creates the persistent Jenkins instance from a stock OpenShift template
+  * Creates all the Non-prod Automation Server's pipeline (defined by BuildConfigs)
+  * Copies all read-only el-CICD credentials into the new Jenkins pod instance
 * Confirms the `test-cicd` environments do not exist
-    * Creates each namespace per the `test-cicd` definition for _dev_, _qa_, and _stg_
+  * Creates each namespace per the `test-cicd` definition for _dev_, _qa_, and _stg_
 * Creates a Build-To-Dev Pipeline for each microservice in the project (6 in total, defined by BuildConfigs)
 * Configures each microservice's Git repository
-    * Creates and pushes a deploy key
-    * Pushes a webhook (non-functional for this demo, since CRC isn't accessible from GitHub)
+  * Creates and pushes a deploy key
+  * Pushes a webhook (non-functional for this demo, since CRC isn't accessible from GitHub)
 * Adds the correct pull secret for the image repositories to each namespace created
 
 As you can see, the `non-prod-project-onboarding` Pipeline creates and configures a great deal in order to get a project onboard.  If you enter the following commands in a terminal, you can see an all of the namespaces and example of the Sealed Secrets and Secrets created:
@@ -911,7 +911,7 @@ The following steps will demonstrate the production SDLC support of el-CICD.
 
 Deploying to production is one of the most important steps in the SDLC, but this portion of the demo is also the shortest.  It consists of deploying the two previous Release Candidates you created earlier, and then rolling back to the first one.  Not that rollback and roll-forward is accomplished by simply choosing to deploy a version that has already been deployed once.  el-CICD has no concepts of a timeline when it comes to releases; therefore, it is advised that a good versioning scheme be agreed upon so operators can more easily understand what they are deploying.
 
-#### Deploy Version 1.0
+### Deploy Version 1.0
 
 Click on `devops-cicd-prod` in the upper left corner.
 
@@ -953,7 +953,7 @@ Check on GitHub in each demo project repository to see the deployment branch, `v
 
 You are now ready to move onto the next step.
 
-#### Deploy Version 1.1
+### Deploy Version 1.1
 
 This step will demo upgrading to a new version of you application.  Click on `devops-cicd-prod` in the upper left corner.
 
@@ -992,7 +992,7 @@ This map will hold the following data confirming your deployment:
 
 Check on GitHub in each demo project repository to see the deployment branch, `v1.1.0-<srcCommitHash>` was created.
 
-#### Rollback to Version 1.0
+### Rollback to Version 1.0
 
 To roll back to version 1.0.0, simply repeat the step [Deploy Version 1.0](#deploy-version-10).  Compare the logs between the two runs for version 1.0.0 when promoting versus its redeployment to see the difference in what the pipeline does in each case.
 
