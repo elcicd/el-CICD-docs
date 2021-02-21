@@ -8,13 +8,13 @@ This document is part of the el-CICD Project, a complete CICD system for the OKD
 Copyright (C) 2020 Evan "Hippy" Slatis  
 email: hippyod -at- yahoo -dot- com
 
--*===================================**
+**===================================**
 
--*Red Hat® OpenShift® Platform is a trademark of Red Hat, Inc., and supported and owned by Red Hat, Inc.**
+**Red Hat® OpenShift® Platform is a trademark of Red Hat, Inc., and supported and owned by Red Hat, Inc.**
 
--*el-CICD IS NEITHER SUPPORTED OR AFFILIATED IN ANY WAY WITH RED HAT, INC., OR ANY OF ITS PROJECTS.**
+**el-CICD IS NEITHER SUPPORTED OR AFFILIATED IN ANY WAY WITH RED HAT, INC., OR ANY OF ITS PROJECTS.**
 
--*===================================**
+**===================================**
 
 ## License
 
@@ -47,66 +47,66 @@ or send a letter to
 
 # TABLE OF CONTENTS
 
-- [el-CICD Foundations](#el-cicd-foundations)
-  - [Preamble](#preamble)
-  - [License](#license)
-- [TABLE OF CONTENTS](#table-of-contents)
-- [Overview](#overview)
-  - [Key Characteristics](#key-characteristics)
-  - [Goals](#goals)
-  - [Assumptions](#assumptions)
-  - [CICD Patterns and Concepts](#cicd-patterns-and-concepts)
-    - [Concepts](#concepts)
-    - [Environments](#environments)
-      - [Dev Environment](#dev-environment)
-      - [Test Environments](#test-environments)
-      - [Prod Environment](#prod-environment)
-    - [Project](#project)
-    - [Build Once, Deploy Many](#build-once-deploy-many)
-    - [Continuous Integration](#continuous-integration)
-      - [Code Base](#code-base)
-      - [The Build](#the-build)
-        - [Build](#build)
-        - [Test](#test)
-        - [Scan](#scan)
-        - [Assembly](#assembly)
-        - [Deploy](#deploy)
-      - [Standardization](#standardization)
-    - [Continuous Delivery](#continuous-delivery)
-    - [Continuous Deployment](#continuous-deployment)
-  - [Tools](#tools)
-    - [Project Definition Repository](#project-definition-repository)
-      - [Project Definition File](#project-definition-file)
-    - [Source Control Management (SCM)](#source-control-management-scm)
-    - [Scanner](#scanner)
-    - [Artifact Repository](#artifact-repository)
-    - [Automation Server](#automation-server)
-    - [Pipeline](#pipeline)
-    - [Container Orchestration Platform](#container-orchestration-platform)
-      - [Namespaces](#namespaces)
-    - [Secret Encryption](#secret-encryption)
-  - [CICD Development Workflow Patterns](#cicd-development-workflow-patterns)
-    - [Build-to-Dev](#build-to-dev)
-    - [Promotion](#promotion)
-    - [Deployment Branch](#deployment-branch)
-    - [Deployment Patching](#deployment-patching)
-    - [Component Rollback and Roll-Forward](#component-rollback-and-roll-forward)
-    - [Deploy To Prod](#deploy-to-prod)
-      - [Application, or Project, Releases](#application-or-project-releases)
-      - [Pre-prod](#pre-prod)
-      - [Release Candidate](#release-candidate)
-      - [Deploy-to-Prod](#deploy-to-prod-1)
-        - [Release Version](#release-version)
-        - [Production Rollback/Forward/Deployment Patching](#production-rollbackforwarddeployment-patching)
-  - [Supporting Projects](#supporting-projects)
-    - [Git](#git)
-    - [GitHub](#github)
-    - [Jenkins](#jenkins)
-    - [skopeo](#skopeo)
-    - [DockerHub](#dockerhub)
-    - [OKD](#okd)
-    - [Kustomize](#kustomize)
-    - [SealedSecrets](#sealedsecrets)
+* [el-CICD Foundations](#el-cicd-foundations)
+  * [Preamble](#preamble)
+  * [License](#license)
+* [TABLE OF CONTENTS](#table-of-contents)
+* [Overview](#overview)
+  * [Key Characteristics](#key-characteristics)
+  * [Goals](#goals)
+  * [Assumptions](#assumptions)
+  * [CICD Patterns and Concepts](#cicd-patterns-and-concepts)
+    * [Concepts](#concepts)
+    * [Environments](#environments)
+      * [Dev Environment](#dev-environment)
+      * [Test Environments](#test-environments)
+      * [Prod Environment](#prod-environment)
+    * [Project](#project)
+    * [Build Once, Deploy Many](#build-once-deploy-many)
+    * [Continuous Integration](#continuous-integration)
+      * [Code Base](#code-base)
+      * [The Build](#the-build)
+        * [Build](#build)
+        * [Test](#test)
+        * [Scan](#scan)
+        * [Assembly](#assembly)
+        * [Deploy](#deploy)
+      * [Standardization](#standardization)
+    * [Continuous Delivery](#continuous-delivery)
+    * [Continuous Deployment](#continuous-deployment)
+  * [Tools](#tools)
+    * [Project Definition Repository](#project-definition-repository)
+      * [Project Definition File](#project-definition-file)
+    * [Source Control Management (SCM)](#source-control-management-scm)
+    * [Scanner](#scanner)
+    * [Artifact Repository](#artifact-repository)
+    * [Automation Server](#automation-server)
+    * [Pipeline](#pipeline)
+    * [Container Orchestration Platform](#container-orchestration-platform)
+      * [Namespaces](#namespaces)
+    * [Secret Encryption Tool](#secret-encryption-tool)
+  * [CICD Development Workflow Patterns](#cicd-development-workflow-patterns)
+    * [Build-to-Dev](#build-to-dev)
+    * [Promotion](#promotion)
+    * [Deployment Branch](#deployment-branch)
+    * [Deployment Patching](#deployment-patching)
+    * [Component Rollback and Roll-Forward](#component-rollback-and-roll-forward)
+    * [Deploy To Prod](#deploy-to-prod)
+      * [Application, or Project, Releases](#application-or-project-releases)
+      * [Pre-prod](#pre-prod)
+      * [Release Candidate](#release-candidate)
+      * [Deploy-to-Prod](#deploy-to-prod-1)
+        * [Release Version](#release-version)
+        * [Production Rollback/Forward/Deployment Patching](#production-rollbackforwarddeployment-patching)
+  * [Supporting Projects](#supporting-projects)
+    * [Git](#git)
+    * [GitHub](#github)
+    * [Jenkins](#jenkins)
+    * [skopeo](#skopeo)
+    * [DockerHub](#dockerhub)
+    * [OKD](#okd)
+    * [Kustomize](#kustomize)
+    * [SealedSecrets](#sealedsecrets)
 
 # Overview
 
@@ -303,11 +303,11 @@ Namespaces act as a virtual Container Orchestration Platform, allowing the runni
 
 [**NOTE**: Kubernetes initiated the concept of namespaces in the container orchestration space, and OKD extended that concept and refers to them as _Projects_.  This can be confusing at times when referring to a Project in el-CICD or in OKD, so el-CICD uses the namespace monicker whenever possible.]
 
-### Secret Encryption
+### Secret Encryption Tool
 
 Runtime software often contains secrets such as passwords or access tokens to enable secure access to other systems.  None of the aforementioned systems currently offer a manner of safely storing these secrets for purposes of versioning in the SCM for fully automated deployments.
 
-Without a way to encrypt secrets for storage in the SCM for later decryption in the Container Orchestration Platform, secrets would need to be maintained by hand.  The Secret Encryption tool adds extra functionality to the Container Orchestration Platform so that secrets can be safely encrypted and stored with the rest of the source code for fully automated deployments.
+Without a way to encrypt secrets so they can be safely stored in the SCM for later decryption in the Container Orchestration Platform, secrets would need to be maintained and deployed by hand.  The Secret Encryption tool adds extra functionality to the Container Orchestration Platform so that secrets can be safely encrypted and stored with the rest of the source code for fully automated deployments.
 
 ## CICD Development Workflow Patterns
 
@@ -379,7 +379,7 @@ The SCM used by el-CICD.  No others are currently supported.
 
 GitHub is a third party application for hosting Git repositories, and [github.org](github.org) is where el-CICD is currently hosted.   This Project was developed using GitHub, and it is currently the only Git repository hosting application supported by el-CICD.
 
--*NOTE**: el-CICD considers it a priority to support other Git repository hosting sites, and it is currently a top priority on our TODO list.
+**NOTE**: The el-CICD project considers it a priority to support other Git repository hosting sites, and it is currently a top priority on our TODO list.
 
 ### [Jenkins](https://www.jenkins.io/)
 
