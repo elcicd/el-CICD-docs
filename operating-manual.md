@@ -4,7 +4,7 @@
 
 This document is part of the el-CICD Project, a complete CICD system for the OKD Container Platform.
 
-Copyright (C) 2020 Evan "Hippy" Slatis  
+Copyright (C) 2021 Evan "Hippy" Slatis  
 email: hippyod -at- yahoo -dot- com
 
 **===================================**
