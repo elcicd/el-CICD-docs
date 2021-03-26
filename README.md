@@ -45,6 +45,7 @@ or send a letter to
   Mountain View, CA
       94042
 ```
+
 ## PREFACE
 
 The documents in this repository describes the motivation, design, and implementation of a fully featured CICD COTS solution for use on either the upstream OKD or on Red Hat® OpenShift®, either 3.11 or 4.x.  For the remainder of the document wherever OKD is referenced, OpenShift may be safely inferred.  Barring some minor configuration, there should be no difference in how the the system works on either platform.

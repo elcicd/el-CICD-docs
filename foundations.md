@@ -91,11 +91,11 @@ or send a letter to
     * [Deployment Branch](#deployment-branch)
     * [Deployment Patching](#deployment-patching)
     * [Component Rollback and Roll-Forward](#component-rollback-and-roll-forward)
-    * [Deploy To Prod](#deploy-to-prod)
+    * [Deploy To Production](#deploy-to-production)
       * [Application, or Project, Releases](#application-or-project-releases)
       * [Pre-prod](#pre-prod)
       * [Release Candidate](#release-candidate)
-      * [Deploy-to-Prod](#deploy-to-prod-1)
+      * [Deploy-to-Prod](#deploy-to-prod)
         * [Release Version](#release-version)
         * [Production Rollback/Forward/Deployment Patching](#production-rollbackforwarddeployment-patching)
   * [Supporting Projects](#supporting-projects)
@@ -337,7 +337,7 @@ Component, or microservice, rollback and roll-forward is the ability to deploy d
 
 This workflow does not apply to Dev, since that environment will always represent the latest state of the SCM.  This workflow also does not apply to Prod, since that environment only deploys versions of complete applications comprised of one or more components or microservices, and not individual images.
 
-### Deploy To Prod
+### Deploy To Production
 
 Deployment to Prod is a more complex workflow that actually encompasses a number of distinct workflows.
 

@@ -172,7 +172,7 @@ Both of these repositories should be pulled to a local install directory on the 
 
 ![Figure: Boostrap Directory Structure](images/operations-manual/install-directory-structure.png)  
 
-**Bootstrap Directory Structure**
+**Figure** _Boostrap Directory Structure_
 
 ## el-CICD Repository
 
@@ -220,9 +220,9 @@ Holds all the documentation for el-CICD, including this document, a developer gu
 
 End user should create another sibling folder to the el-CICD folders holding your forked repositories called `cicd-secrets`.  These will hold the [credentials you will gather](#gathering-credentials) to support el-CICD functionality.  This folder should **not** be committed to Git, since it will hold credentials that cannot be shared.
 
-![cicd-secrets Directory](images/operations-manual/cicd-secrets-directory.png)  
+![Figure: cicd-secrets Directory](images/operations-manual/cicd-secrets-directory.png)  
 
-**Figure: `cicd-secrets` and `builder-secrets` Directory with Default Files**
+**Figure** `cicd-secrets` _and_ `builder-secrets` _Directory with Default Files_
 
 ### builder-secrets
 
@@ -737,9 +737,9 @@ Jenkins is built using a template Dockerfile that will inject the proper values 
 
 The Agent images are build using Dockerfiles with extensions matching the [Code Base](#code-base-framework) they'll support for builds.  Again feel free to modify these as necessary, or to add new Dockerfiles for new build Agents not supported by default by el-CICD following the same Code Base standards.
 
-![jenkins Directory, Dockerfiles, and Supporting Configuration](images/operations-manual/jenkins-directory.png)
+![Figure: jenkins Directory, Dockerfiles, and Supporting Configuration](images/operations-manual/jenkins-directory.png)
 
-**Figure:** _jenkins Directory, Dockerfiles, and Supporting Configuration_
+**Figure** _jenkins Directory, Dockerfiles, and Supporting Configuration_
 
 ## Managed OKD Resources
 
@@ -751,7 +751,7 @@ A main focus of el-CICD is to remove complexity for the developers.  To that end
 
 All basic OKD resources a developer might concern themselves with are defined in the `el-CICD-config/managed-okd-templates` directory.  These include basic definitions of a DeploymentConfig and Service, a Route, a CronJob, Persistent Volume for referring to an NFS share, etc.
 
-![managed-okd-templates Directory](images/operations-manual/managed-okd-templates-directory.png)
+![Figure: managed-okd-templates Directory](images/operations-manual/managed-okd-templates-directory.png)
 
 **Figure:** _managed-okd-templates Directory_
 
@@ -759,9 +759,9 @@ All basic OKD resources a developer might concern themselves with are defined in
 
 Classes of ResourceQuotas can be assigned to different SDLC namespaces, and configured per Project, since not all Projects are of equals size or resource needs.  Define these as YAML or JSON files, and refer to them in [Project Definition Files](#project-definition-file) to apply them to a particular SDLC environment.  el-CICD comes with definitions for small, medium, large, and sandbox sizes.  Al ResourceQuota definitions should be placed in the `el-CICD-config/resource-quotas` directory.
 
-![resource-quotas Directory](images/operations-manual/resource-quotas-directory.png)
+![Figure: resource-quotas Directory](images/operations-manual/resource-quotas-directory.png)
 
-**Figure:** _resource-quotas Directory_
+**Figure** _resource-quotas Directory_
 
 ## Project Definition File
 
@@ -881,7 +881,7 @@ The **_builder-steps_** directory holds the functional files that are loaded and
 
 ![Figure: The builder-steps Directory](images/readme/builder-steps-directory.png)
 
-**Figure:**  _The builder-steps Directory_
+**Figure**  _The builder-steps Directory_
 
 #### Code Base Folders
 
@@ -961,9 +961,9 @@ return this
 
 # Bootstrapping, Onboarding, and Operational Management
 
-![Figure 2: Environment Flow](images/readme/components.png)
+![Figure: el-CICD Components](images/readme/components.png)
 
-**Figure 2**
+**Figure** _el-CICD Components_
 
 ## el-cicd Admin Utility
 
@@ -1113,10 +1113,9 @@ Non-prod Onboarding Automation Servers are responsible for the standing up of, t
 
 #### Non-prod Onboarding Automation Server Pipelines
 
-![Figure 9: Build and Deploy Microservices](images/readme/el-cicd-non-prod-onboarding-master.png)
+![Figure: Build and Deploy Microservices](images/readme/el-cicd-non-prod-onboarding-master.png)
 
-**Figure 9**
-_el-CICD Non-prod Automation Server pipelines_
+**Figure** _el-CICD Non-prod Automation Server pipelines_
 
 ##### non-prod-project-project-onboarding Pipeline
 
