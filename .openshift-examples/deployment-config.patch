@@ -1,8 +1,8 @@
 ##################################################################################
 ##
-## This kustomize patch is for a DeploymentConfig, with or without a Route.  The paths
-## defined below for each add operation will inject your configuration into the template
-## before processing it.
+## This kustomize patch is for a DeploymentConfig and Deployment (for the most part their
+## paths are the same).  The paths defined below for each add operation will inject
+## your configuration into the template before processing it.
 ##
 ## Patch files allow you to push changes into the default templates provided in this
 ## directory.  Each deployment may have only one patch file, but multiple patch files
@@ -20,6 +20,15 @@
 ## Define your pod's environment values here using ConfigMaps, Secrets, or hardcoded values.
 ##
 #####################################################################################
+
+# Add all values in a ConfigMap to a Deployment or DC
+- op: add
+  path: /objects/0/spec/template/spec/containers/0/envFrom
+  value:
+    - configMapRef:
+        name: <some-ConfigMap-name>
+
+# Add individual values 
 - op: add
   path: /objects/0/spec/template/spec/containers/0/env
   value:
@@ -37,8 +46,8 @@
     - name: <some-env-name>
       valueFrom:
         configMapKeyRef:
-          key: <some-Configmap-key>
-          name: <some-Configmap-name>
+          key: <some-ConfigMap-key>
+          name: <some-ConfigMap-name>
 
 #####################################################################################
 ##
