@@ -323,7 +323,7 @@ oc process -f managed-okd-templates/dc-svc-template.yml --parameters
 produces the following output in your terminal:
 
 |  NAME | DESCRIPTION | GENERATOR | VALUE |
-|  ---* | ----------* | --------* | ----* |
+|  ---- | ----------- | --------- | ----- |
 | IMAGE_REPOSITORY | The image repository from where to fetch the image | | |
 | IMAGE_PULL_POLICY | The image pull policy | | Always  |
 | PULL_SECRET | The image repository pull secret | | |
