@@ -767,7 +767,7 @@ Classes of ResourceQuotas can be assigned to different SDLC namespaces, and conf
 
 The Project Definition File is a file that defines each Project.  It can be written in either YAML or JSON, **must be named the same as the Project**, and has the following content:
 
-```yaml
+```yml
   rbacGroup: devops                    # The OKD RBAC group the Project belongs to
   scmHost: github.com                  # The SCM hostname of the Project
   scmRestApiHost: api.github.com       # RESTful API hostname for the Git provider (used for managing webhooks and deploy keys)
@@ -901,7 +901,7 @@ The builder framework is made up of four basic steps for each Build: building, t
 
 For microservices defined in a [Project Definition File](#Project-definition-file), there is no need to specifically name any of the default Build Step scripts.  If a Code Base needs to support more than type of Build Step, then both Build Step scripts can't be named the same in the directory.   For the file that does not follow the above naming conventions, it needs to be explicitly declared using the default script name as a key in the microservice definition of the Project Definition File; e.g. `builder` for a custom builder script, or `scanner` for a customer scanner script:
 
-```yaml
+```yml
 - gitRepoName: Test-CICD1            # The Git repository name of the microservce
   codeBase: python                   # The Code Base to build the microservice
   tester: pytest                     # Overridden tester that will look for pytest.groovy in the python Builder Folder

@@ -187,48 +187,34 @@ Build secrets, such as those contained in a `settings.xml` for Maven or `pip.con
 
 The `template-defs` file defines all OKD templates used by the microservice to define its deployment into an el-CICD SDLC environment, represented by an OKD namespace.  The file can define default parameter values to pass to each template during deployment, and/or override them per SDLC environment as necessary.
 
-```json
-{
-  "templates": [
-    {
-      "appName": "my-microservice-instance",
-      "templateName": "dc-svc-template",
-      "patchFile": "kustomize.patch",
-      "params": {
-        "SVC_PORT": 8080,
-        "MY_ENV_VAR": "someValue"
-      },
-      "dev": {
-        "patchFile": "dev/kustomize-dev.patch",
-        "params": {
-          "SVC_PORT": 8081,
-          "MY_ENV_VAR": "someDevValue"
-        }
-      },
-      "qa": {
-        "params": {
-          "MY_ENV_VAR": "someQaValue"
-        }
-      }
-    },
-    {
-      "appName": "my-microservice-instance",
-      "templateName": "route-template",
-      "params": {
-        "SVC_PORT": 8080
-      },
-      "dev": {
-        "params": {
-          "SVC_PORT": 8081
-        }
-      }
-    }
-  ]
-}
+```yml
+templates:
+  - appName: my-microservice-instance
+    templateName: dc-svc-template
+    patchFile: kustomize.patch
+    params:
+      SVC_PORT: 8080
+      MY_ENV_VAR: someValue
+    dev:
+      patchFile: dev/kustomize-dev.patch
+      params:
+        SVC_PORT: 8081
+        MY_ENV_VAR: someDevValue
+    qa:
+      params:
+        MY_ENV_VAR: someQaValue
+  - appName: my-microservice-instance
+    templateName: route-template
+    params:
+      SVC_PORT: 8080
+    dev:
+      params:
+        SVC_PORT: 8081
+
 ```
 
 **Figure**  
-_Sample template-defs.json file._
+_Sample template-defs.yml file._
 
 Every microservice will need to define a DeploymentConfig or CronJob in order to deploy their image; thus, unless a static OKD resource is used, at least one `dc-svc-template` or `cronjob-template` will be referenced in this file.  `template-defs` may also be written in YAML.
 
@@ -283,7 +269,7 @@ _managed-okd-templates directory in el-CICD-config repository._
 
 To use a Managed OKD Template reference it in the `template-defs` file with the `templateName` property, found in the `.metadata.name` field of the OKD template file.  el-CICD will automatically load the Managed OKD Template during deployments, process the patchFile and parameters (in that order), and then deploy the resources in the proper SDLC environment.
 
-```yaml
+```yml
 "templateName": "dc-svc-template"
 ______________________
 
@@ -314,7 +300,7 @@ By default, el-CICD will pass the following parameters to every OKD template it 
 |  ENV | The environment being deployed to |
 |  IMAGE_TAG | The image tag of the microservice image |
 
-Any of these parameters can be safely ignored if they are not needed or used.
+Any of these parameters can be safely ignored if they are not needed or used. el-CICD Managed OKD Templates will use one of more of these by default.
 
 ### How to Know What the Template Parameters Are
 
@@ -338,7 +324,7 @@ produces the following output in your terminal:
 | IMAGE_PULL_POLICY | The image pull policy | | Always  |
 | PULL_SECRET | The image repository pull secret | | |
 | MICROSERVICE_NAME | The name for the microservice, derived by el-CICD from the name of the Git repository | | |
-| APP_NAME | The name for the app.  Set this value manually through the template-defs.json file for multiple deployments of the same image. | | |
+| APP_NAME | The name for the app.  Set this value manually through the template-defs.yml file for multiple deployments of the same image. | | |
 | PROJECT_ID  | The Project ID | | |
 | ENV | The name of the environment the image is being deployed to.  Used to help define unique routes. | | |
 | IMAGE_TAG | Image Tag used to pull image from image repository | | |
@@ -354,13 +340,13 @@ produces the following output in your terminal:
 
 If for some reason the Managed OKD Templates aren't sufficient, el-CICD supports Custom OKD Templates, which are OKD templates kept in the Git repository of the microservice and managed by the developer rather than the user.  Name the file using `file` property in the `template-defs` next to the `templateName`; e.g. 
 
-```yaml
-        "templateName": "my-dc-svc-template",
-        "file": "my-dc-svc-template.yaml"
+```yml
+    "templateName": "my-dc-svc-template",
+    "file": "my-dc-svc-template.yml"
 ```
 
 **Figure**  
-_Snippet of a_ `template-defs` _file which references the Custom OKD Template,_ `my-dc-svc-template` _in the file_ `my-dc-svc-template.yaml`.
+_Snippet of a_ `template-defs` _file which references the Custom OKD Template,_ `my-dc-svc-template` _in the file_ `my-dc-svc-template.yml`.
 
 One example where a Custom OKD Template might be used is for a ConfigMap that changes values from one environment to the next.  Without a template in this situation, a copy of the ConfigMap would need to be provided in each [Environment Directory](#environment-directories).
 
@@ -368,7 +354,7 @@ One example where a Custom OKD Template might be used is for a ConfigMap that ch
 
 The Managed OKD Templates are bare bones templates, only setting most basic values.  For many of the templates, e.g. `route-template` or `hpa-template` this is sufficient most of the time.  For the `dc-svc-template`, which defines a basic DeploymentConfig and Service pair, and the `cronjob-template`, which defines a basic CronJob, these bare bones templates are almost always insufficient.  Depending on the microservice's needs, one or more of environment variables, volumes, volumeMounts, readiness and liveliness checks, etc., might need to be defined, and that's what the kustomize.patch is for.
 
-Note that the file name, `kustomize.patch`, is only an informal standard.  The file can use any name and extension, but it is strongly suggested that the `*.patch` extension continue to be used.  For one thing it makes the file and its purpose easily recognizable within a microservice's Git repository, and secondly it ensures that el-CICD's deployment mechanism won't try and accidentally process it as static OKD resource.  OKD attempts to apply all *.yml, *.json, and *.yaml files in the [Environment Directories](#environment-directories) as static OKD resources in whatever environmental namespace the microservice is currently being deployed to.
+Note that the file name, `kustomize.patch`, is only an informal standard.  The file can use any name and extension, but it is strongly suggested that the `*.patch` extension continue to be used.  For one thing it makes the file and its purpose easily recognizable within a microservice's Git repository, and secondly it ensures that el-CICD's deployment mechanism won't try and accidentally process it as static OKD resource.  OKD attempts to apply all *.yml, *.json, and *.yml files in the [Environment Directories](#environment-directories) as static OKD resources in whatever environmental namespace the microservice is currently being deployed to.
 
 ### Patches Are Applied **BEFORE** OKD Templates are Processed
 
@@ -384,7 +370,7 @@ The following sections will give a few examples of the most common uses of kusto
 
 The examples below will only address the _add_ operation of kustomize, which inserts content into a YAML or JSON file.  This always has the following boilerplate:
 
-```yaml
+```yml
 * op: add
   path: /path/of/where/to/append/or/replace/content
   value:
@@ -402,7 +388,7 @@ There are a few things to keep in mind about the `path` attribute of a kustomize
 
 1. References to a portion of a document in a list can only be done numerically; e.g.
 
-  ```yaml
+  ```yml
   path: /objects/0/spec/template/spec/containers/0/env
     * name: key-1
       value: value-1
@@ -414,7 +400,7 @@ There are a few things to keep in mind about the `path` attribute of a kustomize
 
 1. Appending content to a list, rather replacing it, requires a `-` at the end of the path; e.g.
 
-   ```yaml
+   ```yml
    path: /parameters/-
       description: My 1st parameter.
       displayName: My 1st Parameter
@@ -432,7 +418,7 @@ There are a few things to keep in mind about the `path` attribute of a kustomize
 
 ### EXAMPLE: Adding Environment Variables to a DeploymentConfig OKD Template
 
-```yaml
+```yml
 * op: add
   path: /objects/0/spec/template/spec/containers/0/env
   value:
@@ -457,7 +443,7 @@ Note the used of the `APP_NAME` template parameter in the name of the environmen
 
 ### EXAMPLE: Adding a Custom Parameter to a DeploymentConfig OKD Template
 
-```yaml
+```yml
 * op: add
   path: /parameters/-
   value:
@@ -473,7 +459,7 @@ _Adding_ `SOME_NAME` _to an OKD Template.  The value of the param would be set i
 
 ### EXAMPLE: Adding a volume and volumeMount to a CronJob OKD Template
 
-```yaml
+```yml
 * op: add
   path: /objects/0/spec/jobTemplate/spec/template/spec/containers/0/volumeMounts
   value:

@@ -1,0 +1,27 @@
+templates:
+  - appName: <optional name deployment to override default APP_NAME>
+    templateName: <name of el-CICD Managed OKD Template>
+    patchFile: '<kustomize patch file, *.patch>'
+    params:
+      <some param key>: <some param value>
+    dev:
+      patchFile: <deployment or cronjob patch file.  must end in .patch>
+      params:
+        <some param key>: <some param value>
+    <test-env-name>: {}
+    prod: {}
+  - appName: <optional name deployment to override default APP_NAME>
+    templateName: <name of template in file>
+    file: <OKD custom template file name>
+    default: {}
+    dev: {}
+    <test-env-name>:
+      params:
+        CPU_PERCENTAGE: 50
+        MAX_REPLICAS: 2
+        MIN_REPLICAS: 1
+    prod:
+      params:
+        CPU_PERCENTAGE: 90
+        MAX_REPLICAS: 5
+        MIN_REPLICAS: 2
