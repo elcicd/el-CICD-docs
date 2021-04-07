@@ -270,9 +270,13 @@ _managed-okd-templates directory in el-CICD-config repository._
 To use a Managed OKD Template reference it in the `template-defs` file with the `templateName` property, found in the `.metadata.name` field of the OKD template file.  el-CICD will automatically load the Managed OKD Template during deployments, process the patchFile and parameters (in that order), and then deploy the resources in the proper SDLC environment.
 
 ```yml
-"templateName": "dc-svc-template"
-______________________
+templateName: dc-svc-template
+```
 
+**Figure**  
+_Snippet of the_ `template-defs.yml` _referencing the_ `dc-svc-template`
+
+```yml
 apiVersion: v1
 kind: Template
 labels:
@@ -283,7 +287,7 @@ metadata:
 ```
 
 **Figure**  
-_Snippet of the_ `dc-svc-template`.
+_Snippet of the_ `dc-svc-template` el-CICD OKD managed template
 
 
 ### Default Template Parameters
@@ -341,12 +345,12 @@ produces the following output in your terminal:
 If for some reason the Managed OKD Templates aren't sufficient, el-CICD supports Custom OKD Templates, which are OKD templates kept in the Git repository of the microservice and managed by the developer rather than the user.  Name the file using `file` property in the `template-defs` next to the `templateName`; e.g. 
 
 ```yml
-    "templateName": "my-dc-svc-template",
-    "file": "my-dc-svc-template.yml"
+    templateName: my-dc-svc-template
+    file: my-dc-svc-template.yml
 ```
 
 **Figure**  
-_Snippet of a_ `template-defs` _file which references the Custom OKD Template,_ `my-dc-svc-template` _in the file_ `my-dc-svc-template.yml`.
+_Snippet of a_ `template-defs.yml` _file which references the Custom OKD Template,_ `my-dc-svc-template` _in the file_ `my-dc-svc-template.yml`.
 
 One example where a Custom OKD Template might be used is for a ConfigMap that changes values from one environment to the next.  Without a template in this situation, a copy of the ConfigMap would need to be provided in each [Environment Directory](#environment-directories).
 
@@ -371,7 +375,7 @@ The following sections will give a few examples of the most common uses of kusto
 The examples below will only address the _add_ operation of kustomize, which inserts content into a YAML or JSON file.  This always has the following boilerplate:
 
 ```yml
-* op: add
+- op: add
   path: /path/of/where/to/append/or/replace/content
   value:
     <content>
@@ -390,9 +394,9 @@ There are a few things to keep in mind about the `path` attribute of a kustomize
 
   ```yml
   path: /objects/0/spec/template/spec/containers/0/env
-    * name: key-1
+    - name: key-1
       value: value-1
-    * name: key-2
+    - name: key-2
       value: value-2
   ```
 
@@ -419,17 +423,17 @@ There are a few things to keep in mind about the `path` attribute of a kustomize
 ### EXAMPLE: Adding Environment Variables to a DeploymentConfig OKD Template
 
 ```yml
-* op: add
+- op: add
   path: /objects/0/spec/template/spec/containers/0/env
   value:
-    * name: key-1
+    - name: key-1
       value: value-1
-    * name: username
+    - name: username
       valueFrom:
         configMapKeyRef:
           key: username
           name: ${APP_NAME}-configmap
-    * name: password
+    - name: password
       valueFrom:
         secretKeyRef:
           key: password
@@ -444,7 +448,7 @@ Note the used of the `APP_NAME` template parameter in the name of the environmen
 ### EXAMPLE: Adding a Custom Parameter to a DeploymentConfig OKD Template
 
 ```yml
-* op: add
+- op: add
   path: /parameters/-
   value:
     description: Some name.
@@ -460,16 +464,16 @@ _Adding_ `SOME_NAME` _to an OKD Template.  The value of the param would be set i
 ### EXAMPLE: Adding a volume and volumeMount to a CronJob OKD Template
 
 ```yml
-* op: add
+- op: add
   path: /objects/0/spec/jobTemplate/spec/template/spec/containers/0/volumeMounts
   value:
     * mountPath: /mnt
       name: my-configmap-mount
 
-* op: add
+- op: add
   path: /objects/0/spec/jobTemplate/spec/template/spec/volumes
   value:
-    * configMap:
+    - configMap:
         name: ${SOME_NAME}-config-map
       name: my-configmap-mount
 ```
