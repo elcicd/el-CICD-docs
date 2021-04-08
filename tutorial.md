@@ -80,7 +80,7 @@ Mountain View, CA
     * [Access the Non-prod Onboarding Automation Server](#access-the-non-prod-onboarding-automation-server)
     * [Onboarding the Test-CICD Project to a Non-prod Automation Server](#onboarding-the-test-cicd-project-to-a-non-prod-automation-server)
       * [Confirm the Configuration of the `test-cicd` Project in the Non-prod Automation Server](#confirm-the-configuration-of-the-test-cicd-project-in-the-non-prod-automation-server)
-      * [Confirm the Configuration of the `test-cicd` Project in GitHub](#confirm-the-configuration-of-the-test-cicd-project-in-github)
+      * [Confirm Non-prod Configuration of the `test-cicd` Project in GitHub](#confirm-non-prod-configuration-of-the-test-cicd-project-in-github)
   * [Non-prod SDLC Support](#non-prod-sdlc-support)
     * [Building the Project](#building-the-project)
     * [Promoting Microservices](#promoting-microservices)
@@ -93,10 +93,13 @@ Mountain View, CA
       * [Roll Back test-cicd1 in QA to the Original Image](#roll-back-test-cicd1-in-qa-to-the-original-image)
       * [[Optional] Roll Forward to Deployment Patched Image, and Promote](#optional-roll-forward-to-deployment-patched-image-and-promote)
     * [Create the Release Candidates](#create-the-release-candidates)
-  * [Deploying to Production](#deploying-to-production)
+  * [Onboarding a Project Into the Production Cluster](#onboarding-a-project-into-the-production-cluster)
     * [Access the Prod Onboarding Automation Server](#access-the-prod-onboarding-automation-server)
     * [Onboarding the Test-CICD Project to a Prod Automation Server](#onboarding-the-test-cicd-project-to-a-prod-automation-server)
       * [Confirm the Configuration of the `test-cicd` Project in the Prod Automation Server](#confirm-the-configuration-of-the-test-cicd-project-in-the-prod-automation-server)
+      * [Confirm Prod Configuration of the `test-cicd` Project in GitHub](#confirm-prod-configuration-of-the-test-cicd-project-in-github)
+  * [Deploying to Production](#deploying-to-production)
+    * [Upgrading a Release Version, Rolling Forward, and Rolling Back](#upgrading-a-release-version-rolling-forward-and-rolling-back)
 
 ## Minimum Requirements
 
@@ -504,7 +507,7 @@ Open your browser, and go to
 
 [https://jenkins-el-cicd-non-prod-onboarding-master.apps-crc.testing](https://jenkins-el-cicd-non-prod-onboarding-master.apps-crc.testing)
 
-The browser will warn you that your connection is not private, and you can safely ignore it and click  _Advanced_, and then the button _Proceed to jenkins-el-cicd-non-prod-onboarding-master.apps-crc.testing (unsafe)_ .  Login to Jenkins using the CRC admin credentials, clicking initially on the `kube:admin` button.  You can simply paste the password (the CRC pull secret) from your clipboard thanks to the custom command you entered above.
+The browser will warn you that your connection is not private, and you can safely ignore it and click  _Advanced_, and then the button _Proceed to jenkins-el-cicd-non-prod-onboarding-master.apps-crc.testing (unsafe)_ .  Login to Jenkins using the CRC admin credentials, clicking initially on the `kube:admin` button.  You can simply paste the password (the CRC pull secret) from your clipboard thanks to the custom login command you entered above.
 
 ```text
 Username: kubeadmin
@@ -544,7 +547,7 @@ oc project devops-el-cicd-non-prod-master
 oc get pods,cm,secrets
 ```
 
-The above commands will show you the `devops` RBAC group's Jenkins instance, the copy of `el-cicd-meta-info` ConfigMap that copied into the `devops` namespace, and the pull secrets that were copied into the `devops` namespace.
+The above commands will show you the `devops` RBAC group's Jenkins instance, and the copy of `el-cicd-meta-info` ConfigMap and pull Secrets that were copied into the `devops` Non-prod namespace.
 
 ```bash
 oc projects | grep test-cicd
@@ -575,9 +578,11 @@ Click on the Jenkins logo in the upper right, and click through the folder link 
 **Figure**  
 _Non-prod Jenkins Pipelines_
 
-#### Confirm the Configuration of the `test-cicd` Project in GitHub
+#### Confirm Non-prod Configuration of the `test-cicd` Project in GitHub
 
-Go to GitHub, and click on any of the demo repositories you cloned, go to repository's settings, and if you check both the webhooks and deploy keys, you should now see both having been just added.  Assuming you are using CRC for the tutorial, the webhook will not work, since the link is not accessible from GitHub.
+Got to GitHub, and head over to the Settings section of any of your tutorial projects; e.g. Test-CICD1.  Click on `Deploy Keys` on the left-hand menu.  You should a deploy key named `el-cicd-non-prod-deploy-key|apps-crc.testing|test-cicd` listed, which represents the which engineering server, cluster wild card, and project (delimited by pipes) is managing that key.
+
+Click on Webhooks.  You should find a push Webhook back to your engineering cluster and referencing the Build to Dev pipeline for that microservice.
 
 ## Non-prod SDLC Support
 
@@ -612,23 +617,24 @@ This will kick off a build of all microservices in the `test-cicd` project.  Thi
 1. Enter the following command in your terminal to watch the microservices as el-CICD deploys them, and wait until the last pod is in a Ready state:
 
     ```bash
-    watch oc get pods,cm,sealedsecrets,secrets -n test-cicd-dev
+    watch oc get dc,deploy,cj,pods,secrets,cm,services,routes,ingress,hpa \
+        -l projectid=test-cicd -n test-cicd-dev
     ```
 
-This will show all pods, ConfigMaps, Sealed Secrets, and Secrets (created and decrypted by the Sealed Secrets controller you installed earlier) of the `test-cicd` project.  If you wait for a few minutes, you will also see the `test-cicd3` CronJob run. 
+This will show all everything that is deployed for the `test-cicd` project in the `dev` namespace.  If you wait for a few minutes, you will also see the `test-cicd3` CronJob run. 
 
 [**Note:** you'll need to refresh the pipelines screen in your browser occasionally to see which pipelines have completed.  Jenkins does not update this screen automatically.  Also, very rarely builds fail because of networking errors pulling or pushing images, especially in homelab environments.  Rerun that particular microservice build again to make sure all microservices are built.]
 
 Exit `watch`, and enter the following:
 
 ```bash
-oc edit test-cicd-test-cicd1-meta-info
+oc edit test-cicd-test-cicd1-meta-info -n test-cicd-dev
 ```
 
 Every microservice deployed to an environment namespace has a ConfigMap created that describes the deployed microservice's meta-information.  Because the _dev_ environment has no [Deployment Branch and hasn't been promoted from another environment, that value will be `undefined`.  The `deployment-commit-hash`, project ID, and microservice name are labeled across all microservice resources deployed by el-CICD, and are used as selectors to ensure that only that latest deployment exists in the namespace after a successful deployment.  Quit the editor, and run the following:
 
 ```bash
-oc edit cm test-cicd1-configmap
+oc edit cm test-cicd1-configmap -n test-cicd-dev
 ```
 
 Notice the labels for the ConfigMap match the data in the meta-information ConfigMap.
@@ -652,12 +658,12 @@ Click on the link `devops-el-cicd-non-prod-master` in the upper left of the Jenk
 1. When the logs pause and the `Input requested` link appears, click on it
 1. Select `PROMOTE` from the `defaultAction` drop down
 1. Click the `Proceed` button
+1. Enter the following command in your terminal to watch the microservices as el-CICD promotes and deploys the project, and wait until the last pod is in a Ready state:
 
-To watch the pods in _qa_ come up as they are promoted and deployed, go to your terminal and enter:
-
-```bash
-watch oc get pods,cm,sealedsecrets,secrets -n test-cicd-qa
-```
+    ```bash
+    watch oc get dc,deploy,cj,pods,secrets,cm,services,routes,ingress,hpa \
+        -l projectid=test-cicd -n test-cicd-qa
+    ```
 
 The pipeline will continue to from this point to promote images created in the _dev_ image repository to the _non-prod_ image repository, and these images will be tagged as _qa_ since that's where you are promoting to.  The images are copied using the [skopeo](https://github.com/containers/skopeo) utility built into each Jenkins agent.  If you read through the logs, you will notice the pipeline confirms that an image for the microservice has been created for _dev_ before attempting to deploy.  You will also see a Deployment Branch for _qa_ being created.  When the pipeline completes, all microservices in the `test-cicd` project will have been promoted and deployed.
 
@@ -668,7 +674,7 @@ Exit `watch` command by entering `crtl-c` in your terminal.
 Now run the following:
 
 ```bash
-oc edit test-cicd-test-cicd1-meta-info
+oc edit test-cicd-test-cicd1-meta-info -n test-cicd-qa
 ```
 
 Note that the `deployment-branch` value is now set to `deployment-qa-<srcCommitHash>`.  Compare the `<srcCommitHash>` value to the `src-commit-hash` value in Git, and notice they are the same.  Go the Git repository of `Test_CICD4` in GitHub, and check the branches there.  Note the Deployment Branch has been created in the remote repository.
@@ -969,6 +975,7 @@ Sometimes issues crop up that aren't caught until they've been promoted downstre
     cgroup value : cgroup
     topicname value : qa topic
     ```
+
 #### [Optional] Roll Forward to Deployment Patched Image, and Promote
 
 Follow the above [instructions for roll back](#roll-back-test-cicd1-in-qa-to-the-original-image) in QA, and then the instructions or [promoting an image](#promoting-microservices) to promote your patched image to Stg.  Go to GitHub, and look at the hash of both Deployment Branches, QA and Stg.  You'll notice the Stg deployment branch was created at the same **where the QA Deployment Branch was patched**.  
@@ -986,20 +993,44 @@ Follow the above [instructions for roll back](#roll-back-test-cicd1-in-qa-to-the
 1. Click on `Console Output` on the left-hand menu
 1. When `Input requested` appears in the logs output, click on it
 1. Select the following checkboxes:
-	* `test-cicd-stationdemo`
-	* `test-cicd1`
-	* `test-cicd2`
-	* `test-cicd3`
+    * `test-cicd-stationdemo`
+    * `test-cicd1`
+    * `test-cicd2`
+    * `test-cicd3`
 1. Click on the `Proceed` button
-1. When the logs pause and the links `Proceed` and `Abort` appear, read the summary to confirm your Release Candidate is properly defined as described above, and click `Proceed`
+1. When the logs pause and the links `Proceed` and `Abort` appear, **read the summary** to confirm your Release Candidate is properly defined as described above, and click `Proceed`
+
+    ```text
+    ===========================================
+
+    CONFIRM CREATION OF PRODUCTION MANIFEST FOR RELEASE CANDIDATE VERSION 1.1.1
+
+    ===========================================
+
+    Creating this Release Candidate will result in the following actions:
+
+    -> Release Candidate Tag: 1.1.1
+    test-cicd-stationdemo test-cicd1 test-cicd2 test-cicd3
+
+    -> THE FOLLOWING MICROSERVICES WILL BE MARKED FOR REMOVAL FROM PROD:
+    test-cicd4 test-cicd-r
+
+    ===========================================
+
+    PLEASE REREAD THE ABOVE RELEASE MANIFEST CAREFULLY AND PROCEED WITH CAUTION
+
+    Should the Release Candidate 1.1.1 be created?
+
+    ===========================================
+    ```
 
 To confirm your Release Candidate was properly created, go to GitHub, and check the `test-cicd-stationdemo`, `test-cicd1`, and `test-cicd3` Git repositories to make sure a **tag** (not a branch) in the form of `1.0.0-<srcCommitHash>` has been created.  You can also verify the tags created in the Non-prod Image Repository you created.
 
-Now repeat the above process, but use a RELEASE_CANDIDATE_TAG of `1.1.0` and select the checkboxes of `test-cicd-r`, `test-cicd2`, and `test-cicd4`.  While not strictly a "real world" test, this allow you to see how roll back and forward works in production.  Also, 
+Now repeat the above process, but use a RELEASE_CANDIDATE_TAG of `1.1.1` and select the checkboxes of `test-cicd-r`, `test-cicd2`, and `test-cicd4`.  While not a "real world" test, this allow you to see how roll back and forward works in production.  Also, 
 
-## Deploying to Production
+## Onboarding a Project Into the Production Cluster
 
-The rest of the tutorial will take you through promoting Production, which creates a [Release Version](foundations.md#release-version) from a Release Candidate, as well as rolling back and forward Release Versions in Production.
+Before deploying the Release Candidates into production, we first have to onboard the project and create `devops` RBAC Group Automation Server.
 
 ### Access the Prod Onboarding Automation Server
 
@@ -1013,7 +1044,7 @@ Open your browser, and go to
 
 [https://jenkins-el-cicd-prod-onboarding-master.apps-crc.testing](https://jenkins-el-cicd-prod-onboarding-master.apps-crc.testing)
 
-The browser will warn you that your connection is not private, and you can safely ignore it and click  _Advanced_, and then the button _Proceed to jenkins-el-cicd-prod-onboarding-master.apps-crc.testing (unsafe)_ .  Login to Jenkins using the CRC admin credentials, clicking initially on the `kube:admin` button.  You can simply paste the password (the CRC pull secret) from your clipboard thanks to the custom command you entered above.
+The browser will warn you that your connection is not private, and you can safely ignore it and click  _Advanced_, and then the button _Proceed to jenkins-el-cicd-prod-onboarding-master.apps-crc.testing (unsafe)_ .  Login to Jenkins using the CRC admin credentials, clicking initially on the `kube:admin` button.  You can simply paste the password (the CRC pull secret) from your clipboard thanks to the custom login command you entered above.
 
 ```text
 Username: kubeadmin
@@ -1024,13 +1055,12 @@ After successfully logging in, the browser will ask you to _Authorize Access_.  
 
 From the main page on the left-hand menu, click `Manage Jenkins`, and then in the middle of the screen look for `Manage Credentials` and click on it to take you to the Jenkins Credentials screen.  If you configured everything correctly, it should look like the following:
 
-![Figure: Non-prod Onboarding Automation Server Credentials](images/tutorial/non-prod-onboarding-automation-server-credentials.png)
+![Figure: Non-prod Onboarding Automation Server Credentials](images/tutorial/prod-onboarding-automation-server-credentials.png)
 
 **Figure**  
-_Non-prod Onboarding Automation Server Credentials_
+_Prod Onboarding Automation Server Credentials_
 
 If something is missing, then check your configuration, fix any issues, and you can safely run the bootstrap script again.
-
 
 ### Onboarding the Test-CICD Project to a Prod Automation Server
 
@@ -1054,7 +1084,7 @@ oc project devops-el-cicd-prod-master
 oc get pods,cm,secrets
 ```
 
-The above commands will show you the `devops` RBAC group's Jenkins instance, the copy of `el-cicd-meta-info` ConfigMap that copied into the `devops` namespace, and the pull secrets that were copied into the `devops` namespace.
+The above commands will show you the `devops` RBAC group's Jenkins instance, and the copy of `el-cicd-meta-info` ConfigMap and pull Secrets that were copied into the `devops` Prod namespace.
 
 ```bash
 oc projects | grep test-cicd
@@ -1078,6 +1108,57 @@ _Non-prod Jenkins Credentials_
 
 Click on the Jenkins logo in the upper right, and click through the folder link in the center of the window, `devops-el-cicd-prod-master`, until you see all the pipelines the Prod onboarding process created for the `test-cicd` project:
 
-![Figure: Non-prod Jenkins Pipelines](images/tutorial/non-prod-devops-test-cicd-project-pipelines.png)
+![Figure: Non-prod Jenkins Pipelines](images/tutorial/prod-devops-test-cicd-project-pipelines.png)
 
+#### Confirm Prod Configuration of the `test-cicd` Project in GitHub
+
+Got to GitHub, and head over to the Settings section of any of your tutorial projects; e.g. Test-CICD1.  Click on `Deploy Keys` on the left-hand menu.  You should a deploy key named `el-cicd-prod-deploy-key|apps-crc.testing|test-cicd` listed, which represents the which engineering server, cluster wild card, and project (delimited by pipes) is managing that key.
+
+Unlike in Non-prod, there should not be a Webhook present, since there's nothing to build in production.
+
+## Deploying to Production
+
+The rest of the tutorial will take you through promoting Production, which creates a [Release Version](foundations.md#release-version) from a Release Candidate, as well as rolling back and forward Release Versions in Production.  Open the `deploy
+
+1. Go to the [deploy-to-production](https://jenkins-devops-el-cicd-prod-master.apps-crc.testing/job/devops-el-cicd-prod-master/job/devops-el-cicd-prod-master-deploy-to-production/) pipeline
+1. Click on `Build with Parameters` on the left-hand menu
+1. Enter `test-cicd` for the `PROJECT_ID` and `1.0.0` for the RELEASE_CANDIDATE_TAG, and click the `Build` button
+1. When the build number appears, click on it, and then click on `Console Output` on the left-hand menu
+1. When the logs pause and the links `Proceed` and `Abort` appear, **read the summary** to confirm promoting your Release Candidate into Prod
+
+    ```text
+    ===========================================
+
+    CONFIRM PROMOTION AND DEPLOYMENT OF RELEASE CANDIDATE 1.0.0 TO PRODUCTION
+
+    ===========================================
+
+    -> Microservices included in this release:
+    test-cicd-stationdemo, test-cicd1, test-cicd2, test-cicd3
+
+    -> Microservices to be deployed:
+    test-cicd-stationdemo, test-cicd1, test-cicd2, test-cicd3
+
+    -> All other microservices and their associated resources NOT in this release WILL BE REMOVED!
+    test-cicd4, test-cicd-r
+
+    ===========================================
+
+    PLEASE REREAD THE ABOVE RELEASE MANIFEST CAREFULLY AND PROCEED WITH CAUTION
+
+    ARE YOU SURE YOU WISH TO PROCEED?
+
+    ===========================================
+    ```
+
+1. Enter the following command in your terminal to watch the microservices as el-CICD deploys them, and wait until the last pod is in a Ready state:
+
+    ```
+    watch oc get dc,deploy,cj,pods,secrets,cm,services,routes,ingress,hpa \
+        -l projectid=test-cicd -n test-cicd-prod
+    ```
+
+### Upgrading a Release Version, Rolling Forward, and Rolling Back
+
+Upgrading Release Versions, rolling forward, and rolling back in production is merely deploying a particular version.  To demonstrate, repeat [Deploying to Production](#deploying-to-production) twice, first promoting `1.1.1`, and then to roll back to version `1.0.0`.
 
