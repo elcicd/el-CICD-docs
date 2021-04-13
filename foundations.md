@@ -64,6 +64,7 @@ or send a letter to
     * [Project](#project)
     * [Build Once, Deploy Many](#build-once-deploy-many)
     * [Continuous Integration](#continuous-integration)
+      * [Development Branch](#development-branch)
       * [Code Base](#code-base)
       * [The Build](#the-build)
         * [Build](#build)
@@ -76,20 +77,20 @@ or send a letter to
     * [Continuous Deployment](#continuous-deployment)
   * [Tools](#tools)
     * [Project Definition Repository](#project-definition-repository)
-      * [Project Definition File](#project-definition-file)
     * [Source Control Management (SCM)](#source-control-management-scm)
     * [Scanner](#scanner)
     * [Artifact Repository](#artifact-repository)
     * [Automation Server](#automation-server)
-    * [Pipeline](#pipeline)
+      * [Pipeline](#pipeline)
     * [Container Orchestration Platform](#container-orchestration-platform)
       * [Namespaces](#namespaces)
     * [Secret Encryption Tool](#secret-encryption-tool)
   * [CICD Development Workflow Patterns](#cicd-development-workflow-patterns)
+    * [Build-library](#build-library)
     * [Build-to-Dev](#build-to-dev)
     * [Promotion](#promotion)
-    * [Deployment Branch](#deployment-branch)
-    * [Deployment Patching](#deployment-patching)
+      * [Deployment Branch](#deployment-branch)
+      * [Deployment Patching](#deployment-patching)
     * [Component Rollback and Roll-Forward](#component-rollback-and-roll-forward)
     * [Deploy To Production](#deploy-to-production)
       * [Application, or Project, Releases](#application-or-project-releases)
@@ -98,6 +99,7 @@ or send a letter to
       * [Deploy-to-Prod](#deploy-to-prod)
         * [Release Version](#release-version)
         * [Production Rollback/Forward/Deployment Patching](#production-rollbackforwarddeployment-patching)
+      * [Hotfix](#hotfix)
   * [Supporting Projects](#supporting-projects)
     * [Git](#git)
     * [GitHub](#github)
@@ -110,7 +112,7 @@ or send a letter to
 
 # Overview
 
-el-CICD, pronounced like [El Cid](https://en.wikipedia.org/wiki/El_Cid), is a Configurable off the Shelf (COTS) Continuous Integration/Continuous Delivery (CICD) supporting multiple Projects of one or more microservices or components per group or team for building and deploying software onto OKD.  The system is expected to support all delivery and deployment aspects of the Software Development Lifecycle (SDLC) of projects running on OKD, from building the source and deploying into a development environment through deployment into production.
+el-CICD, pronounced like [El Cid](https://en.wikipedia.org/wiki/El_Cid), is a Configurable off the Shelf (COTS) Continuous Integration/Continuous Delivery (CICD) supporting multiple Projects of one or more microservices or components per group or team for building and deploying software onto OKD.  The system is expected to support all build and deployment aspects of the Software Development Lifecycle (SDLC) of projects running on OKD, from building the source and deploying into a development environment through deployment into production.
 
 This document will cover the conceptual and architectural underpinnings of el-CICD.  The target audience are readers that wish to understand the concepts and external software projects that el-CICD is supported by and organized around.
 
@@ -118,12 +120,12 @@ This document will cover the conceptual and architectural underpinnings of el-CI
 
 Key characteristics the system was designed and implemented with include:
 
-- Support and enforcement of standards recognized as software development best practices
-- Ease of maintenance
-- Ease of integration for software development teams
-- Transparency to all users
-- The ability to collect and collate metrics from all software development Projects
-- Full automation of builds and deployments of applications onto OKD
+* Support and enforcement of standards recognized as software development best practices
+* Ease of maintenance for operators
+* Ease of integration for software development teams
+* Transparency to all users
+* The ability to collect and collate metrics from all software development Projects
+* Full automation of builds and deployments of applications onto OKD
 
 ## Goals
 
@@ -137,67 +139,71 @@ It is assumed the reader has a basic understanding of the SDLC, Source Control M
 
 ### Concepts
 
-CICD has been around for many years, and comprises a number of concepts and processes.  At its most fundamental CICD is the process of building software as soon as source code is delivered to a software Project, and and then deploying the software after a successful build.  Ideally it encompasses the execution of builds, and the deployment into any and all environments through production supported by the SDLC of a team and/or organization.
+CICD is the process of building software as soon as source code is committed to an SCM, and and then deploying the software after a successful build.  Ideally it encompasses the execution of builds, and the deployment into any and all environments through production supported by the SDLC of a team and/or organization.
 
-el-CICD was designed and built to easily and transparently support and the following concepts.  These concepts are mostly presented in the context of el-CICD, and are not meant to be a complete discussion of all things CICD.
+el-CICD was designed and built to easily and transparently support and the following concepts.  These concepts are mostly presented in the context of el-CICD, and are not meant to be a comprehensive discussion of all things CICD.
 
 ### Environments
 
 A SDLC typically includes a number of deployment stages before ultimately being released to production.  Each stage should be hosted in its own, isolated environment, although sometimes environments are created to support more than one SDLC stage; e.g. a quality assurance (QA) environment being used for user acceptance testing (UAT), and a staging environment (stg) doubling as a load testing and Pre-prod(uction) environment.
 
-Environments are a key concept that needs to be supported by any CICD system.  While deployments to each environment should ideally be exactly the same from Dev to Prod, there are many reasons why this is rarely true based on need and other practical matters; however, best practices are to design deployments to each environment as close to production as possible, and the closer to a production environment a deployment gets the closer the environment should resemble production.  While not always the case, environments are usually organized as a linear sequence; e.g. from Dev to QA to Stage to Prod.  el-CICD supports a configurable, linear sequence of environments, with a few exceptions to be described below.
+Environments are a key concept that needs to be supported by any CICD system.  While deployments to each environment should ideally be exactly the same from Dev to Prod, there are many reasons why this is rarely true based on need and other practical matters.  Best practices are to minimize the differences between environments, and the closer to a production environment a deployment gets the closer the environment should resemble production.  While not always the case, environments are usually organized as a linear sequence; e.g. from Dev to QA to Stage to Prod.  el-CICD supports a configurable, linear sequence of environments, with a few exceptions to be described below.
 
 ![Figure 1: Environment Flow](images/readme/enviroments.png)
 
--*Figure 1**  
+**Figure 1**  
  _Environment flow from Git to Prod_
 
 #### Dev Environment
 
-The Dev, or development, environment represents the initial build and deployment of a software Project as it currently exists in its SCM repository.  It should be a direct reflection of that code at all times.  If at any time the current build in Dev does not reflect the current state of the SCM, then The Build is considered to be broken.  This is at the very heart of what continuous integration means.
+The Dev, or development, environment represents the initial deployment of a software Project immediately after a build.  It should be a direct reflection of the source code as it currently exists in its SCM repository code at all times.  In general, if at any time the current build in Dev does not reflect the current state of the SCM, then [The Build](#the-build) is considered to be broken.  This is at the very heart of what continuous integration means.
 
 #### Test Environments
 
 Test can represent one or more environments.  Examples include:
 
-- **Quality Assurance (QA)**: for the testing of whether the software meets its functional and business requirements
-- **User Acceptance Testing (UAT)**: for the testing by end users as to whether it meets their requirements for being usable
-- **Stage (Stg):** A catch-all environment for performance or load testing
-- **Pre-production (Pre-prod):** an exact duplicate of the production environment, used for testing that the production deployment configuration works, and that the software in the production will work as expected
+* **Quality Assurance (QA)**: for the testing of whether the software meets its functional and business requirements
+* **User Acceptance Testing (UAT)**: for the testing by end users as to whether it meets their requirements for being usable
+* **Stage (Stg):** A catch-all environment for performance or load testing
+* **Pre-production (Pre-prod):** ideally, an exact duplicate of the production environment, used for testing that the production deployment configuration works, and that the software in the production will work as expected
 
 Which environments a Project actually uses depends on such factors as the size and needs of the Project and the organization.
 
 #### Prod Environment
 
-The final environment, production, in which the software is considered to released into the world and available to end users.  The software is considered to be functionally complete and has passed all necessary testing before being deployed into this environment.
+The final environment, Prod, in which the software is considered to released into the world and available to end users; i.e. production.  The software is considered to be functionally complete and has passed all necessary testing before being deployed into this environment.
 
 ### Project
 
-Within the context of el-CICD, a Project is a collection of one or more Git repositories, each of which defines the creation of an image and its deployment configuration from the Dev through Prod environments.  Of course, Project encompass much more than this, such as the images that are created, and the environments el-CICD creates for them, but ultimately the source of truth is the Git repository of each microservice of the Project.
+Within the context of el-CICD, a Project is a collection of one or more Git repositories, and each repository typically represents a single component of the application.  Components can represent libraries, microservices, or monolithic applications.
 
 ### Build Once, Deploy Many
 
-Modern software development with images and containers works under the principle that software should be built once, and then deployed to every environment through to production.  While it does not and cannot ensure uniformity in every environment, following this principle can guarantee to the highest degree possible functional uniformity across environments, and mostly eliminate the possibility that an error found in one environment will not be reproducible in another; i.e. the “works on my machine” development issue in which a bug found in a downstream environment is unable to to predictably and reliably be reproduced in an earlier environment given the same image is greatly mitigated.
+Modern software development with images and containers works under the principle that software should be built only once, and then be able to be deployed to every environment through production.  While it does not and cannot ensure uniformity in every environment, following this principle can guarantee to the highest degree possible functional uniformity across environments, and mostly eliminate the possibility that an error found in one environment will not be reproducible in another; i.e. the “works on my machine” quality assurance problem in which a bug found in a downstream environment is unable to to predictably and reliably be reproduced in an earlier environment given the same [Code Base](#code-base) is greatly mitigated.
 
 ### Continuous Integration
 
-Continuous Integration (CI) is the principle of building source code as soon as it is delivered.  This includes compiling, testing, scanning, assembling, and deploying the artifacts produced from the source code.  Ideally source code is delivered often and in small amounts.  This usually means the delivery granularity is per feature or change worked on by a developer.  Source code is considered delivered if it is pushed to the branch of the SCM holds the code that builds the images that are eventually pushed to production; i.e. the _Development Branch_.
+Continuous Integration (CI) is the principle of building source code as soon as it is delivered.  This includes compiling, testing, scanning, assembling, and deploying the artifacts produced from the source code.  Ideally source code is delivered often and in small amounts.  This usually means the delivery granularity is per feature or change worked on by a developer.  Source code is considered delivered if it is pushed to the branch of the SCM holds the code that builds the images that are eventually pushed to production; i.e. the [Development Branch](#development-branch)
 
 There are many issues to take into account when implementing CI, but they can mostly fall under the following concerns of approved Code Bases, The Build, and standardization of processes and practices.
 
+#### Development Branch
+
+The Development Branch is the integration branch for features.  Features are typically worked on separate branches, and when completed are merged to the Development Branch in a repository.  When the software is released, the Development Branch is typically merged into the Master Branch.  While outside the scope of this document, because el-CICD does not concern itself an organizations overall branch management procedures, more can be read about [GitFlow here](http://datasift.github.io/gitflow/IntroducingGitFlow.html).
+
 #### Code Base
 
-Each Project will be developed using one or more programming languages and/or platforms, such as Java, JavaScript, or Python, and optionally a particular framework or frameworks supported by that language such Spring Boot, Angular, or Django, respectively.  There are also different testing frameworks within each language or platform; e.g. JUnit, Mocha, or pytest.  Organizations should work with their development teams to identify a set number of these to support.  Each Code Base an organization approves for their development teams to develop with increases the complexity of the CICD system, and makes it harder for resources to be portable across Projects either in support or development roles.
+Each Project will be developed using one or more programming languages and/or platforms, such as Java, JavaScript, or Python, and optionally a particular framework or frameworks supported by that language such Spring Boot, Angular, or Django, respectively.  There are also different testing frameworks within each language or platform; e.g. JUnit, Mocha, or pytest.  Organizations should work with their development teams to identify a set number of languages, platforms, and frameworks to support.  While different Code Bases are better at solving different problems than the other, each Code Base an organization approves for their development teams to develop with increases the complexity of the CICD system, and can make it harder for resources to be portable across Projects either in support or development roles.
 
 #### The Build
 
-The Build is an overloaded term, and in CI is colloquially referred to as “_The Build_".  It is actually comprised of five steps, compiling, testing, scanning, assembly, and eventually a successful deployment.  If any of these steps fail, the Project should be considered to be in a bad state, and all efforts should be directed at fixing it immediately.  If a team is following modern software development best practices, it is reasonable for a team to expect that the source is never, or at least extremely rarely, in a bad state; i.e. for every source code delivery
+The Build is an overloaded term, and in CI is we use it colloquially.  It is actually comprised of five steps: compiling, testing, scanning, assembly, and eventually a successful deployment.  If any of these steps fail, the Project should be considered to be in a bad state, and all efforts should be directed at fixing it immediately.  If a team is following modern software development best practices, it is reasonable for a team to expect that the source is never, or at least extremely rarely, in a bad state; i.e. for every source code delivery
 
-- All code compiles successfully
-- All tests run and pass
-- Security scans and linting find no problems
-- Artifacts produced during compilation are successfully assembled into a deployable package
-- The software successfully deploys
+* All code compiles successfully
+* All tests run and pass
+* Security scans and linting find no problems
+* Artifacts produced during compilation are successfully assembled into a deployable package
+* The software successfully deploys
 
 ##### Build
 
@@ -217,7 +223,7 @@ This step is for any further packaging or work needed by The Build.  It could me
 
 ##### Deploy
 
-Successfully deploy the software into the Dev environment.
+Successfully deploy the software into the Dev environment.  In the case of libraries, this typically means uploading artifacts such Java jars or pPython pip wheels to a central artifact repository, which can then be used later by other components in one or more projects.
 
 #### Standardization
 
@@ -230,10 +236,9 @@ A real world example of this might be requiring all Java development teams to us
 mvn -s /path/to/settings.xml -DskipTests --batch-mode clean package`
 ```
 
+This enables the team supporting the CICD system to confidently know they can complete a build for any Java Project using Maven without having to understand the individual details of any individual Project.  Developers in turn never have to worry about their Projects being incompatible with the CICD system, and don't have to think about reinventing the wheel for each new Project.
 
-The result enables the team supporting the CICD system to confidently know they can complete a build for any Java Project using Maven without having to understand the individual details of any individual Project.  Developers in turn never have to worry about their Projects being compatible with the CICD system, and don't have to think about reinventing the wheel for each new Project.
-
-Another example would be standardizing on the unit test tools used.  While Apache Maven would obviate the need for the CI system to know which test tools were used by the developers for their unit tests, there are many platforms which don’t have a standard build tool for the CI tool to leverage.  There is also the issue of resource portability between teams to consider.
+Another example would be standardizing on the unit test tools used.  While Apache Maven would somwhat mitigate the need for the CI system to know which test tools were used by the developers for their unit tests, there are many platforms which don’t have a standard build tool for the CI tool to leverage.  There is also the issue of resource portability between teams to consider.
 
 ### Continuous Delivery
 
@@ -255,15 +260,11 @@ Note that the automated building and deployment to Dev is not to be considered a
 
 ## Tools
 
-There are a number of tools that are needed for an automated CICD system.  They are summarized below.
+There are a number of tools that are needed for an automated CICD system.  They are summarized below.  All of these tools are external to el-CICD, but are necessary for el-CICD to function.
 
 ### Project Definition Repository
 
 The Project Definition Repository should contain enough information about each Project in the organization to automate the creation of its supporting pipelines, drive the pipelines, and define the environments required for each Project in the organization.
-
-#### Project Definition File
-
-el-CICD uses a [Project Definition File 
 
 ### Source Control Management (SCM)
 
@@ -277,17 +278,15 @@ The scanner consists of one or more tools, and is responsible for scanning sourc
 
 The purpose of the Artifact Repository is to store artifacts produced by a CI process.  Modern builds generally result in two different types of artifacts, either libraries for reuse or in images meant to be deployed into an environment.
 
-How these artifacts are hosted depends on how they are meant to be consumed.  For example, a Java jar file meant to only be used as a dependency for another microservice might be stored within a Maven repository, RPM’s used intended to be installed into a Docker image in an RPM repository, and a Docker image to be deployed or used as a base image in a Docker repository.  Modern artifact repositories generally support many types of standards depending on the need.
+How these artifacts are hosted depends on how they are meant to be consumed.  For example, a Java jar file meant to only be used as a dependency for another microservice might be stored within a Maven repository, RPM’s intended to be installed into a Docker image in an RPM repository, and a Docker image to be deployed or used as a base image in a Docker repository.  Modern artifact repositories generally support many types of standards depending on the need.
 
 For the purposes of the this document, _Image Repository_ can be read as a synonym to the Artifact Repository.
 
-[**NOTE**: el-CICD is a system tightly integrated with OKD, and it's focus is on building images and deploying them into pods on OKD.  It does not directly support managing library builds.]
-
 ### Automation Server
 
-The Automation Server is the heart of a CICD system, and its job is to run any and all CICD scripts, or [_pipelines_](#pipeline), which should fully implement the CICD process from the time source code is delivered through deployment to Prod.
+The Automation Server is the heart of a CICD system, and its job is to run any and all CICD scripts, or [_pipelines_](#pipeline), a number of which should fully implement the CICD process from the time source code is delivered through deployment to Prod.
 
-### Pipeline
+#### Pipeline
 
 A script run on an Automation Server to build and/or deploy Project artifacts.  In OKD, pipelines are defined using OKD's [BuildConfigs](https://docs.okd.io/latest/builds/understanding-buildconfigs.html).
 
@@ -295,7 +294,7 @@ A script run on an Automation Server to build and/or deploy Project artifacts.  
 
 The Container Orchestration Platform is the newest type of tool available for use by organizations.  While software can run directly on bare metal or in virtual machines, many if not most applications designed today are built as images.  This means they are built as Open Container Initiative (OCI) or Docker images, and a container is a deployed and running image.
 
-Modern application architectures favor a microservice architecture approach, in which many images are designed and implemented to be small, limited function pieces of software running next to and with each other to form a larger application as a whole, rather than as a more monolithic application made up of a smaller number of larger, multipurpose components.  This level of complexity requires a platform to support the deployment, organization, orchestration, and running of groups of images, which may represent one or more applications.  This is the responsibility of a Container Orchestration Platform.
+Modern application architectures favor a microservice architecture approach, in which many images are designed and implemented to be small, targeted pieces of software running next to and with each other to form a larger application as a whole, rather than as a more monolithic application made up of a smaller number of larger, multipurpose components.  This level of complexity requires a platform to support the deployment, organization, orchestration, and running of groups of images, which may represent one or more applications.  This is the responsibility of a Container Orchestration Platform.
 
 #### Namespaces
 
@@ -313,29 +312,40 @@ Without a way to encrypt secrets so they can be safely stored in the SCM for lat
 
 CICD systems encompass a number of workflow patterns to support development.  Ultimately these will be expressed as pipelines.  The patterns expressed below are described in the context of the concepts and tools defined above.
 
+### Build-library
+
+This workflow will pull source from the SCM, build it if necessary, run all unit and integration tests, scan the code, package the artifacts, and push the relevant artifacts to the Artifact Repository for use by other components within or external to the software Project.  el-CICD supports two states:
+
+* **SNAPSHOT**
+* **RELEASE**
+
+el-CICD only supports these concepts in general, and it is up to the organization to define what they mean.  el-CICD does not define or manage the promotion of libraries from one state to the other.
+
 ### Build-to-Dev
 
 The initial CICD process.  This workflow will pull source from the SCM, build it if necessary, run all unit and integration tests, scan the code, package the artifacts, create an image, push the image to the Image Repository, and then attempt to deploy the image from the Image Repository to the Container Orchestration Platform.
 
 ### Promotion
 
-This workflow implements the process of image promotion and deployment from one non-production environment to the next, always starting from Dev; e.g. from Dev to QA, or QA to UAT.  Promotion will always follow a predefined, linear path.  Deployment Patching and Deployment Branching are two new concepts unique to el-CICD to support the Promotion workflow.
+This workflow implements the process of image promotion and deployment from one non-production environment to the next, always starting from Dev; e.g. from Dev to QA, or QA to UAT.  Promotion will always follow a predefined, linear path.  [Deployment Patching](#deployment-patching) and [Deployment Branching](#deployment-branch) are two new concepts unique to el-CICD to support the Promotion workflow.
 
-### Deployment Branch
+#### Deployment Branch
 
-Images by definition are an immutable binary and stored in the Image Repository, but the deployment configuration is mutable source code and stored in the SCM.  As an image is promoted from one SDLC environment to the next, it's deployment configuration with OKD may change, and while the image doesn't change, the source on the SCM branch that built it most likely has and will continue to change.
+Images by definition are an immutable binaries and stored in the Image Repository, but the deployment configuration is mutable source code and stored in the SCM.  As an image is promoted from one SDLC environment to the next, the Development Branch from which the image was built will continue to change, and potentially and eventually become out of sync with the deployment configuration for an image built on a previous commit to the SCM.  The problem arises as to how to continue to version the and sync the deployment configuration with image, while not impeding development of the source code that built the image?
 
-To solve the problem of changing and versioning the source deployment code of the image being deployed independently of the SCM branch that created the image, the concept of a _Deployment Branch_ was created.  This branch is defined as a branch created at the source commit where the image was created, and it's purpose is to allow the changing of the deployment resources versioned in the branch, without changing the source code of the application and not holding up the Development Branch, or using deployment resources out of sync with the Development Branch.
+To solve this dichotomy, the concept of a _Deployment Branch_ was created.  A Deployment Branch is a branch created at the source commit from which an image was built, and it's purpose is to track any changes to the deployment configuration of the image while keeping it associated with the image's original source code.  This branch enables users to track and version changes to the deployment of one image without holding back continuing development of the original source code.
 
-### Deployment Patching
+#### Deployment Patching
 
-In practical terms, _Deployment Patching_ refers to the process of modifying the deployment resources of an image on a [Deployment Branch](#deployment-branch). This keeps deployment resources in sync with the code that created the image, allows the deployment resources of the image to be versioned, and doesn't interfere with ongoing develepment on the Development Branch.
+In practical terms, _Deployment Patching_ refers to the process of modifying the deployment resources of an image on a [Deployment Branch](#deployment-branch). This keeps deployment resources in sync with the code that created the image, allows the deployment resources of the image to be versioned, and doesn't interfere with ongoing development on the Development Branch.
 
 ### Component Rollback and Roll-Forward
 
-Component, or microservice, rollback and roll-forward is the ability to deploy different versions of the same image within the same environment.  Whether rolling back to an earlier version, or forward again to a later version that has already been deployed in the environment, the process must not only pull the correct version of the image, but also find the version’s latest deployment configuration in the SCM.  This requires coordination between the Image Repository and SCM for successful and repeatable deployments when rolling back and/or forward.
+Component, or microservice, rollback and roll-forward is the ability to deploy different versions of the same microservice within the same environment.  Whether rolling back to an earlier version, or forward again to a later version that has already been deployed in the environment, the process must not only pull the correct build of the image, but also find the version’s latest deployment configuration in the SCM.  This requires coordination between the Image Repository and SCM for successful and repeatable deployments when rolling back and/or forward.
 
-This workflow does not apply to Dev, since that environment will always represent the latest state of the SCM.  This workflow also does not apply to Prod, since that environment only deploys versions of complete applications comprised of one or more components or microservices, and not individual images.
+This workflow does not apply to Dev, since that environment will always represent the latest state of the SCM.  This workflow also does not apply to [Prod](#deploy-to-production) since that environment only deploys versions of complete applications comprised of one or more components or microservices, and not individual images.
+
+This workflow also does not apply to different deployment configurations of the same image.  Those are stored in the Deployment Branch, and would require a new commit with whatever configuration you wish to deploy an image.
 
 ### Deploy To Production
 
@@ -343,7 +353,7 @@ Deployment to Prod is a more complex workflow that actually encompasses a number
 
 #### Application, or Project, Releases
 
-Up to this point, each environment considered the deployment of an SCM repository as an independent event.  There was no consideration by the CICD system as to the interdependence within the environment that might exist between components or microservices that are built and/or deployed separately from one another, other than they were all defined as belonging to the same Project.
+Up to this point, each environment considered the deployment of an microservice repository as an independent event.  There was no consideration by the CICD system as to the interdependence within the environment that might exist between components or microservices that are built and/or deployed separately from one another, other than they were all defined as belonging to the same Project.
 
 When releasing into production, on the other hand, final approval for release to production assumes that the release was tested with a particular version of each component.  If there's ever to be a concept of rolling back or rolling forward to a known, good state of the application, this can only be done if the total set of components or microservices is treated as a single unit.
 
@@ -361,11 +371,17 @@ When the final decision has been made that a Release Candidate should be deploye
 
 ##### Release Version
 
-The collection of images and branches tagged and created by the Deploy-to-Prod process are collectively known as a _Release Version_.  These are used to deploy and redeploy an application into production.
+The collection of images and branches tagged and created by the Deploy-to-Prod process are collectively known as a _Release Version_.  These are used to deploy and redeploy a particular version of the application into production.
 
 ##### Production Rollback/Forward/Deployment Patching
 
 Because production deployments of applications are treated as a whole rather than any one of its parts, this workflow is also handled by the Deploy-to-Prod workflow.  When rolling an application back or forward, a user is really just deploying a particular Release Version of the application with its latest matching deployment configuration(s).  Similarly, [Deployment Patching](#deployment-patching) of a Release Version is treated as a redeployment of the same version of the application with the updated deployment configuration information pulled from the SCM; i.e. each microservice whose deployment configuration has been changed is rolled out again as a group.
+
+#### Hotfix
+
+No matter how good the planning or testing, sometimes bugs or other emergencies make waiting for the next application release untenable, and changes to the application currently deployed in production need to be made as soon as possible.  Colloquially, this is known as a _Hotfix_.
+
+Changes to the code are made on a Hotfix Branch, rather than on the Development Branch, merged into a new release, and the new release is deployed.  Ideally, this process should have little to no impact on the next release of the application, and the changes made for the Hotfix will potentially be merged into the current release's Development Branch.
 
 ## Supporting Projects
 
@@ -391,11 +407,11 @@ A command line utility for the copying, tagging, deleting, and inspection of ima
 
 ### [DockerHub](https://hub.docker.com)
 
-Any online or or on premise Image Repository that is compatible with Podman/Buildah/Bkopeo or Docker is compatible for use with el-CICD.  The examples in the accompanying tutorial use DockerHub, but Quay](https://quay.io) or any other OCI compliant Image Repository could also have been used.
+Any online or or on premise Image Repository that is compatible with Podman/Buildah/Skopeo or Docker is compatible for use with el-CICD.  The examples in the accompanying tutorial use DockerHub, but Quay](https://quay.io), [Artifactory](https://jfrog.com/artifactory/) or any other OCI compliant Image Repository could also have been used.
 
 ### [OKD](https://okd.io)
 
-OKD is OSS from Red Hat that acts as the Container Orchestration Platform, and in whole is a Platform as a Service (PaaS).  While Jenkins runs and defines the pipelines and is the heart of el-CICD, it is OKD that is the body that will ultimately host and coordinate with Jenkins to run them.  el-CICD runs equally will on versions 3.11 and 4.x+, with only minor configuration changes.
+OKD (and it's downstream project OpenShift) is OSS from Red Hat that acts as the Container Orchestration Platform, and in whole is a Platform as a Service (PaaS).  While Jenkins runs and defines the pipelines and is the heart of el-CICD, it is OKD that is the body that will ultimately host and coordinate with Jenkins to run them.  el-CICD runs equally will on versions 3.11 and 4.x+, with only minor configuration changes.
 
 ### [Kustomize](kustomize.io)
 
