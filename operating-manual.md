@@ -81,10 +81,12 @@ or send a letter to
         * [Lifecycle Definition](#lifecycle-definition)
         * [Image Repositories](#image-repositories)
     * [Jenkins Configuration](#jenkins-configuration)
-      * [Dockerfiles](#dockerfiles)
+      * [Jenkins and Agents Dockerfiles and Configuration Files](#jenkins-and-agents-dockerfiles-and-configuration-files)
+        * [Default Jenkins Agent](#default-jenkins-agent)
+        * [Skopeo and Kustomize](#skopeo-and-kustomize)
   * [Managed OKD Resources](#managed-okd-resources)
-    * [OKD Template Definition Files](#okd-template-definition-files)
     * [ResourceQuota Definition Files](#resourcequota-definition-files)
+    * [OKD Template Definition Files](#okd-template-definition-files)
   * [Project Definition File](#project-definition-file)
     * [OKD RBAC Groups](#okd-rbac-groups)
     * [Git Project information](#git-project-information)
@@ -101,13 +103,16 @@ or send a letter to
     * [Builder Steps](#builder-steps)
       * [Code Base Folders](#code-base-folders)
       * [Build Scripts](#build-scripts)
-        * [Overriding the Defaults Build Scripts](#overriding-the-defaults-build-scripts)
+        * [Using Alternative Builder Steps](#using-alternative-builder-steps)
         * [builder.groovy skeleton script](#buildergroovy-skeleton-script)
         * [tester.groovy skeleton script](#testergroovy-skeleton-script)
         * [scanner.groovy skeleton script](#scannergroovy-skeleton-script)
         * [assembler.groovy skeleton script](#assemblergroovy-skeleton-script)
+  * [Pipeline Hook Scripts](#pipeline-hook-scripts)
+    * [Extension Points](#extension-points)
+    * [Writing Hook Scripts](#writing-hook-scripts)
 * [Bootstrapping, Onboarding, and Operational Management](#bootstrapping-onboarding-and-operational-management)
-  * [el-cicd Admin Utility](#el-cicd-admin-utility)
+  * [el-CICD Admin Utility](#el-cicd-admin-utility)
     * [Bootstrapping Onboarding Automation Servers](#bootstrapping-onboarding-automation-servers)
     * [Refreshing Credentials](#refreshing-credentials)
     * [Building Jenkins Images](#building-jenkins-images)
@@ -125,14 +130,14 @@ or send a letter to
         * [Non-prod refresh-credentials Pipeline](#non-prod-refresh-credentials-pipeline)
         * [non-prod-project-delete Pipeline](#non-prod-project-delete-pipeline)
     * [Prod Onboarding Automation Server](#prod-onboarding-automation-server)
-        * [prod-project-project-onboarding Pipeline](#prod-project-project-onboarding-pipeline)
-        * [Prod refresh-credentials Pipeline](#prod-refresh-credentials-pipeline)
+      * [prod-project-project-onboarding Pipeline](#prod-project-project-onboarding-pipeline)
+      * [Prod refresh-credentials Pipeline](#prod-refresh-credentials-pipeline)
 
 # Overview
 
 el-CICD, pronounced like [El Cid](https://en.wikipedia.org/wiki/El_Cid), is a Configurable off the Shelf (COTS) Continuous Integration/Continuous Delivery (CICD) supporting multiple Projects of one or more microservices or components per group or team for building and deploying software onto OKD.  The system is expected to support all delivery and deployment aspects of the Software Development Lifecycle (SDLC) of projects running on OKD, from building the source and deploying into a development environment through deployment into production.
 
-This document will cover the configuration, installation, and maintenance of el-CICD [Onboarding Automation Servers](#onboarding-automation-servers).  The target audience are operational personnel that will install and maintain el-CICD, and those responsible for onboarding projects onto el-CICD.
+This document will cover the configuration, installation, and maintenance of el-CICD [Onboarding Automation Servers](#onboarding-automation-servers).  The target audience are operational personnel and OKD Cluster Admins that will install and maintain el-CICD, and those responsible for onboarding projects onto el-CICD.
 
 ## el-CICD SECURITY WARNING
 
@@ -142,19 +147,12 @@ This document will cover the configuration, installation, and maintenance of el-
 
 ## Fundamentals
 
-Operational concerns with el-CICD cover the following topics:
+Operational concerns with el-CICD will cover the following topics:
 
-1. **Configuring**  
-   This includes all the setting files, gathering secrets, fine tuning the OKD deployment templates developers will use, and defining the builder steps for each [Code Base}(#code-base) the organization will support.
-
-1. **Installing**  
-   Running el-CICD Administration Utility to bootstrap the Onboarding Automation Servers for Non-Prod and Prod.
-
+1. **Configuration**
+1. **Installation**
 1. **Onboarding**
-   Running the [Onboarding Automation Server's](#onboarding-automation-servers) onboarding pipeline to stand up a CICD Automation Server for an OKD RBAC group, if necessary, and create and configure all necessary SDLC namespaces for a [Project](foundation.md#Project).
-
 1. **Maintenance**
-   Refreshing credentials, updating [Sealed Secrets](#sealed-secrets) updating Jenkin's and Jenkins' Agent images.
 
 ## Assumptions
 
@@ -164,83 +162,95 @@ It is assumed the reader has a basic understanding of the SDLC, Source Control M
 
 el-CICD is designed as a COTS solution, meaning it was built as an incomplete piece of software that is meant to be adapted and configured by the end-user organization to their specific needs.  The el-CICD system consists of three repositories, including the documentation repository that this document resides in. 
 
-**_Organizations must fork both the [el-CICD](https://github.com/elcicd/el-CICD) and the [el-CICD-config](https://github.com/elcicd/el-CICD-config) repositories._**
+**_Organizations should create their own `el-CICD` and `el-CICD-config` repositories in their SCM._**
 
-The [el-CICD-config](#el-cicd-config-repository) repository needs to be modified by the end user to adapt el-CICD to their organizational needs, and the [el-CICD](#el-cicd-config-repository) repository holds all the functional code.  These repositories are part of an OSS project that resides on a publicly hosted service, and **_no guarantee that they will continue to host el-CICD in the future is given, made, or implied_**.
+Both repositories are pulled on every pipeline run.  This allows for easy and instant, organization-wide updates to functionality and configuration when needed.
 
-Both of these repositories should be pulled to a local install directory on the bastion host where boostrap can be configured and run.  Both are pulled on every pipeline run, which has the added advantage of instant updates of functionality and configuration for Automation Servers.
+![Figure: bootstrap Directory Structure](images/operations-manual/install-directory-structure.png)  
 
-![Figure: Boostrap Directory Structure](images/operations-manual/install-directory-structure.png)  
-
-**Figure** _Boostrap Directory Structure_
+**Figure** _bootstrap Directory Structure_
 
 ## el-CICD Repository
 
-The el-CICD Repository is the functional heart of el-CICD, and is **NOT** meant to be modified by the end user.  It holds all bootstrap scripts, internal template files, BuildConfig definitions, and the [Jenkins shared library](https://www.jenkins.io/doc/book/pipeline/shared-libraries/) that forms the bulk of el-CICD's pipeline functionality.
+The el-CICD Repository is the functional heart of el-CICD, and is **NOT** meant to be modified by the end user.  It holds all bootstrap scripts, internal template files, BuildConfig definitions, and a [Jenkins shared library](https://www.jenkins.io/doc/book/pipeline/shared-libraries/) that forms the bulk of el-CICD's pipeline functionality.
 
 The repository directory structure is as follows:
 
 * **el-CICD**  
-The root directory holds the main bootstrap and management utility for el-CICD, `el-cicd.sh`.
+Holds the main el-CICD Admin Utility script, `el-cicd.sh`.
   * **resources**  
-  Holds the BuildConfig YAML files, and a number of script style templates used throughout the system for deploying el-CICD Automation Servers and end user microservices.
+  Holds the BuildConfig definitions, and a number of script style templates used throughout the system for deploying el-CICD Automation Servers and end user microservices.
   * **scripts**  
-  Holds a number of shell scripts that define functions and functionality used by `el-cicd.sh`.
+  Holds a number of shell scripts that define functions and functionality used by el-CICD Admin Utility.
   * **vars**  
-  Holds all *.groovy files that form the functionality of the pipelines in el-CICD as part of a [Jenkins Shared Library]([https://www.jenkins.io/doc/book/pipeline/shared-libraries/](https://www.jenkins.io/doc/book/pipeline/shared-libraries/)).
+  Holds all `*.groovy` files that form the functionality of the pipelines in el-CICD as part of a [Jenkins Shared Library]([https://www.jenkins.io/doc/book/pipeline/shared-libraries/](https://www.jenkins.io/doc/book/pipeline/shared-libraries/)).
 
 ## el-CICD-config Repository
 
-This repository holds all the files that end users will configure to install and run el-CICD.  Everything in this file can be modified by end users to define their install of el-CICD.
+This repository holds all the files that end users will configure to install and run el-CICD.  Everything in this directory is meant to be configured by end users to meet their organizations needs.
 
 The repository directory structure is as follows:
 
-* **el-CICD-config**
-The root directory typically holds the main bootstrap configuration files defining an install of el-CICD.
+* **el-CICD-config**  
+The root directory holds the main bootstrap configuration files defining an install of el-CICD.
   * **bootstrap**  
   Holds additional bootstrap configuration files and any user-defined bootstrap extension scripts.
   * **builder-steps**  
-  Holds the [builder-steps](#builder-steps) implementations which define the Build for each Code Base.
+  Holds the [builder-steps](#builder-steps) implementations which define [the Build](foundations.md#the-build) for each [Code Base](foundations.md#code-base).
   * **hook-scripts**  
-  Holds the user-defined pipeline extensions scripts.
+  Holds all user defined pipeline extension scripts.
   * **jenkins**  
-  Holds Dockerfiles that define the el-CICD Jenkins image and Jenkins Agent images.
+  Holds Dockerfiles that define the el-CICD Jenkins images and Jenkins Agent images, and Jenkins configuration files for installing and/or configuration Jenkins plugins
   * **managed-okd-templates**  
   Holds definitions of Managed OKD Templates for the developers to reference.
   * **project-defs**  
-  Holds every [Project Definition File](#project-definition-file).
+  This directory represents the [Project Definition Repository](foundations.md#project-definition-repository) all [Project Definition Files](#project-definition-file).  In reality, this is meant to be an integration point for an actual project management database external to el-CICD, and a hook script that is run prior to onboarding a [Project](foundations.md#project) into el-CICD would gather the data necessary to create and commit a Project Definition File here.
   * **resource-quotas**  
-  Holds the different ResourceQuotas that can be assigned to Project namespaces.
+  Holds the ResourceQuota definitions that can be assigned to Project namespaces.
 
 ## el-CICD-docs Repository
 
-Holds all the documentation for el-CICD, including this document, a developer guide, and an el-CICD tutorial.
+Holds the following documention for el-CICD:
+
+* [Foundations](foundations.md)  
+  Describes the fundamental concepts and basic architecture el-CICD was built from.
+* Operating Manual
+* [Developer Guide](developer-quide.md)  
+  Guide for development teams on how to structure their projects for integration into el-CICD, and code for defining deployments among each environment.
+* [el-CICD Tutorial](tutorial.md)  
+  Tutorial for el-CICD taking users through a basic install and SDLC run.  It is strongly suggested that end users step through tutorial on a lab cluster to get a basic and much fuller understanding of how el-CICD works, both from an operational and developer viewpoint.
 
 ## cicd-secrets
 
-End user should create another sibling folder to the el-CICD folders holding your forked repositories called `cicd-secrets`.  These will hold the [credentials you will gather](#gathering-credentials) to support el-CICD functionality.  This folder should **not** be committed to Git, since it will hold credentials that cannot be shared.
+End users should create another sibling folder to the el-CICD folders holding your forked repositories called `cicd-secrets`.  These will hold the [credentials you will gather](#gathering-credentials) to support el-CICD functionality.  This folder should **not** be committed to Git, since it will hold credentials that cannot be shared.  Once bootstrapping is complete, encrypt and store the directory somewhere appropiate and secure.
 
-![Figure: cicd-secrets Directory](images/operations-manual/cicd-secrets-directory.png)  
+![Figure: cicd-secrets Directory in detail](images/operations-manual/cicd-secrets-directory.png)  
 
 **Figure** `cicd-secrets` _and_ `builder-secrets` _Directory with Default Files_
 
 ### builder-secrets
 
-Another folder to create under the `cicd-secrets` folder is the `builder-secrets` folder.  Builder configuration files that contain secrets that need to be mounted in Jenkins Agents for builds (e.g. a `settings.xml` for Maven, or a `pip.conf` for Python) are placed here.
+Under the `cicd-secrets` folder user should create a `builder-secrets` folder.  Builder configuration files that contain secrets that need to be mounted in Jenkins Agents for builds; e.g. a `settings.xml` for Maven, or a `pip.conf` for Python.
 
 # Configuration
 
-After all the el-CICD repositories are forked configuration of el-CICd for installation may begin.  This includes gathering credentials, defining the organization's SDLC, and defining the [Code Bases](#code-base-framework) supported.
+After all the el-CICD and el-CICD-config repositories have been committed to your SCM, configuration of el-CICd for installation may begin.  This includes:
+
+* [Gathering credentials](#gathering-credentials)
+* [Defining the organization's SDLC](#sdlc-definition)
+* Defining the [Code Bases](#code-base-framework)
+* [Bootstrap hook scripts](#bootstrap-hook-scripts)
+* Writing [Pipeline hook scripts](#pipeline-hook-scripts)
 
 ## Gathering Credentials
 
-el-CICD requires come credentials to be gathered for use in the [Automation Servers](foundation.md#automation-server), and for the pulling of images into the SDLC [namespaces](foundation.md#namespaces).  In particular, el-CICD needs
+el-CICD requires credentials to be gathered for use in the [Automation Servers](foundation.md#automation-server), and for the pulling of images into the SDLC [namespaces](foundation.md#namespaces).  In particular, el-CICD needs
 
 * Read only SSH keys for el-CICD and el-CICD-config
-* A site wide, GitHub, read-write access token
-* Access tokens for each Image Repository the installing organization will use
+* A GitHub service account access token that has adminstrator rights within your organization.  It does not have to have full control over GitHub, but it does need complete access to all projects el-CICD is expected to build and deploy.
+* Access tokens for each Image Repository el-CICD will support
 
-el-CICD is configured by default to expect a sibling directory be created on your bastion host to el-CICD and el-CICD-config called **cicd-secrets**.  All secrets for bootstrapping (i.e. standing up an [Onboarding Automation Server](#onboarding-automation-servers)) should be put in this folder.
+el-CICD is configured by default to expect a sibling directory be created on your bastion host to el-CICD and el-CICD-config called [**cicd-secrets**](#cicd-secrets).  You can configure el-CICD to look somewhere else, but it's easiest to follow convention.  All secrets required for bootstrapping (i.e. standing up an [Onboarding Automation Server](#onboarding-automation-servers)) should be put in this folder.
 
 ### SSH Keys for el-CICD and el-CICD-config
 
@@ -256,15 +266,15 @@ For creating the el-CICD and el-CICD SSH keys and using the default configuratio
 
 ### GitHub Site Wide Access Token
 
-Create a service account for your organization on GitHub that has site wide administrator access, and then [create an access token for it](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token).  Copy the access token to
+If you don't already have one, create a service account for your organization on GitHub that has organizational administrator access, and then [create an access token for it](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token).  As an example, the `elcicd` GitHub user account,  which owns and manages the el-CICD repository of projects that make up el-CICD, serves this purpose.  Copy the access token to
 
 `cicd-secrets/el-cicd-git-repo-access-token`
 
-This token will allow el-CICD to create each microservice's Git repo's webhook for automated builds and it's read-write deploy key for creating [Deployment Branches](foundations.md#deployment-branch).
+This token will allow el-CICD to create each microservice's Git repo's webhook for automated builds and a read-write deploy key for creating [Deployment Branches](foundations.md#deployment-branch) and Release Candidate Tags.
 
 ### Image Repository Pull Keys
 
-Each Image Repository el-CICD uses needs a service account, and each service account should have an access token.  The default configuration for el-CICD assumes you have a Dev Image Registry, a Non-prod Image Registry which holds images deployed to any environment not part of Dev or Prod, and a Prod Image Registry.  They are expected to save in the following locations:
+Each Image Repository el-CICD uses needs a service account, and each service account should have an access token.  The default configuration for el-CICD assumes you have a Dev Image Registry, a Non-prod Image Registry which holds images deployed to Test and Pre-prod environments, and a Prod Image Registry.  They are expected to be in the following locations:
 
 * `cicd-secrets/el-cicd-dev-pull-token`
 * `cicd-secrets/el-cicd-non-prod-pull-token`
@@ -272,71 +282,74 @@ Each Image Repository el-CICD uses needs a service account, and each service acc
 
 ### Changing the Default Secret File Configuration
 
-In the [System Configuration Files](#system-configuration-files), all the configuration used to boostrap el-CICD is explained, and it includes how these files are referenced by the [el-CICD Admin Utility](#el-cicd-administration-utility).  Follow the instructions to change which files need to be created and how they are referenced with regards o 
+In [System Configuration Files](#system-configuration-files) all the configuration used to bootstrap el-CICD is explained, how these files drive the [el-CICD Admin Utility](#el-cicd-administration-utility), and how to change them to meet your needs.
 
 ## System Configuration Files
 
-All system configuration files for el-CICD end with *.conf by convention.  They will define the el-CICD installation at bootstrap, for the Onboarding Automation Servers, and the CICD Automation Servers.  They are simple _key=value_ files with standard shell comments allowed.  They will be _sourced_ like any other Linux source file.
+All system configuration files for el-CICD end with `*.conf` by convention.  They will define the el-CICD installation during bootstrap, and the Onboarding and CICD Automation Servers during runtime.  They are simple _key=value_ files with standard shell comments and references allowed.  They will be _sourced_ like any other Linux source file.
 
 ### Root Configuration File
 
-**_Root configuration files_** are defined as any configuration file directly referenced when using the [el-CICD Admin Utility](#el-cicd-admin-utility).  The el-CICD Admin Utility will look for these files in the root of the el-CICD-configuration directory, and the el-CICD-config directory is expected to be a sibling directory of the el-CICD directory.  Root configuration files are used to define a particular install, such as configuring el-CICD for installing Non-prod versus Prod Automation Servers, or for an OKD 3 versus OKD 4 install, and are expected to define values that are unique that install.
+**_Root Configuration Files_** are defined as any configuration file directly referenced when using the [el-CICD Admin Utility](#el-cicd-admin-utility).  The el-CICD Admin Utility will look for these files in the root of the `el-CICD-config` directory, and the `el-CICD-config` directory is expected to be a sibling directory of the el-CICD directory.  Root Configuration Files are used to define a particular install, such as configuring el-CICD for installing Non-prod versus Prod Automation Servers, or for an OKD 3 versus OKD 4 install, and are expected to define values that are unique that install.
 
 
 ### Composing Configuration Files
 
-el-CICD supports composing configuration files to make it easier to share values common among different installs, and follow a simple set of rules.  Which set of configuration files define a particular install is defined in the Root Configuration File.
+el-CICD supports composing configuration files to make it easier to share values common among different installs.  Which set of configuration files define a particular install is defined in the Root Configuration File.
 
 There are two, colon delimited lists of files that can be defined in the root configuration files:
 
-* **INCLUDE_BOOTSTRAP_FILES**  
-  *.conf files only used during installation of Onboarding Automation Servers; mostly these define values for managing Git deploy keys only defined at bootstrap, and paths to files that hold Git and Image Repository credentials
-* **INCLUDE_SYSTEM_FILES**  
-  *.conf files with values used during installation and/or by either the Onboarding or CICD Automation Servers
+* **`INCLUDE_BOOTSTRAP_FILES`**  
+  `*.conf` files only used during installation of Onboarding Automation Servers; mostly these define values for managing Git deploy keys only defined at bootstrap, and local file paths to Git and Image Repository credentials
+* **`INCLUDE_SYSTEM_FILES`**  
+  `*.conf` files with values used during installation and/or during runtime by either the Onboarding or CICD Automation Servers
 
-Both of these lists are assumed to reference files relative to the _bootstrap_ directory in el-CICD-config.
+Both of these lists are assumed to reference files located in `el-CICD-config/bootstrap`.
 
-The order of precedence of keys defined in each file are
+If there are conflicts of key/value pairs between the files, the order of precedence is:
 
-1. Root configuration files
-2. INCLUDE_SYSTEM_FILES
-3. INCLUDE_BOOTSTRAP_FILES
+1. Root Configuration Files
+1. `INCLUDE_SYSTEM_FILES`
+1. `INCLUDE_BOOTSTRAP_FILES`
 
-Within the lists of INCLUDE_SYSTEM_FILES and INCLUDE_BOOTSTRAP_FILES, the order of precedence is first listed; i.e. from left to right.
+Within the lists of `INCLUDE_SYSTEM_FILES` and `INCLUDE_BOOTSTRAP_FILES`, the order of precedence is first listed; i.e. from left to right.
 
 For example, given the the two configuration files foo-config.conf and bar-config.conf:
 
-```bash
+```ini
 # foo-config.conf
 SOME_KEY=foo
 ```
-```bash
+
+```ini
 # bar-config.conf
 SOME_KEY=bar
 ```
-And given the following confguration:
 
-```bash
+And given the following configuration:
+
+```ini
 # Your Root Configuration File
 INCLUDE_BOOTSTRAP_FILES=foo-config.conf
 INCLUDE_SYSTEM_FILES=bar-config.conf
 ```
+
 -or-
 
-```bash
+```ini
 # Your Root Configuration File
 INCLUDE_BOOTSTRAP_FILES=foo-config.conf:bar-config.conf
 ```
 
-The result in the first example is`SOME_KEY=bar`, and the second example with just `INCLUDE_BOOTSTRAP_FILES` defined will be `SOME_KEY=bar`.  In the first example `SOME_KEY` will be able to be referenced in both the bootstrap and the Automation Servers, and in the second only by the el-CICD Admin Utility.
+The result in the first example is`SOME_KEY=bar`, and the second example with just `INCLUDE_BOOTSTRAP_FILES` defined will be `SOME_KEY=bar`.  In the first example `SOME_KEY` will be able to be referenced in both the bootstrap and the Automation Servers, and in the second only during bootstrapping by the el-CICD Admin Utility.
 
 #### Deploying to Different OKD Versions
 
-el-CICD runs equally well on OKD 3 or OKD 4, and Root Configuration Files for one install may be INCLUDE_* files for another.  This ability can be exploited when application migrations from OKD 3 to OKD 4 are going to be undertaken and both version need to be up for a period of time.  The following scenario envisions that OKD 3 is the OKD version, el-CICD is going to be used for future development, and the migration of applications from OKD 3 to OKD 4 will happen after the applications are adapted to el-CICD standards first.
+el-CICD runs equally well on OKD 3.11 or OKD 4.x, and Root Configuration Files for one install may be INCLUDE_* files for another.  This ability can be exploited when application migrations from OKD 3 to OKD 4 are going to be undertaken and both version need to be up for a period of time.  The following scenario envisions that OKD 3 is the OKD version, el-CICD is going to be used for future development, and the migration of applications from OKD 3 to OKD 4 will happen after the applications are adapted to el-CICD standards first.
 
-Use the main Root Configuration File to define the longer lasting install on OKD 4.  Create a smaller Root Configuration File for the OKD 3 install that overrides only the OKD specific values (e.g. `OCP_VERSION`, `CLUSTER_WILDCARD_DOMAIN`, `OCP_IMAGE_REPO`, etc.) and then copy the INCLUDE_BOOTSTRAP_FILES and INCLUDE_SYSTEM_FILES values into the OKD Root Configuration File, but add the OKD 4 Root Configuration File to the beginning of the INCLUDE_SYSTEM_FILES list in the OKD 3 Root Configuration File.
+Use the main Root Configuration File to define the longer lived install configuration on OKD 4.  Create a smaller Root Configuration File for the OKD 3 install that overrides only the OKD 4.x specific values (e.g. `OCP_VERSION`, `CLUSTER_WILDCARD_DOMAIN`, `OCP_IMAGE_REPO`, etc.) for OKD 3.11 values and then copy the `INCLUDE_BOOTSTRAP_FILES` and `INCLUDE_SYSTEM_FILES` values into the OKD Root Configuration File, but add the OKD 4 Root Configuration File to the beginning of the `INCLUDE_SYSTEM_FILES` list in the OKD 3 Root Configuration File.
 
-```bash
+```ini
 # okd-4-root.conf; OKD 4 Root Configuration File
 # OCP_VERSION and OCP_IMAGE_REPO are defined in INCLUDE_* files for OKD 4
 
@@ -346,7 +359,7 @@ INCLUDE_BOOTSTRAP_FILES=el-cicd-default-bootstrap.conf
 INCLUDE_SYSTEM_FILES=el-cicd-default-system.conf
 ```
 
-```bash
+```ini
 # OKD 3 Root Configuration File
 CLUSTER_WILDCARD_DOMAIN=my.okd.3.wildcard.com
 
@@ -360,17 +373,17 @@ INCLUDE_BOOTSTRAP_FILES=el-cicd-default-bootstrap.conf
 INCLUDE_SYSTEM_FILES=okd-4-root.conf:el-cicd-default-system.conf
 ```
 
-The advantage to this migration strategy is that it allows development teams to work semi-independently adapting their projects to el-CICD standards in parallel with operations as they work on standing up the newer OKD 4 clusters.  It also allows training to be split into two smaller, more manageable initiatives; one for adapting projects to el-CICD, and a second, later training session for OKD 4 user interface and other differences from OKD 3.
+The advantage to this migration strategy is that it allows development teams to work semi-independently adapting their projects to el-CICD standards in parallel with operations as they work on standing up and hardening the newer OKD 4 clusters.  It also allows training to be split into two smaller, more manageable initiatives: one for adapting projects to el-CICD, and a second, later training session for OKD 4 user interface and other differences from OKD 3.
 
 #### el-cicd-meta-info ConfigMap
 
-All el-CICD namespaces that host Automation Servers will contain a ConfigMap named `el-cicd-meta-info` that holds all values defined in the Root Configuration File and INCLUDE_SYSTEM_FILES.  Values defined in INCLUDE_BOOTSTRAP_FILES will not be expressed in the ConfigMap, and are only meant to be used during bootstrap.
+All Automation Server el-CICD namespaces that host will contain a ConfigMap named `el-cicd-meta-info` that holds all values defined in the Root Configuration File and `INCLUDE_SYSTEM_FILES`.  Values defined in `INCLUDE_BOOTSTRAP_FILES` will not be expressed in the ConfigMap, and are only meant to be used during bootstrap.
 
 ### Configuration Contents
 
-This section will discuss the default breakdown of the Root Configuration Files, INCLUDE_SYSTEM_FILES, and INCLUDE_BOOTSTRAP_FILES.  Comments that are not part of the actual files are added inline in order describe the relevant key-value pairs.
+This section will discuss the default breakdown of the Root Configuration Files, `INCLUDE_SYSTEM_FILES`, and `INCLUDE_BOOTSTRAP_FILES`.  Comments that are not part of the actual files are added inline in order describe the relevant key-value pairs.
 
-In most cases it is best to leave the values if there is no need to change them.  As an example, the ONBOARDING_MASTER_NAMESPACE shouldn't need to be changed, unless more than one instance of a the same type of Onboarding Automation Server (Non-prod or Prod) need to be installed on the same cluster.  On the other hand, the CLUSTER_WILDCARD_DOMAIN must be defined to each specific cluster.
+In most cases it is best to leave the values if there is no need to change them.  As an example, the `ONBOARDING_MASTER_NAMESPACE` shouldn't need to be changed, unless more than one instance of a the same type of Onboarding Automation Server (Non-prod or Prod) need to be installed on the same cluster.  On the other hand, the `CLUSTER_WILDCARD_DOMAIN` must be defined to each specific cluster.
 
 #### Basic Information
 
@@ -378,7 +391,7 @@ The following defines the basic information for el-CICD.
 
 In `el-cicd-non-prod.conf`:
 
-```properties
+```ini
 # The Onboarding Automation Server namespace and optional node selectors
 ONBOARDING_MASTER_NAMESPACE=el-cicd-non-prod-onboarding-master
 ONBOARDING_MASTER_NODE_SELECTORS=
@@ -392,7 +405,7 @@ CICD_MASTER_NODE_SELECTORS=
 
 In `el-cicd-prod.conf`:
 
-```properties
+```ini
 # The Onboarding Automation Server namespace and optional node selectors
 ONBOARDING_MASTER_NAMESPACE=el-cicd-prod-onboarding-master
 ONBOARDING_MASTER_NODE_SELECTORS=
@@ -406,14 +419,14 @@ CICD_MASTER_NODE_SELECTORS=
 
 In `el-cicd-default-system.conf`:
 
-```properties
+```ini
 # Name of the ConfigMap holding the system data defined in the el-CICD configuration files
 EL_CICD_META_INFO_NAME=el-cicd-meta-info
 ```
 
 In `el-cicd-default-bootstrap.conf`:
 
-```properties
+```ini
 # Default location of all Secret files relative the el-CICD directory
 SECRET_FILE_DIR=${BOOTSTRAP_DIR}/../cicd-secrets
 SECRET_FILE_TEMP_DIR=${SECRET_FILE_DIR}/tmp
@@ -426,7 +439,7 @@ SEALED_SECRET_RELEASE_VERSION=v0.14.1
 
 In `el-cicd-non-prod.conf`:
 
-```properties
+```ini
 # The cluster wildcard domain the server will be installed on.  Typically different for each
 # Onboarding Automation Server, except in rare case where Non-prod and Prod Onboarding
 # Automation Servers are installed in the same cluster.
@@ -435,7 +448,7 @@ CLUSTER_WILDCARD_DOMAIN=apps-crc.testing
 
 In `el-cicd-prod.conf`:
 
-```properties
+```ini
 # The cluster wildcard domain the server will be installed on.  Typically different for each
 # Onboarding Automation Server, except in rare case where Non-prod and Prod Onboarding
 # Automation Servers are installed in the same cluster.
@@ -444,7 +457,7 @@ CLUSTER_WILDCARD_DOMAIN=apps-crc.testing
 
 In `el-cicd-default-system.conf`:
 
-```properties
+```ini
 # Use this if installing on OKD 4.  This is the default setting.
 OCP_IMAGE_REPO=image-registry.openshift-image-registry.svc:5000/openshift
 
@@ -454,7 +467,7 @@ OCP_IMAGE_REPO=image-registry.openshift-image-registry.svc:5000/openshift
 
 In `el-cicd-default-bootstrap.conf`:
 
-```properties
+```ini
 # Use this if installing on OKD 4.  This is the default setting.
 OCP_VERSION=4
 
@@ -462,13 +475,13 @@ OCP_VERSION=4
 # OCP_VERSION=3
 ```
 
-Note that the differences between OKD 3 and 4 are minor, but there are a few places (such as the URL to the internal OKD registry) where el-CICD needs to know them to  function properly.
+Note that the differences between OKD 3 and 4 are minor, but there are a few places (such as the URL to the internal OKD registry, and some CLI options) where el-CICD needs to know them to function properly.
 
 #### Git Repository Information
 
 In `el-cicd-non-prod.conf`:
 
-```properties
+```ini
 # Titles are human readable ids for GitHub deploy keys.  Each microservice's deploy key will be
 # completed by the CLUSTER_WILDCARD_DOMAIN and Project ID to avoid collisions.
 EL_CICD_DEPLOY_KEY_TITLE_PREFIX=el-cicd-non-prod-deploy-key
@@ -476,7 +489,7 @@ EL_CICD_DEPLOY_KEY_TITLE_PREFIX=el-cicd-non-prod-deploy-key
 
 In `el-cicd-prod.conf`:
 
-```properties
+```ini
 # Titles are human readable ids for GitHub deploy keys.  Each microservice's deploy key will be
 # completed by the CLUSTER_WILDCARD_DOMAIN and Project ID to avoid collisions.
 EL_CICD_DEPLOY_KEY_TITLE_PREFIX=el-cicd-prod-deploy-key
@@ -484,7 +497,7 @@ EL_CICD_DEPLOY_KEY_TITLE_PREFIX=el-cicd-prod-deploy-key
 
 In `el-cicd-default-system.conf`:
 
-```properties
+```ini
 # This values is appended to the ID for each microservice's GitHub private deploy key stored in
 # Jenkins.
 GIT_CREDS_POSTFIX=git-repo-private-key
@@ -492,13 +505,13 @@ GIT_CREDS_POSTFIX=git-repo-private-key
 # The el-CICD Git repository url, branch, and ID of the private key stored in Jenkins#
 # credentials for read-only
 EL_CICD_GIT_REPO=git@github.com:elcicd/el-CICD.git
-EL_CICD_BRANCH_NAME=development
+EL_CICD_BRANCH_NAME=master
 EL_CICD_READ_ONLY_GITHUB_PRIVATE_KEY_ID=el-cicd-read-only-git-repo-private-key
 
 # The el-CICD-config Git repository url, branch, and ID of the private key stored in Jenkins
 # credentials for read-only access
 EL_CICD_CONFIG_REPOSITORY=git@github.com:elcicd/el-CICD-config.git
-EL_CICD_CONFIG_REPOSITORY_BRANCH_NAME=development
+EL_CICD_CONFIG_REPOSITORY_BRANCH_NAME=master
 EL_CICD_CONFIG_REPOSITORY_READ_ONLY_GITHUB_PRIVATE_KEY_ID=el-cicd-config-read-only-git-repo-private-key
 
 # ID of the Git site wide, read-write access token needed by the el-CICD in order to manage
@@ -508,7 +521,7 @@ GIT_SITE_WIDE_ACCESS_TOKEN_ID=git-site-wide-access-token
 
 In `el-cicd-default-bootstrap.conf`:
 
-```properties
+```ini
 # API URL of the Git server.  Used to push SSH keys to Git during bootstrapping.
 EL_CICD_GIT_API_URL=api.github.com
 
@@ -525,18 +538,18 @@ EL_CICD_SSH_READ_ONLY_DEPLOY_KEY_FILE=${SECRET_FILE_DIR}/el-cicd-deploy-key
 EL_CICD_CONFIG_SSH_READ_ONLY_PUBLIC_DEPLOY_KEY_TITLE=el-cicd-config-read-only-public-key
 EL_CICD_CONFIG_SSH_READ_ONLY_DEPLOY_KEY_FILE=${SECRET_FILE_DIR}/el-cicd-config-github-deploy-key
 
-# File of the Git site wide, read-write access token needed by the el-CICD in order to manage
-# deploy keys, webhooks, etc. for your Git server's organization
+# File of the read-write access token for the GitHub service account that manages all your organization's projects with
+# el-CICD is expected to manage.  This token will allow el-CICD to set deploy keys, webhooks, etc. for your projects
 EL_CICD_GIT_REPO_ACCESS_TOKEN_FILE=${SECRET_FILE_DIR}/el-cicd-git-repo-access-token
 ```
 
 #### Build Secrets
 
-If any of your organizations builds make use of a settings files for builds that contain secrets (e.g.`settings.xml` for Maven builds, or a `pip.conf` for Python), then these files should be place here.
+If any of your organizations builds make use of a settings files for builds that contain secrets (e.g.`settings.xml` for Maven builds, or a `pip.conf` for Python), then these files should be place in `cicd-secrets/build-config`.  These files will be loaded into a Secret in the CICD Automation Server namespaces, and mounted as a volume into each Jenkins Agent for use by the [Builder Steps](#builder-steps).
 
 In `el-cicd-non-prod.conf`:
 
-```properties
+```ini
 # Name of the secrets that holds all the files that were placed in the builder-secrets directory
 EL_CICD_BUILD_SECRETS_NAME=el-cicd-build-secrets
 
@@ -546,24 +559,21 @@ BUILDER_SECRETS_DIR=/mnt
 
 In `el-cicd-default-bootstrap.conf`:
 
-```properties
+```ini
 # Name and path of the builder-secrets directory
 BUILD_SECRET_FILE_DIR=${SECRET_FILE_DIR}/builder-secrets
 ```
 
 ##### Naming Convention Definitions
 
-There are a number of naming conventions used by el-CICD in order to easily allow configuration fo the SDLC by end users, and one prefix is for NFS Persistent Volumes in order to easily identify them.
+The following conventions are defined in the configuration scripts, and unless you really know what you're doing, **do not** modify them.  el-CICD uses these prefix and postfix conventions to easily find the appropriate values per environmental namespace.
 
 In `el-cicd-default-system.conf`:
 
-```properties
+```ini
 # Each postfix below is used to defined the Image Repository details per SDLC environment
 #     e.g. For the DEV environment, the key to define the username for access is DEV_IMAGE_REPO_USERNAME
 # This makes lookup of these values scriptable by environment, without having to know the environment in advance
-
-# Defines the pull token file location
-PULL_TOKEN_FILE_POSTFIX=_PULL_TOKEN_FILE
 
 # Username (account) that has privileged access to an Image Repository
 IMAGE_REPO_USERNAME_POSTFIX=_IMAGE_REPO_USERNAME
@@ -584,19 +594,29 @@ NODE_SELECTORS_POSTFIX=_NODE_SELECTORS
 NFS_PV_PREFIX=nfs
 ```
 
+In `el-cicd-default-bootstrap.conf`:
+
+```ini
+# Defines the pull token file location
+PULL_TOKEN_FILE_POSTFIX=_PULL_TOKEN_FILE
+```
+
 #### SDLC Definition
 
-Defining the organization's SDLC is conceptually the most important part of the configuration.  Whatever is defined in these files will determine how Projects are onboarded with el-CICD and into OKD.  Project Definition Files, namespaces, Image tags, where images are pushed and proomoted, and Git Deployment Branch names.
+Defining the organization's SDLC is conceptually the most important part of the configuration.  Whatever is defined in these files will determine how Projects are onboarded with el-CICD and into OKD.  Project Definition Files, namespaces, image tags, where images are pushed and promooted, and Git Deployment Branch names.
 
 ##### Lifecycle Definition
 
-Defines the supported environments and the possible environment promotion scheme used by the organization.  DEV_ENV, PRE_PROD, and PROD **must** be defined.  TEST_ENVS are list in order of promotion (e.g. QA is promoted to UAT in the example below) in a colon delimited list, and are optional.
+The following defines the supported environments and the possible environment promotion scheme used by the organization.  `DEV_ENV`, `PRE_PROD`, and `PROD` **must** be defined.  `TEST_ENVS` are list in order of promotion (e.g. QA is promoted to UAT in the example below) in a colon delimited list, and are optional.  The `HOTFIX_ENV` is an alternative build environment where emergency patches to applications already in production are built, and this environment must be specifically enabled in the [Project Definition File](#project-definition-file) to be realized.
 
 In `el-cicd-default-system.conf`:
 
-```properties
+```ini
 # Environment builds are initially deployed to
 DEV_ENV=DEV
+
+# Environment for building hotfixes to applications already in production before promotion to Pre-prod
+HOTFIX_ENV=HOTFIX
 
 # Optional test environments in a colon delimited list from first to last in order of promotion
 TEST_ENVS=QA:UAT
@@ -614,7 +634,7 @@ Each environment must be tied to an Image Repository in which images are built a
 
 In `el-cicd-non-prod.conf`:
 
-```properties
+```ini
 # The following demonstrates how to define the values needed by el-CICD to integrate with the Image Repository.
 # Note the postfix of each value that was defined in Naming Convention Definitions above to understand what
 # each value is for.  Also note the optional node selectors for DEV environment namespaces.
@@ -625,12 +645,13 @@ DEV_IMAGE_REPO_ACCESS_TOKEN_ID=image-repo-dev-access-token
 DEV_NODE_SELECTORS=
 ```
 
-**NOTE:** The above only shows the defintion of values supporting the DEV Image Registry, but each TEST_ENV is also defined in this file.
+**NOTE:** The above only shows the definition of values supporting the `DEV` Image Registry, but each `TEST_ENV` and the `HOTFIX_ENV` is also defined in this file.
 
 In `el-cicd-prod.conf`:
 
-```properties
-# The values supporting the Prod Image Repository is defined here.  Also note the optional node selectors for PROD environment namespaces.
+```ini
+# The values supporting the Prod Image Repository is defined here.  Also note the optional
+# node selectors for PROD environment namespaces.
 PROD_PULL_TOKEN_FILE=${SECRET_FILE_DIR}/el-cicd-prod-pull-token
 PROD_IMAGE_REPO_USERNAME=elcicdprod
 PROD_IMAGE_REPO=docker.io/elcicdprod
@@ -641,9 +662,10 @@ PROD_NODE_SELECTORS=
 
 In `el-cicd-default-system.conf`:
 
-```properties
-# The values supporting the Pre-prod Image Repository is defined in the default system configuration file, because Pre-prod is referenced
-# from both the Non-prod and Prod CICD Automation Servers.  Also note the optional node selectors for STG environment namespaces.
+```ini
+# The values supporting the Pre-prod Image Repository is defined in the default system 
+# configuration file, because Pre-prod is referenced from both the Non-prod and Prod CICD
+# Automation Servers.  Also note the optional node selectors for STG environment namespaces.
 STG_IMAGE_REPO_USERNAME=elcicdnonprod
 STG_IMAGE_REPO=docker.io/elcicdnonprod
 STG_IMAGE_REPO_PULL_SECRET=el-cicd-image-repo-non-prod-pull-secret
@@ -653,23 +675,21 @@ STG_NODE_SELECTORS=
 
 In `el-cicd-default-bootstrap.conf`:
 
-```properties
+```ini
 # This only show the DEV pull token file as an example, but a definition of a pull token file MUST be defined here.
 DEV_PULL_TOKEN_FILE=${SECRET_FILE_DIR}/el-cicd-dev-pull-token
 ```
 
 ### Jenkins Configuration
 
-A specific Jenkins image is created for el-CICD installs.  The bootstrapping image build framework allows a great deal of customization and configuration based
+A specific Jenkins image is created for each el-CICD install.  The bootstrapping image build framework allows a great deal of customization and configuration based
 on the OKD base Jenkins image.  The default build will make sure the [Jenkins Configuration as Code](https://www.jenkins.io/projects/jcasc/) plugin is included in the image, and then loads a list of all known plugins, setting them to latest for a complete upgrade.
 
-To configure the Jenkins images that will support your installation of el-CICD, edit the `*-jenkins-casc.yml` and `*-plugins.txt` in the `el-CICD=config/jenkins` directory.
-
-The JENKINS_BUILD_AGENT_NAMES colon delimited list below should match the name of the Jenkins Agents your building.  See the [Code Base Framework](#code-base-framework) for more information.
+The `JENKINS_BUILD_AGENT_NAMES` colon delimited list below should match the file extension of the Dockerfiles that will build your Jenkins Agents; e.g. the file `Dockerfile.python` will be used to build the Python Jenkins Agent.  See the [Code Base Framework](#code-base-framework) for more information.
 
 In `el-cicd-non-prod.conf`:
 
-```properties
+```ini
 # Name of Jenkins image for Non-prod and CICD Onboarding Automation Servers used by el-CICD, added to the openshift namespace
 JENKINS_IMAGE_STREAM=el-cicd-non-prod-jenkins
 
@@ -686,7 +706,7 @@ JENKINS_AGENTS_BUILD_DIRS=
 
 In `el-cicd-prod.conf`:
 
-```properties
+```ini
 # Name of Jenkins image for Prod and CICD Onboarding Automation Servers used by el-CICD, added to the openshift namespace
 JENKINS_IMAGE_STREAM=el-cicd-prod-jenkins
 
@@ -697,7 +717,7 @@ JENKINS_PLUGINS_FILE=prod-plugins.txt
 
 In `el-cicd-default-system.conf`:
 
-```properties
+```ini
 # Path where JENKINS_CASC_FILE and JENKINS_PLUGINS_FILE will be copied and reference in the Jenkins images
 JENKINS_CONTAINER_CONFIG_DIR=/usr/local/etc
 
@@ -729,21 +749,44 @@ JENKINS_AGENT_CPU_LIMIT=2
 JENKINS_AGENT_MEMORY_IDLE_MINUTES=30
 ```
 
-#### Dockerfiles
+#### Jenkins and Agents Dockerfiles and Configuration Files
 
-The `el-CICD-config/jenkins` directory holds a number of Dockerfiles for building the Jenkins and Jenkins Agents images used by el-CICD.  It is expected that end users will customize these to possibly add the appropriate certs or change or remove the default CentOS yum repositories used by the default el-CICD Agent image builds.
+All Jenkins configuration files should be placed in the `el-CICD-config/jenkins` directory, including Dockerfiles, yum repository defintions, and Jenkins specific configuration files.  It is expected that end users will customize the Dockerfiles to possibly add any necessary certs or change or remove the default CentOS yum repositories (defined and used by the Dockerfiles in the file `centos.repo`) used by the default el-CICD Agent image builds.
 
-Jenkins is built using a template Dockerfile that will inject the proper values for the related base Jenkins image in the OKD image regisry, as well as JENKINS_PLUGINS_FILE information.  Feel free to modify the file as needed.
+The el-CICD Jenkins image for each install is built using a template Dockerfile that will inject the proper values for the related base Jenkins image in the OKD image registry, as well as `JENKINS_PLUGINS_FILE` information and other values defined in the appropriate `*.conf` files.  Feel free to modify the files as needed.  To configure the Jenkins images that will support your installation of el-CICD, edit the `*-jenkins-casc.yml` and `*-plugins.txt`.
 
-The Agent images are build using Dockerfiles with extensions matching the [Code Base](#code-base-framework) they'll support for builds.  Again feel free to modify these as necessary, or to add new Dockerfiles for new build Agents not supported by default by el-CICD following the same Code Base standards.
+The Agent images are build using Dockerfiles with extensions matching the [Code Base](#code-base-framework) they'll support for builds.  Again, feel free to modify these as necessary, or to add new Dockerfiles for new build Agents not supported by default by el-CICD following the same Code Base standards.
+
+##### Default Jenkins Agent
+
+`JENKINS_AGENT_DEFAULT` defines the default agent all pipelines outside of the builder pipelines will use.  In `el-CICD-config/bootstrap/el-cicd-default-system.conf`
+
+```ini
+JENKINS_AGENT_DEFAULT=base
+```
+
+You will need a Dockerfile called `Dockerfile.base` (or `Dockerfile.<ext>` is you choose to change the extension) to build the base Jenkins Agent used for all Jenkins pipelines except build agent.  Also by default and for practical reasons, the agent image is used as the base image for all other Jenkins Agents.
 
 ![Figure: jenkins Directory, Dockerfiles, and Supporting Configuration](images/operations-manual/jenkins-directory.png)
 
-**Figure** _jenkins Directory, Dockerfiles, and Supporting Configuration_
+**Figure**  
+_jenkins Directory, Dockerfiles, and Supporting Configuration_
+
+##### Skopeo and Kustomize
+
+Almost all pipelines in el-CICD make use of [`skopeo`](foundations.md#skopeo) and [`kustomize`](foundations.md#kustomize).  In the latter case, el-CICD was built calling `kustomize` directly rather than the one built into the CLI in order to take advantage of the latest and greatest, and to allow 3.11 versions of OCP to take advantageo of the functionality.  Any custom Jenkins Agents defined by end users must include `skopeo` and `kustomize` for el-CICD to function.
 
 ## Managed OKD Resources
 
 el-CICD manages a group of OKD Templates and ResourceQuotas to support automated Project deployments and setup, respectively.  All managed OKD Resources may be modified, removed, or new ones defined to meet an organization's standards and needs.
+
+### ResourceQuota Definition Files
+
+Classes of ResourceQuotas can be assigned to different SDLC namespaces, and configured per Project, since not all Projects are of equal size or resource needs.  Define these as YAML or JSON files, and refer to them in [Project Definition Files](#project-definition-file) to apply them to a particular SDLC environment.  el-CICD comes with definitions for small, medium, large, and sandbox sizes, and they define memory, cpu, and storage only.  All ResourceQuota definitions should be placed in the `el-CICD-config/resource-quotas` directory.
+
+![Figure: resource-quotas Directory](images/operations-manual/resource-quotas-directory.png)
+
+**Figure** _resource-quotas Directory_
 
 ### OKD Template Definition Files
 
@@ -754,14 +797,6 @@ All basic OKD resources a developer might concern themselves with are defined in
 ![Figure: managed-okd-templates Directory](images/operations-manual/managed-okd-templates-directory.png)
 
 **Figure:** _managed-okd-templates Directory_
-
-### ResourceQuota Definition Files
-
-Classes of ResourceQuotas can be assigned to different SDLC namespaces, and configured per Project, since not all Projects are of equals size or resource needs.  Define these as YAML or JSON files, and refer to them in [Project Definition Files](#project-definition-file) to apply them to a particular SDLC environment.  el-CICD comes with definitions for small, medium, large, and sandbox sizes.  Al ResourceQuota definitions should be placed in the `el-CICD-config/resource-quotas` directory.
-
-![Figure: resource-quotas Directory](images/operations-manual/resource-quotas-directory.png)
-
-**Figure** _resource-quotas Directory_
 
 ## Project Definition File
 
@@ -897,7 +932,7 @@ The builder framework is made up of four basic steps for each Build: building, t
 * **Assembling**: `assembler.groovy`
 
 
-##### Overriding the Defaults Build Scripts
+##### Using Alternative Builder Steps
 
 For microservices defined in a [Project Definition File](#Project-definition-file), there is no need to specifically name any of the default Build Step scripts.  If a Code Base needs to support more than type of Build Step, then both Build Step scripts can't be named the same in the directory.   For the file that does not follow the above naming conventions, it needs to be explicitly declared using the default script name as a key in the microservice definition of the Project Definition File; e.g. `builder` for a custom builder script, or `scanner` for a customer scanner script:
 
@@ -959,15 +994,21 @@ def assemble(def projectInfo, def microService) {
 return this
 ```
 
+## Pipeline Hook Scripts
+
+### Extension Points
+
+### Writing Hook Scripts 
+
 # Bootstrapping, Onboarding, and Operational Management
 
 ![Figure: el-CICD Components](images/readme/components.png)
 
 **Figure** _el-CICD Components_
 
-## el-cicd Admin Utility
+## el-CICD Admin Utility
 
-The el-cicd Admin Utility, located in root directory of the [el-CICD Repository](#el-cicd-repository) will drive the bootstrapping of el-CICD [Onboarding Automation Servers](#Onboarding Automation Server), refresh their credentials, and build Jenkins and Jenkins' Agent images.
+The el-CICD Admin Utility, located in root directory of the [el-CICD Repository](#el-cicd-repository) will drive the bootstrapping of el-CICD [Onboarding Automation Servers](#Onboarding Automation Server), refresh their credentials, and build Jenkins and Jenkins' Agent images.
 
 ```text
 Usage: el-cicd.sh [OPTION] [root-config-file]
@@ -994,7 +1035,7 @@ Users must have cluster admin privileges to use the utility, and sudo privileges
 
 ### Bootstrapping Onboarding Automation Servers
 
-The main purpose of the el-cicd Admin Utility is to bootstrap (i.e. install) the Onboarding Automation Servers.  The main points of bootstrapping are as follows:
+The main purpose of the el-CICD Admin Utility is to bootstrap (i.e. install) the Onboarding Automation Servers.  The main points of bootstrapping are as follows:
 
 * Gathers the installation details
 * Summarizes the details and confirm with the user
@@ -1020,11 +1061,11 @@ To execute the command, run the following (assuming the default configuration fi
 
 `./el-cicd.sh --prod el-cicd-prod.conf` to stand up a Non-prod Onboarding Automation Server.
 
-Bootstrapping the Onboarding Automation Servers with the el-cicd Admin Utility is idempotent, and will not affect the CICD Automation Servers.  If Sealed Secrets is installed, you must run this on a bastion host so developers can use the utility to create Sealed Secrets.
+Bootstrapping the Onboarding Automation Servers with the el-CICD Admin Utility is idempotent, and will not affect the CICD Automation Servers.  If Sealed Secrets is installed, you must run this on a bastion host so developers can use the utility to create Sealed Secrets.
 
 ### Refreshing Credentials
 
-The el-cicd Admin Utility can be used to refresh the credentials of any Obnboarding Automation Server.  Running this command will do the following:
+The el-CICD Admin Utility can be used to refresh the credentials of any Obnboarding Automation Server.  Running this command will do the following:
 
 * Recreate the `el-cicd-meta-info` [ConfigMap](#el-cicd-meta-info-configmap)
 * Push all credentials out the Onboarding Automation Server and namespace
@@ -1039,7 +1080,7 @@ To execute the command, run the following (assuming the default configuration fi
 
 ### Building Jenkins Images
 
-The el-cicd Admin Utility can be used to rebuild the el-CICD Jenkins Image and/or the el-CICD Jenkins Agent Images.  To execute the command, run the following (assuming the default configuration file structure):  
+The el-CICD Admin Utility can be used to rebuild the el-CICD Jenkins Image and/or the el-CICD Jenkins Agent Images.  To execute the command, run the following (assuming the default configuration file structure):  
 
 * `./el-cicd.sh --jenkins el-cicd-non-prod.conf` to rebuild the Non-prod Jenkins image, and
 * `./el-cicd.sh --jenkins el-cicd-prod.conf` to rebuild the Prod Jenkins image.
@@ -1075,7 +1116,7 @@ The el-CICD Admin Utility supports adding hook scripts by naming convention that
 
 #### Bootstrap Hook Scripts
 
-To add your own boostrap hook scripts, place the scripts in the `el-CICD-config/bootstrap` directory with the following naming conventions:
+To add your own bootstrap hook scripts, place the scripts in the `el-CICD-config/bootstrap` directory with the following naming conventions:
 
 * `non-prod-*.sh`, for scripts that should be executed after bootstrapping a Non-prod Onboarding Automation Server.
 * `prod-*.sh`. for scripts that should be executed after bootstrapping a Non-prod Onboarding Automation Server.
@@ -1195,7 +1236,7 @@ The non-prod-project-delete will offboard a Project from OKD.
 
 Prod Onboarding Automation Servers are responsible for the standing up of, and the refreshing of credentials to Prod CICD Automation Servers.
 
-##### prod-project-project-onboarding Pipeline
+#### prod-project-project-onboarding Pipeline
 
 This pipeline is responsible for onboarding the necessary resources to support a Project's promotion and deployment to Prod.
 
@@ -1218,6 +1259,7 @@ This pipeline is responsible for onboarding the necessary resources to support a
 
 Because this pipeline is executed on a Prod cluster, it is only meant to be triggered manually by a cluster admin.
 
-##### Prod refresh-credentials Pipeline
+#### Prod refresh-credentials Pipeline
 
 See the [Non-prod refresh-credentials Pipeline](#non-prod-refresh-credentials-pipeline).
+

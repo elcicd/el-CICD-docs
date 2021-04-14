@@ -387,36 +387,36 @@ Changes to the code are made on a Hotfix Branch, rather than on the Development 
 
 A number of other OSS products are used to support the system, and it should go without saying we are extremely grateful for the work each of their development teams do.
 
-### [Git](https://git-scm.com/)
+### Git
 
-The SCM used by el-CICD.  No others are currently supported.
+[Git](https://git-scm.com/) is the SCM used by el-CICD.  No others are currently supported.
 
-### [GitHub](https://github.com)
+### GitHub
 
-GitHub is a third party application for hosting Git repositories, and [github.org](github.org) is where el-CICD is currently hosted.   This Project was developed using GitHub, and it is currently the only Git repository hosting application supported by el-CICD.
+[GitHub](https://github.com) is a third party application for hosting Git repositories, and [github.org](github.org) is where el-CICD is currently hosted.   This Project was developed using GitHub, and it is currently the only Git repository hosting application supported by el-CICD.
 
 **NOTE**: The el-CICD project considers it a priority to support other Git repository hosting sites, and it is currently a top priority on our TODO list.
 
-### [Jenkins](https://www.jenkins.io/)
+### Jenkins
 
-Jenkins is an open source software (OSS) Automation Server, and used for defining and running the pipelines to build and deploy microservices onto OKD.
+[Jenkins](https://www.jenkins.io/) is an open source software (OSS) Automation Server, and used for defining and running the pipelines to build and deploy microservices onto OKD.
 
-### [skopeo](https://github.com/containers/skopeo)
+### skopeo
 
-A command line utility for the copying, tagging, deleting, and inspection of images on OCI and Docker v2 compliant Image Repositories.
+[`skopeo`](https://github.com/containers/skopeo) is a command line utility for the copying, tagging, deleting, and inspection of images on OCI and Docker v2 compliant Image Repositories.
 
-### [DockerHub](https://hub.docker.com)
+### DockerHub
 
-Any online or or on premise Image Repository that is compatible with Podman/Buildah/Skopeo or Docker is compatible for use with el-CICD.  The examples in the accompanying tutorial use DockerHub, but Quay](https://quay.io), [Artifactory](https://jfrog.com/artifactory/) or any other OCI compliant Image Repository could also have been used.
+Any online or or on premise Image Repository that is compatible with `skopeo` or `Docker` is compatible for use with el-CICD.  The examples in the accompanying tutorial use [DockerHub](https://hub.docker.com), but [Quay](https://quay.io), [Artifactory](https://jfrog.com/artifactory/) or any other OCI compliant Image Repository could also have been used.
 
-### [OKD](https://okd.io)
+### OKD
 
-OKD (and it's downstream project OpenShift) is OSS from Red Hat that acts as the Container Orchestration Platform, and in whole is a Platform as a Service (PaaS).  While Jenkins runs and defines the pipelines and is the heart of el-CICD, it is OKD that is the body that will ultimately host and coordinate with Jenkins to run them.  el-CICD runs equally will on versions 3.11 and 4.x+, with only minor configuration changes.
+[OKD](https://okd.io) (and it's downstream project [OpenShift](https://www.openshift.com/)) is OSS from Red Hat that acts as the Container Orchestration Platform, and in whole is a Platform as a Service (PaaS).  While Jenkins runs and defines the pipelines and is the heart of el-CICD, it is OKD that is the body that will ultimately host and coordinate with Jenkins to run them.  el-CICD runs equally will on versions 3.11 and 4.x+, with only minor configuration changes.
 
-### [Kustomize](kustomize.io)
+### Kustomize
 
-OKD has a [Template](https://docs.okd.io/latest/openshift_images/using-templates.html) resource, which provides some use towards defining classes of resources that are configurable via scripts.  `Kustomize` is a tool (also built into the latest `oc` CLI) that makes it easy to patch OKD resources, and OKD Templates in particular, for even greater reuse across and within each environment.
+OKD has a [Template](https://docs.okd.io/latest/openshift_images/using-templates.html) resource, which provides some use towards defining classes of resources that are configurable via scripts.  [`Kustomize`](kustomize.io) is a tool (also built into the latest `oc` CLI) that makes it easy to patch OKD resources, and OKD Templates in particular, for even greater reuse across and within each environment.
 
-### [SealedSecrets](https://github.com/bitnami-labs/sealed-secrets)
+### SealedSecrets
 
-SealedSecrets is an OSS tool providing a mechanism for encrypting secrets for external versioning and automation purposes.  Please see [Encrypt SealedSecrets](#encrypt-sealedsecrets) below for further details.
+[SealedSecrets](https://github.com/bitnami-labs/sealed-secrets) is an OSS tool providing a mechanism for encrypting secrets for external versioning and automation purposes.
