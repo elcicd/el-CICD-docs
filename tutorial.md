@@ -1161,4 +1161,3 @@ The rest of the tutorial will take you through promoting Production, which creat
 ### Upgrading a Release Version, Rolling Forward, and Rolling Back
 
 Upgrading Release Versions, rolling forward, and rolling back in production is merely deploying a particular version.  To demonstrate, repeat [Deploying to Production](#deploying-to-production) twice, first promoting `1.1.1`, and then to roll back to version `1.0.0`.
-
