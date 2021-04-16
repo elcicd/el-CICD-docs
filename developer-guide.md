@@ -104,12 +104,13 @@ or send a letter to
     * [Microservice Runtime Meta-Info](#microservice-runtime-meta-info)
     * [Project Meta-Info](#project-meta-info)
 * [Non-prod Automation Server Pipelines](#non-prod-automation-server-pipelines)
-  * [Build-to-Dev](#build-to-dev)
-  * [Build and Deploy Microservices](#build-and-deploy-microservices)
-  * [Promotion/Removal](#promotionremoval)
-  * [Redeploy/Removal](#redeployremoval)
-  * [Create Release Candidate](#create-release-candidate)
-  * [Redeploy Release Candidate](#redeploy-release-candidate)
+  * [build-to-dev Pipelines](#build-to-dev-pipelines)
+  * [build-and-deploy-microservices Pipeline](#build-and-deploy-microservices-pipeline)
+  * [build-library Pipelines](#build-library-pipelines)
+  * [microservice-promotion-removal Pipeline](#microservice-promotion-removal-pipeline)
+  * [microservice-redeploy-removal Pipeline](#microservice-redeploy-removal-pipeline)
+  * [create-release-candidate Pipeline](#create-release-candidate-pipeline)
+  * [redeploy-release-candidate Pipeline](#redeploy-release-candidate-pipeline)
 
 # Overview
 
@@ -709,7 +710,7 @@ The following pipelines exist on the Non-prod Automation Server.  All except the
 **Figure**
 _Non-prod Automation Server pipelines for RBAC Group_ `devops` _and Project_ `test-cicd`
 
-## Build-to-Dev
+## build-to-dev Pipelines
 
 There is one Build-to-Dev pipeline per microservice defined in the [Project Definition File](operating-manual.md#project-definition-file).  The pipelines are responsible for the [Build](foundations.md#the-build), creating and pushing to the microservice's image to the [Artifact Repository](foundations.md#artifact-repository), and deploying the newly built image into the Dev environment.  This pipeline is typically triggered by a webhook whenever the Development Branch of the microservice has a new commit.
 
@@ -735,7 +736,7 @@ There is one Build-to-Dev pipeline per microservice defined in the [Project Defi
 **Figure**
 _Build with Parameters screen for the Build and Deploy Microservices pipeline_
 
-## Build and Deploy Microservices
+## build-and-deploy-microservices Pipeline
 
 The Build and Deploy Microservices pipeline is for building and deploying multiple microservices at once.
 
@@ -770,7 +771,11 @@ _Choose what microservices build and where to deploy to_
 
 `buildAll` will build all the microservices in the Project.  `recreateAll` will remove all previously deployed microservices from the enviroment before deploying anything, and this functionality can be used without building any microservices as a means of cleaning the Dev or Sandox environments.
 
-## Promotion/Removal
+## build-library Pipelines
+
+Builds libraries
+
+## microservice-promotion-removal Pipeline
 
 The Promotion/Removal pipeline will promote one or more microservices of a Project from one environment to the next and/or remove microservices from the environment to be promoted to.
 
@@ -807,7 +812,7 @@ _Build with Parameters screen for the Promotion/Removal pipeline_
 **Figure**
 _Select microservices to promote or remove_
 
-## Redeploy/Removal
+## microservice-redeploy-removal Pipeline
 
 The Redeploy/Removal pipeline will redeploy an image already promoted into a test environment.  This pipeline is for rolling microservices back/forward, or to apply a [Deployment Patch](foundations.md#deployment-patching) in the selected environment.
 
@@ -845,7 +850,7 @@ _Select environment to redeploy to_
 **Figure**
 _Select microservices to redeploy or remove_
 
-## Create Release Candidate
+## create-release-candidate Pipeline
 
 The Create [Release Candidate](foundations.md#release-candidate) pipeline's will define a collection of images from those having last been deployed in the [Pre-prod](foundations.md#pre-prod) environment as a candidate for a release to production.
 
@@ -875,7 +880,7 @@ _Build with Parameters screen for the Redeploy/Removal pipeline_
 **Figure**
 _Select microservices to tag that are part of the Release Candidate_
 
-## Redeploy Release Candidate
+## redeploy-release-candidate Pipeline
 
 The Redeploy Release Candidate pipeline is for resetting the Pre-prod environment and redeploying a complete release candidate.  This is run either for to retest a particular Release Candidate, or in preparation for creating a hotfix release.
 

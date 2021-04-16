@@ -116,14 +116,11 @@ or send a letter to
       * [Upgrading Sealed Secrets](#upgrading-sealed-secrets)
   * [Onboarding Automation Servers](#onboarding-automation-servers)
     * [WARNING: Onboarding Automation Server Access](#warning-onboarding-automation-server-access)
-    * [Non-prod Onboarding Automation Server](#non-prod-onboarding-automation-server)
-      * [Non-prod Onboarding Automation Server Pipelines](#non-prod-onboarding-automation-server-pipelines)
-        * [non-prod-project-project-onboarding Pipeline](#non-prod-project-project-onboarding-pipeline)
-        * [Non-prod refresh-credentials Pipeline](#non-prod-refresh-credentials-pipeline)
-        * [non-prod-project-delete Pipeline](#non-prod-project-delete-pipeline)
-    * [Prod Onboarding Automation Server](#prod-onboarding-automation-server)
+    * [Onboarding Automation Server Pipelines](#onboarding-automation-server-pipelines)
+      * [non-prod-project-project-onboarding Pipeline](#non-prod-project-project-onboarding-pipeline)
       * [prod-project-project-onboarding Pipeline](#prod-project-project-onboarding-pipeline)
-      * [Prod refresh-credentials Pipeline](#prod-refresh-credentials-pipeline)
+      * [refresh-credentials Pipeline](#refresh-credentials-pipeline)
+      * [delete-project Pipeline](#delete-project-pipeline)
   * [Extending el-CICD](#extending-el-cicd)
     * [Extending the el-CICD Admin Utility](#extending-the-el-cicd-admin-utility)
       * [Bootstrap Hook Scripts](#bootstrap-hook-scripts)
@@ -249,7 +246,7 @@ el-CICD requires credentials to be gathered for use in the [Automation Servers](
 * A GitHub service account access token that has adminstrator rights within your organization.  It does not have to have full control over GitHub, but it does need complete access to all projects el-CICD is expected to build and deploy.
 * Access tokens for each Image Repository el-CICD will support
 
-el-CICD is configured by default to expect a sibling directory be created on your bastion host to el-CICD and el-CICD-config called [**cicd-secrets**](#cicd-secrets).  You can configure el-CICD to look somewhere else, but it's easiest to follow convention.  All secrets required for bootstrapping (i.e. standing up an [Onboarding Automation Server](#onboarding-automation-servers)) should be put in this folder.
+el-CICD is configured by default to expect a sibling directory be created on your OKD bastion host to el-CICD and el-CICD-config called [**cicd-secrets**](#cicd-secrets).  You can configure el-CICD to look somewhere else, but it's easiest to follow convention.  All secrets required for bootstrapping (i.e. standing up an [Onboarding Automation Server](#onboarding-automation-servers)) should be put in this folder.
 
 ### SSH Keys for el-CICD and el-CICD-config
 
@@ -757,7 +754,7 @@ JENKINS_AGENT_MEMORY_IDLE_MINUTES=30
 
 #### Jenkins and Agents Dockerfiles and Configuration Files
 
-All Jenkins configuration files should be placed in the `el-CICD-config/jenkins` directory, including Dockerfiles, yum repository defintions, and Jenkins specific configuration files.  It is expected that end users will customize the Dockerfiles to possibly add any necessary certs or change or remove the default CentOS yum repositories (defined and used by the Dockerfiles in the file `centos.repo`) used by the default el-CICD Agent image builds.
+All Jenkins configuration files should be placed in the `el-CICD-config/jenkins` directory, including Dockerfiles, yum repository definitions, and Jenkins specific configuration files.  It is expected that end users will customize the Dockerfiles to possibly add any necessary certs or change or remove the default CentOS yum repositories (defined and used by the Dockerfiles in the file `centos.repo`) used by the default el-CICD Agent image builds.
 
 The el-CICD Jenkins image for each install is built using a template Dockerfile that will inject the proper values for the related base Jenkins image in the OKD image registry, as well as `JENKINS_PLUGINS_FILE` information and other values defined in the appropriate `*.conf` files.  Feel free to modify the files as needed.  To configure the Jenkins images that will support your installation of el-CICD, edit the `*-jenkins-casc.yml` and `*-plugins.txt`.
 
@@ -1058,7 +1055,7 @@ The files for each step can be named anything.  The above names (e.g. `builder` 
 
 ## el-CICD Admin Utility
 
-The el-CICD Admin Utility, located in root directory of the [el-CICD Repository](#el-cicd-repository) will drive the bootstrapping of el-CICD [Onboarding Automation Servers](#Onboarding Automation Server), refresh their credentials, and build Jenkins and Jenkins' Agent images.
+The el-CICD Admin Utility, located in root directory of the [el-CICD Repository](#el-cicd-repository) will drive the bootstrapping of el-CICD [Onboarding Automation Servers](#onboarding-automation-servers), refresh their credentials, and build Jenkins and Jenkins' Agent images.
 
 ```text
 Usage: el-cicd.sh [OPTION] [root-config-file]
@@ -1081,7 +1078,7 @@ root-config-file:
     file name or path to a root configuration file relative the root of the el-CICD-config directory
 ```
 
-Users must have cluster admin privileges to use the utility, and sudo privileges on the OKD bastion host to install Sealed Secrets.
+To use the utility users must have cluster admin privileges on the OKD cluster, and sudo privileges on the OKD OKD bastion host to install Sealed Secrets.
 
 ### Bootstrapping Onboarding Automation Servers
 
@@ -1104,6 +1101,7 @@ If the user answers `Yes` to the summary confirmation:
   * Pushes Credentials to GitHub
   * Creates initial copies of all SDLC pull secrets in the Onboarding Automation Server namespace
 * Kicks off the builds for all Jenkins Agents if they can't be found in the `openshift` namespace
+  * This behavior can be disabled by setting `JENKINS_SKIP_AGENT_BUILDS=false` in the configuration files
 
 To execute the command, run the following (assuming the default configuration file structure):  
 
@@ -1111,14 +1109,14 @@ To execute the command, run the following (assuming the default configuration fi
 
 `./el-cicd.sh --prod el-cicd-prod.conf` to stand up a Non-prod Onboarding Automation Server.
 
-Bootstrapping the Onboarding Automation Servers with the el-CICD Admin Utility is idempotent, and will not affect the CICD Automation Servers.  If Sealed Secrets is installed, you must run this on a bastion host so developers can use the utility to create Sealed Secrets.
+Bootstrapping the Onboarding Automation Servers with the el-CICD Admin Utility is idempotent, and will not affect any existing CICD Automation Servers or SLDC environments.  If Sealed Secrets is installed, you must run this on a OKD bastion host so developers can use the utility to create Sealed Secrets for their repositories.
 
 ### Refreshing Credentials
 
-The el-CICD Admin Utility can be used to refresh the credentials of any Obnboarding Automation Server.  Running this command will do the following:
+The el-CICD Admin Utility can be used to refresh the credentials of any Onboarding Automation Server.  Running this command will do the following:
 
 * Recreate the `el-cicd-meta-info` [ConfigMap](#el-cicd-meta-info-configmap)
-* Push all credentials out the Onboarding Automation Server and namespace
+* Push all credentials out to the Onboarding Automation Server and its namespace
   * Add Git credentials and Image Repository access tokens to Jenkins
   * Push Credentials to GitHub
   * Create initial copies of all SDLC pull secrets in the Onboarding Automation Server namespace
@@ -1141,18 +1139,33 @@ The el-CICD Admin Utility can be used to rebuild the el-CICD Jenkins Image and/o
 
 ### Sealed Secrets Controller and Utility
 
-[OKD Secret resources](https://kubernetes.io/docs/concepts/configuration/secret/) are only obfuscated, and are not encrypted, and thus cannot be stored safely in an SCM without exposing them.  For that reason,  [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets) are the tool of the choice for [Secret encryption](foundations.md#secret-encryption-tool).  Sealed Secrets uses a strategy of [asymmetric encryption](https://en.wikipedia.org/wiki/Public-key_cryptography) to encrypt the Secrets, and SealedSecret resources are decrypted when deployed in proper namespace making them safe for storage in an SCM.  This is a fundamental need for complete automation of deployments of microservices.  
+[OKD Secret resources](https://kubernetes.io/docs/concepts/configuration/secret/) are only obfuscated, and are not encrypted, and thus cannot be stored safely in an SCM without exposing them, which in turn makes a fully automated deployment impossible under normal circumstances.  For that reason,  [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets) was chosen as the tool of the choice for [Secret encryption](foundations.md#secret-encryption-tool).  Sealed Secrets uses a strategy of [asymmetric encryption](https://en.wikipedia.org/wiki/Public-key_cryptography) to encrypt the Secrets, and SealedSecret resources are decrypted when deployed in the proper namespace making them safe for storage in an SCM.
 
-el-CICD gives the option during bootstrapping to install the Sealed Secrets controller on the OKD cluster, and the el-CICD Admin Tool can also be used to install a new version for upgrading as needed.  It is strongly recommended that Sealed Secrets be installed and used for full automation of deployments; otherwise, any microservices that have need of Secrets will not be able to store their secret data with their code.
+el-CICD gives the option during bootstrapping to install the Sealed Secrets controller on the OKD cluster, and the el-CICD Admin Tool can also be used to install a new version for upgrading as needed:
 
+
+* `./el-cicd.sh --sealed-secrets el-cicd-non-prod.conf` to (re)install Sealed Secrets on the Non-prod cluster and bastion server, and
+* `./el-cicd.sh --sealed-secrets el-cicd-prod.conf`  to (re)install Sealed Secrets on the Prod cluster and bastion server.
+
+The version of Sealed Secrets to be installed is set in the configuration files:
+
+```ini
+SEALED_SECRET_RELEASE_VERSION=v0.14.1
+```
+
+It is strongly recommended that Sealed Secrets be installed and used for full automation of deployments; otherwise, any microservices that have need of Secrets will not be able to store their secret data with their code.  It is also strongly recommended that the Sealed Secrets documentation be reviewed for understanding topics such as key renewal and backup, and user secret rotation.
 
 #### kubeseal Utility
 
-Developers will create SealedSecret resources on the bastion host, as that is where the [`kubeseal`](https://github.com/bitnami-labs/sealed-secrets#usage) will be installed. The SealedSecret resource is namespace dependent.  This means that for every Secret in a developer's microservice, one SealedSecret will need to be created per SDLC namespace, or their microservice will not deploy.  For `kubeseal` to work properly, they must also be signed into the cluster.  Each cluster will need it's own SealedSecret, unless the [sealing key is shared between clusters](https://github.com/bitnami-labs/sealed-secrets#manual-key-management-advanced).
+Developers will need to create their SealedSecrets on the OKD bastion host, as that is where the [`kubeseal`](https://github.com/bitnami-labs/sealed-secrets#usage) will most likely be installed.  Follow the link for instructions on how to use it.
+
+For `kubeseal` to work properly, a user must be signed into the appropriate cluster.  For each cluster a microservice is deployed to, it will need a SealedSecret per SDLC namespace.  [SealedSecrets can be created to decrypt cluster-wide](https://github.com/bitnami-labs/sealed-secrets#scopes), but for most development organizations this is unacceptable.
 
 #### Upgrading Sealed Secrets
 
-Upgrading Sealed Secrets is straightforward and easy, and generally transparent.  Although very rare. **make sure to read the release notes to make sure there were no breaking changes before upgrading.**  To upgrade Sealed Secrets to a particular version, change the following value in the `el-CICD-config/el-cicd-default-bootstrap`
+Upgrading Sealed Secrets is straightforward and easy, and generally transparent.  Although very rare. **make sure to read the release notes to make sure there were no breaking changes before upgrading.**
+
+In `el-CICD-config/el-cicd-default-bootstrap`, set the version you want to install:
 
 `SEALED_SECRET_RELEASE_VERSION=v0.14.1`
 
@@ -1167,30 +1180,27 @@ Onboarding Automation Servers are responsible for the following:
 * Standing up CICD Automation Servers for RBAC groups
 * Onboarding Project onto CICD Automation Servers
 * Creating SLDC namespaces for Projects
-* Creating ResourceQuotas for Project SDLC namespaces
-* Creating and Managing Persistent Volumes referencing external NFS shares
+* Creating and managing ResourceQuotas for Project SDLC namespaces
+* Creating and managing Persistent Volumes referencing external NFS shares
 * Refreshing credentials to all managed CICD Automation Servers
-* Removing Projects From CICD Automation Servers (Non-prod only)
+* Refreshing credentials for GitHub repositories of microservices and libraries
+* Removing Projects From CICD Automation Servers
 
-There are two type of Onboarding Automation Servers, [Non-prod](#non-prod-onboarding-automation-server) and [Prod](#prod-onboarding-automation-server).
+There are two type of Onboarding Automation Servers, [Non-prod](#non-prod-onboarding-automation-server) and [Prod](#prod-onboarding-automation-server).  Each has the same set of pipelines for the most part, but the types of CICD Automation Servers they stand up are different.
 
 ### WARNING: Onboarding Automation Server Access
 
 **ACCESS TO ALL ONBOARDING AUTOMATION SERVERS SHOULD BE RESTRICTED TO CLUSTER ADMINS ONLY.**  
 
-By default, access to the Onboarding Automation Server namespaces are already restricted to cluster admins only.  All Onboarding Automation Servers require Git site-wide access for managing credentials among and branching among multiple Git repositories, and have service accounts with OKD cluster admin privileges.  Allowing unprivileged users direct access to an Onboarding Automation Server would constitute severe security risk.
+By default, access to the Onboarding Automation Server namespaces are already restricted to cluster admins only.  All Onboarding Automation Servers require Git organization-wide access for managing credentials and branching among multiple Git repositories, and have service accounts with OKD cluster admin privileges.  Allowing unprivileged users direct access to an Onboarding Automation Server would constitute severe security risk.
 
-### Non-prod Onboarding Automation Server
-
-Non-prod Onboarding Automation Servers are responsible for the standing up of, the onboarding and removal of Projects from, and the refreshing of credentials to Non-prod CICD Automation Servers.
-
-#### Non-prod Onboarding Automation Server Pipelines
+### Onboarding Automation Server Pipelines
 
 ![Figure: Build and Deploy Microservices](images/readme/el-cicd-non-prod-onboarding-master.png)
 
-**Figure** _el-CICD Non-prod Automation Server pipelines_
+**Figure** _el-CICD Non-prod Automation Server pipelines.  Prod will have the_ `prod-project-onboarding` _pipeline instead,_
 
-##### non-prod-project-project-onboarding Pipeline
+#### non-prod-project-project-onboarding Pipeline
 
 This pipeline is responsible for onboarding the necessary resources to support a Project's Non-prod SDLC.
 
@@ -1203,70 +1213,34 @@ This pipeline is responsible for onboarding the necessary resources to support a
 * Reads the [Project Definition File](#project-definition-file)
 * Creates a namespace for the CICD Automation Server if it doesn't exist
   * `<RBAC-group>-el-cicd-non-prod-master`
-* Deploys the CICD Automation Server for the Project's RBAC Group, if necessary
-* Creates all Non-prod Pipelines
-  * [Build and Deploy Microservices](#build-and-deploy-microservices)
-  * [Create Release Candidate](#create-release-candidate)
-  * [Promotion/Removal](#promotionremoval)
-  * [Redeploy/Removal](#redeployremoval)
-  * [Redeploy Release Candidate](#redeploy-release-candidate)
+* Creates the CICD Automation Server with shared pipelines for the Project's RBAC Group, if necessary
+  * [build-and-deploy-microservices](developer-guide.md#build-and-deploy-microservices pipeline)
+  * [promotion-](developer-quide.md#microservice-promotion-removal-pipeline)
+  * [Redeploy/Removal](developer-quide.md#redeployremoval)
+  * [create-release-candidate](developer-quide.md#create-release-candidate)
+  * [Redeploy Release Candidate](developer-quide.md#redeploy-release-candidate)
 * Adds all necessary credentials to the CICD Automation Server for all Non-prod Image Repositories
-* Creates [Build-to-Dev](#build-and-deploy-microservices) Pipelines, one for each microservice
+* Creates Project specific pipelines
+  * [Build-to-Dev](developer-quide.md#build-to-dev) pipelines, one for each microservice
+  * [Build-](developer-quide.md#build-to-dev) pipelines, one for each microservice
 * (Re)Create the Project's SDLC namespaces, if necessary or requested
   * Creates any NFS shares for each namespace, if defined
   * Sets the assigned ResourceQuota on each namespace, if defined
   * Copies the SDLC specific Image Repository's pull secret into each namespace
-* Creates Sandbox Environments, if any
+* (Re)Creates the Sandbox Environments and removes any extras
+* Creates the Hotfix Build Environment, if enabled (the Hotfix Environment must be manually destroyed)
 * Pushes a new read/write deploy key for each microservice to its Git repository and the CICD Automation Server
 * Creates a webhook for the development branch of each microservice on GitHub
 
  ```bash
  NAMESPACE='el-cicd-non-prod-onboarding-master'
  PIPELINE_NAME='non-prod-project-onboarding'
+ CLUSTER_WILDCARD_DOMAIN='my.cluster.wildcard.domain'
 
- curl https://${NAMESPACE}.${CLUSTER_WILDCARD_DOMAIN}/job/${NAMESPACE}/job/${NAMESPACE}-${PIPELINE_NAME}/buildWithParameters \
+ curl https://${NAMESPACE}.${CLUSTER_WILDCARD_DOMAIN}/job/${NAMESPACE}/job/${NAMESPACE}-non-prod-project-onboarding/buildWithParameters \
    --user jenkins:<SERV_ACCT_TOKEN> \
    --data PROJECT_ID=my-project-id
  ```
-
- You will need a jenkins [service account token](https://docs.okd.io/latest/authentication/using-service-accounts-in-applications.html#service-accounts-using-credentials-externally_using-service-accounts) that won't expire, as explained in the OKD documentation.  **Be sure to protect the Jenkins ServiceAccount token, as it will have unfettered access to the Onboarding Automation Server namespace.**
-
-##### Non-prod refresh-credentials Pipeline
-
-This pipeline will refresh all credentials on every CICD Automation Server referenced by all Projects defined in el-CICD-config.
-
-| Parameters | Description |
-| ---------- | ----------- |
-| N/A        |             |
-
-The refresh-credentials pipeline loops through every Project Defintion File, and if the CICD Automation Server for the RBAC group exists:
-
-* Copies the `el-cicd-meta-info` ConfigMap containing the latest el-CICD system information into the CICD Automation Server namespace
-* Copies the pull Secrets for all Non-prod Image Repositories into the CICD Automation Server namespace
-* Updates all deploy keys and pull secrets on the CICD Automation Server (Jenkins credentials) and on GitHub
-  * Old deploy keys are deleted and new ones created on Jenkins and GitHub
-* If the Project's Non-prod SDLC namespace exists
-  * Copies the pull Secrets into each appropriate namespace
-
-After the pipeline is complete, all CICD Automation Servers and all Projects and their SDLC namespaces should have all necessary credentials refreshed an/or recreated.
-
-##### non-prod-project-delete Pipeline
-
-The non-prod-project-delete will offboard a Project from OKD.
-
-| Parameters                | Description                                                             |
-| ------------------------- | ----------------------------------------------------------------------- |
-| PROJECT_ID                | The Project ID                                                          |
-| DELETE_RBAC_GROUP_JENKINS | If true, delete CICD Automation Server and namespace for the RBAC group |
-
-* Removes all Non-prod SDLC namespaces
-  * Also removes CICD Automation Server and namespace of Project, if requested
-* Deletes all Deploy Keys on GitHub
-* If the CICD Automation Server wasn't already deleted, deletes all Project microservice Build-toDev pipelines
-
-### Prod Onboarding Automation Server
-
-Prod Onboarding Automation Servers are responsible for the standing up of, and the refreshing of credentials to Prod CICD Automation Servers.
 
 #### prod-project-project-onboarding Pipeline
 
@@ -1280,20 +1254,51 @@ This pipeline is responsible for onboarding the necessary resources to support a
 * Reads the [Project Definition File](#project-definition-file)
 * Creates a namespace for the CICD Automation Server if it doesn't exist
   * `<RBAC-group>-el-cicd-prod-master`
-* Deploys the CICD Automation Server for the Project's RBAC Group, if necessary
-* Creates the [Deploy-to-Prod Pipeline](#deploy-to-prod)
+* Creates the CICD Automation Server with shared pipelines for the Project's RBAC Group, if necessary
+  * [Deploy-to-Prod Pipeline](#deploy-to-prod)
 * Adds the Pre-prod and Prod Image Repositories credentials to the CICD Automation Server
-* (Re)Create the Project's Prod SDLC namespaces, if necessary or requested
+* (Re)Create the Project's Prod SDLC namespace, if necessary or requested
   * Creates any NFS shares for the namespace, if defined
-  * Sets the assigned ResourceQuota on each namespace, if defined
-  * Copies the SDLC specific Image Repository's pull secret into the namespace
+  * Sets the assigned ResourceQuota, if defined
+  * Copies the SDLC specific Image Repository's pull secret into the Prod namespace
 * Pushes a new read/write deploy key for each microservice to its Git repository and the CICD Automation Server
 
 Because this pipeline is executed on a Prod cluster, it is only meant to be triggered manually by a cluster admin.
 
-#### Prod refresh-credentials Pipeline
+#### refresh-credentials Pipeline
 
-See the [Non-prod refresh-credentials Pipeline](#non-prod-refresh-credentials-pipeline).
+This pipeline will refresh all credentials on every CICD Automation Server referenced by all Projects defined in el-CICD-config.  This pipeline is installed on both the Non-prod and Prod Onboarding Automation Servers.  You must execute both pipelines on each type of server, since the Non-prod pipeline only interacts with Non-prod CICD Automation Servers, and Prod with Prod CICD Automation Servers.
+
+| Parameters | Description |
+| ---------- | ----------- |
+| N/A        |             |
+
+The `refresh-credentials` pipeline loops through every Project Definition File, and if the CICD Automation Server for the RBAC group exists:
+
+* Copies the `el-cicd-meta-info` ConfigMap containing the latest el-CICD system information into the CICD Automation Server namespace
+* Copies the pull Secrets for all Non-prod or Prod Image Repositories into the CICD Automation Server namespace
+* Updates all deploy keys and pull secrets on the CICD Automation Server (Jenkins credentials) and on GitHub
+  * Old deploy keys are deleted and new ones created on Jenkins and GitHub
+* If the Project SDLC namespace(s) exists
+  * Copies the pull Secrets into each appropriate namespace
+
+After the pipeline is complete, all CICD Automation Servers and all Projects and their SDLC namespaces should have all necessary credentials refreshed and/or recreated.
+
+#### delete-project Pipeline
+
+The `delete-project` will offboard a Project from OKD.
+
+| Parameters                | Description                                                             |
+| ------------------------- | ----------------------------------------------------------------------- |
+| PROJECT_ID                | The Project ID                                                          |
+| DELETE_RBAC_GROUP_JENKINS | If true, delete CICD Automation Server and namespace for the RBAC group |
+
+* Removes all SDLC namespaces
+  * Also removes CICD Automation Server and namespace of Project, if requested
+* Deletes all Deploy Keys on GitHub
+* If the CICD Automation Server wasn't already deleted, deletes all Project specific pipelines
+  * `build-to-dev`
+  * `build-library`
 
 ## Extending el-CICD
 
