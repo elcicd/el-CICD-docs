@@ -47,6 +47,7 @@ or send a letter to
 ```
 
 # Table of Contents
+
 * [el-CICD Developer Guide](#el-cicd-developer-guide)
   * [Preamble](#preamble)
   * [License](#license)

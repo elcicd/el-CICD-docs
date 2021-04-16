@@ -98,6 +98,7 @@ or send a letter to
       * [Release Candidate](#release-candidate)
       * [Deploy-to-Prod](#deploy-to-prod)
         * [Release Version](#release-version)
+          * [Release Region](#release-region)
         * [Production Rollback/Forward/Deployment Patching](#production-rollbackforwarddeployment-patching)
       * [Hotfix](#hotfix)
   * [Supporting Projects](#supporting-projects)
@@ -372,6 +373,10 @@ When the final decision has been made that a Release Candidate should be deploye
 ##### Release Version
 
 The collection of images and branches tagged and created by the Deploy-to-Prod process are collectively known as a _Release Version_.  These are used to deploy and redeploy a particular version of the application into production.
+
+###### Release Region
+
+Applications are sometimes deployed to production on more then one cluster.  This could be for high availability, support for different regions, or A/B testing or blue/green deployment scenarios.  Regardless of the reason, these deployments may have different configurations, and thus they need to be able to be differentiated from eachother.  el-CICD uses the concept of a Release Region to enable these types of deployments.
 
 ##### Production Rollback/Forward/Deployment Patching
 

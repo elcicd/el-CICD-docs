@@ -121,13 +121,19 @@ or send a letter to
       * [prod-project-project-onboarding Pipeline](#prod-project-project-onboarding-pipeline)
       * [refresh-credentials Pipeline](#refresh-credentials-pipeline)
       * [delete-project Pipeline](#delete-project-pipeline)
+  * [Prod Automation Server Pipeline](#prod-automation-server-pipeline)
+    * [Release Region](#release-region)
+    * [Release Candidate Promotion](#release-candidate-promotion)
+    * [Release Version Redeployment](#release-version-redeployment)
+    * [The Hotfix Process](#the-hotfix-process)
   * [Extending el-CICD](#extending-el-cicd)
     * [Extending the el-CICD Admin Utility](#extending-the-el-cicd-admin-utility)
       * [Bootstrap Hook Scripts](#bootstrap-hook-scripts)
       * [Credential Hook Scripts](#credential-hook-scripts)
     * [Extending el-CICD Pipelines](#extending-el-cicd-pipelines)
-      * [Extension Points](#extension-points)
-      * [Pipeline Hook Scripts](#pipeline-hook-scripts)
+      * [Extension Points and Scripts](#extension-points-and-scripts)
+      * [Pipeline Hook Script Naming Conventions](#pipeline-hook-script-naming-conventions)
+      * [Pipeline Hook Script Structure](#pipeline-hook-script-structure)
 
 # Overview
 
@@ -211,7 +217,7 @@ Holds the following documention for el-CICD:
 * [Foundations](foundations.md)  
   Describes the fundamental concepts and basic architecture el-CICD was built from.
 * Operating Manual
-* [Developer Guide](developer-quide.md)  
+* [Developer Guide](developer-guide.md)  
   Guide for development teams on how to structure their projects for integration into el-CICD, and code for defining deployments among each environment.
 * [el-CICD Tutorial](tutorial.md)  
   Tutorial for el-CICD taking users through a basic install and SDLC run.  It is strongly suggested that end users step through tutorial on a lab cluster to get a basic and much fuller understanding of how el-CICD works, both from an operational and developer viewpoint.
@@ -795,7 +801,7 @@ Classes of ResourceQuotas can be assigned to different SDLC namespaces, and conf
 
 ### OKD Template Definition Files
 
-A main focus of el-CICD is to remove complexity for the developers.  To that end, el-CICD manages a great deal of the boilerplate OKD resources developers would normally have to write themselves with when deploying microservices into and OKD SDLC namespace as [OKD Templates](https://docs.okd.io/latest/openshift_images/using-templates.html), and these are then patched using [Kustomize](https://kustomize.io/), which is described in more detail [here](developer-quide#patching-okd-templates).
+A main focus of el-CICD is to remove complexity for the developers.  To that end, el-CICD manages a great deal of the boilerplate OKD resources developers would normally have to write themselves with when deploying microservices into and OKD SDLC namespace as [OKD Templates](https://docs.okd.io/latest/openshift_images/using-templates.html), and these are then patched using [Kustomize](https://kustomize.io/), which is described in more detail [here](developer-guide#patching-okd-templates).
 
 All basic OKD resources a developer might concern themselves with are defined in the `el-CICD-config/managed-okd-templates` directory.  These include basic definitions of a DeploymentConfig and Service, a Route, a CronJob, Persistent Volume for referring to an NFS share, etc.
 
@@ -1214,21 +1220,21 @@ This pipeline is responsible for onboarding the necessary resources to support a
 * Creates a namespace for the CICD Automation Server if it doesn't exist
   * `<RBAC-group>-el-cicd-non-prod-master`
 * Creates the CICD Automation Server with shared pipelines for the Project's RBAC Group, if necessary
-  * [build-and-deploy-microservices](developer-guide.md#build-and-deploy-microservices pipeline)
-  * [promotion-](developer-quide.md#microservice-promotion-removal-pipeline)
-  * [Redeploy/Removal](developer-quide.md#redeployremoval)
-  * [create-release-candidate](developer-quide.md#create-release-candidate)
-  * [Redeploy Release Candidate](developer-quide.md#redeploy-release-candidate)
+  * [build-and-deploy-microservices](developer-guide.md#build-and-deploy-microservices-pipeline)
+  * [microservice-promotion-removal](developer-guide.md#microservice-promotion-removal-pipeline)
+  * [microservice-redeploy-removal](developer-guide.md#microservice-redeploy-removal-pipeline)
+  * [create-release-candidate](developer-guide.md#create-release-candidate-pipeline)
+  * [redeploy-release-candidate](developer-guide.md#redeploy-release-candidate-pipeline)
 * Adds all necessary credentials to the CICD Automation Server for all Non-prod Image Repositories
 * Creates Project specific pipelines
-  * [Build-to-Dev](developer-quide.md#build-to-dev) pipelines, one for each microservice
-  * [Build-](developer-quide.md#build-to-dev) pipelines, one for each microservice
+  * [build-to-dev](developer-guide.md#build-to-dev-pipelines) pipelines, one for each microservice
+  * [build-library](developer-guide.md#build-library-pipelines) pipelines, one for each microservice
 * (Re)Create the Project's SDLC namespaces, if necessary or requested
   * Creates any NFS shares for each namespace, if defined
   * Sets the assigned ResourceQuota on each namespace, if defined
   * Copies the SDLC specific Image Repository's pull secret into each namespace
 * (Re)Creates the Sandbox Environments and removes any extras
-* Creates the Hotfix Build Environment, if enabled (the Hotfix Environment must be manually destroyed)
+* Creates the Hotfix Environment, if enabled (the Hotfix Environment must be manually destroyed)
 * Pushes a new read/write deploy key for each microservice to its Git repository and the CICD Automation Server
 * Creates a webhook for the development branch of each microservice on GitHub
 
@@ -1300,20 +1306,104 @@ The `delete-project` will offboard a Project from OKD.
   * `build-to-dev`
   * `build-library`
 
+## Prod Automation Server Pipeline
+
+The Prod CICD Automation Server has only one pipeline, `deploy-to-production`.  The pipeline will
+
+* Promote a [Release Candidate](foundations.md#release-candidate) into Production
+* Roll back or forward from one Release Version to another
+* Redeploy a [Release Version](foundations.md#release-version), usually as part of a [Deployment Patch](foundations.md#deployment-patching)
+
+| Parameters                | Description                                                             |
+| ------------------------- | ----------------------------------------------------------------------- |
+| PROJECT_ID                | The Project ID                                                          |
+| RELEASE_REGION            | The Region of for the Release                                           |
+| RELEASE_CANDIDATE_TAG     | The [Release Candidate Tag](developer-guide.md#release-candidate-tags)  |
+| DEPLOY_ALL                | On redeploy's, should all microservices be redeployed regardless        |
+
+Note that pipeline will always and only ask for a **Release Candidate Tag**, and not the Release Version Tag.  In practical terms, this means to be careful not to prepend your tag with a **v** (the default) when entering it.
+
+Even though the pipeline mostly does all the same work regardless of the purpose for the deployment, it's easier to understand if promotion is described separately.
+
+### Release Region
+
+[Release Regions](foundations.md#release-region) are not part of el-CICD configuration, or part of a Project's configuration, and they are completely optional.  They are development and deployment-time concept only.  Regions allow you to deploy the same application on multiple clusters, with each region allowing to configure each deployment slightly differently, and, more importantly, make sure you're deploying the cluster's specific SealedSecrets where appropriate.  You will need to coordinate with your development teams to define which Release Regions need to be defined, and when, and what defines a Release Region specific to the application and organization's infrastructure.
+
+### Release Candidate Promotion
+
+* Gathers the Project information
+* Verifies the integrity of the Release Candidate
+  * Checks each Git repository for a Release Candidate Tag
+  * Verifies a matching microservice image exists with the Release Candidate Tag in the Pre-prod Image Repository
+* Summarizes the release, and asks for confirmation before continuing
+  * Declares this is a promotion of the application for Release Candidate Tag
+  * The Region the application will be deployed to
+  * Which microservices are part of the release
+  * Which microservices are not part of the release, and a warning that they will be removed
+
+If the user approves the promotion:
+
+* Copies all images from the Pre-prod to Prod Image Repository, and tags them with the Release Version
+* Creates a deployment branch **at the commit where the Release Candidate was tagged**
+  * Subsequent Deployment Patches performed in Pre-prod will be ignored
+* Deploys the Release Version into the prod namespace
+* Updates the Project meta-info ConfigMap
+* Removes all Project resources that were not part of the Release 
+
+### Release Version Redeployment
+
+* Gathers the Project information
+* Verifies the integrity of the Release Version
+  * Checks each Git repository of each microservice for a Deployment Branch for the Release Version
+  * Verifies an images exists for each microservice in the Release Version in Prod Image Repository
+* Determines which microservices need to be deployed
+  * Only deploys the microservices in which its Deployment Branch's commit hash has changed
+  * If `DEPLOY_ALL` is true, then all microservices in the Release Version are deployed
+* Summarizes the release, and asks for confirmation before continuing
+  * Declares this is a deployment of the application for Release Version Tag
+  * The Region the application will be deployed to
+  * Which microservices are part of the release
+  * Which microservices will be deployed
+  * Which microservices are not part of the release, and a warning that they will be removed
+
+If the user approves the deployment:
+
+* Deploys the Release Version into the prod namespace
+* Updates the Project meta-info ConfigMap
+* Removes all Project resources that were not part of the Release
+
+### The Hotfix Process
+
+el-CICD supports [hotfixing](foundations.md#hotfix) by creating a specialized build namespace when enabled in the [Project Definition File](#project-definition-file) through the Project level flag `allowsHotfixes`.  When that flag is true, the hotfix build environment will be created during the Non-prod Project Onboarding process, and promotion of images from that environment to Pre-prod will be enabled.  To apply a hotfix to a deployed Release Version:
+Candidate Deployment Branches
+
+* Create `hotfix` branches for the microservice(s) that need it
+* Fix and deploy builds based on the `hotfix` branch to the Hotfix Environment and test the fixes
+* Redeploy the Release Candidate into Pre-prod
+  * If there has been any Deployment Patching in Prod, consider merging the appropriate Release Version Deployment Branches back into the Release
+  * You can do this step any time earlier, and consider doing so if your application deployments are time consuming
+* Promote to Pre-prod and test the application with the fixes
+* Create a new, Hotfix Release Candidate
+* Promote the Hotfix Release Candidate to Prod
+
+This process is **only if the source code of a microservice needs to change**.  If the code is working as expected, and the problem can be solved through the application's deployment configuration, then consider using Deployment Patching to solve your problem.
+
+This process was designed to be as quick as possible while still maintaining an orderly, versioned process and keeping the disruption of the development team while they are working on a future version of the application to a minimum.  In this case, only the Pre-prod environment will be unavailable for a short period while the Hotfix Release Candidate is being tested and prepared.
+
 ## Extending el-CICD
 
 el-CICD will most likely need to be extended to fully meet the needs of your organization.  To that end, the following extension points and conventions have beed added for that purpose.
 
 ### Extending the el-CICD Admin Utility
 
-The [el-CICD Admin Utility](#el-cicd-admin-utility) supports adding hook scripts by naming convention that can be automatically added to the bootstrap and credentials workflow.
+The [el-CICD Admin Utility](#el-cicd-admin-utility) supports adding hook scripts by naming convention, and they will be automatically run when found in the `el-CICD-config/bootstrap` directory.  Only the bootstrap and credentials workflows support hook scripts.
 
 #### Bootstrap Hook Scripts
 
 To add your own bootstrap hook scripts, place the scripts in the `el-CICD-config/bootstrap` directory with the following naming conventions:
 
 * `non-prod-*.sh`, for scripts that should be executed after bootstrapping a Non-prod Onboarding Automation Server.
-* `prod-*.sh`. for scripts that should be executed after bootstrapping a Non-prod Onboarding Automation Server.
+* `prod-*.sh`. for scripts that should be executed after bootstrapping a Prod Onboarding Automation Server.
 
 #### Credential Hook Scripts
 
@@ -1324,7 +1414,48 @@ To add your own credentials hook scripts, place the scripts in the `el-CICD-conf
 
 ### Extending el-CICD Pipelines
 
-#### Extension Points
+All el-CICD pipelines in the Onboarding or CICD Automation Servers can be extended as the user finds necessary.  Each pipeline has the same set of extension points, and they are all developed, deployed, and executed by convention.
 
-#### Pipeline Hook Scripts 
+#### Extension Points and Scripts
 
+Each pipeline has the same set of extension points, and they are in the following order:
+
+
+1. **`pre`**: Run before a Project has been loaded
+1. **`init`**: Run after Project information has been gathered, but before main pipeline run
+1. **`on-fail`**: and **`on-success`**: Run as the pipeline has either failed or succeeded, respectfully
+1. **`post`**: Run after the pipeline has completed regardless of success or failure
+
+#### Pipeline Hook Script Naming Conventions
+
+To add a hook script, use the following naming convention:
+
+`<extension-point>-<pipeline-name>.groovy`
+
+[**NOTE:** Use `build-to-dev` and `build-library` for all `build-to-dev` and `build-library` pipeline runs.  You cannot target a specific microservice ]
+
+Place the scripts in `el-CICD-config/hook-scripts` and commit it back to the Git repository.  el-CICD will look in this directory and load the appropriate script during every pipeline run automatically if it's there.
+
+#### Pipeline Hook Script Structure
+
+Pipeline scripts should all be code with the following structure:
+
+```groovy
+def call(ap args) {
+    // code to run here
+}
+
+return this
+```
+
+The `on-fail` hook script will have an added parameter for the exception that caused the failure.
+
+```groovy
+def call(def exception, Map args) {
+    // code to run here
+}
+
+return this
+```
+
+The `args` map will contain all the pipeline build parameters (in camel case) and, if the Project Definition File has been loaded, a `projectInfo` key containing the information in a map.
