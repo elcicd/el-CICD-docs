@@ -1055,7 +1055,7 @@ The files for each step can be named anything.  The above names (e.g. `builder` 
 
 # Bootstrapping, Onboarding, and Operational Management
 
-![Figure: el-CICD Components](images/readme/components.png)
+![Figure: el-CICD Components](images/operations-manual/components.png)
 
 **Figure** _el-CICD Components_
 
@@ -1202,7 +1202,7 @@ By default, access to the Onboarding Automation Server namespaces are already re
 
 ### Onboarding Automation Server Pipelines
 
-![Figure: Build and Deploy Microservices](images/readme/el-cicd-non-prod-onboarding-master.png)
+![Figure: el-CICD Non-prod Automation Server Pipelines](images/operations-manual/el-cicd-non-prod-onboarding-master.png)
 
 **Figure** _el-CICD Non-prod Automation Server pipelines.  Prod will have the_ `prod-project-onboarding` _pipeline instead,_
 
