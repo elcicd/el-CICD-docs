@@ -53,15 +53,19 @@ or send a letter to
   * [License](#license)
 * [Table of Contents](#table-of-contents)
 * [Overview](#overview)
-  * [Basic Steps](#basic-steps)
   * [Assumptions](#assumptions)
-* [Project](#project)
+  * [Overview of Steps](#overview-of-steps)
+* [Projects](#projects)
   * [One Git Repository Per Microservice or Component](#one-git-repository-per-microservice-or-component)
-    * [A Quick Note About Builds](#a-quick-note-about-builds)
-  * [Uniform Development Branch Name](#uniform-development-branch-name)
+    * [Uniform Development Branch Name](#uniform-development-branch-name)
+  * [Project Environments](#project-environments)
+    * [Sandbox Environments](#sandbox-environments)
+    * [Hotfix Environment](#hotfix-environment)
+  * [Builds](#builds)
+    * [Library Builds](#library-builds)
+    * [Build Secrets](#build-secrets)
 * [Dockerfile](#dockerfile)
 * [.openshift Directory](#openshift-directory)
-  * [A Note on Build Secrets](#a-note-on-build-secrets)
   * [template-defs](#template-defs)
     * [appName](#appname)
     * [templateName](#templatename)
@@ -69,28 +73,31 @@ or send a letter to
     * [patchFile](#patchfile)
     * [params](#params)
     * [Environmental Overrides](#environmental-overrides)
-  * [Patching OKD Templates](#patching-okd-templates)
-    * [Managed OKD Templates](#managed-okd-templates)
+  * [managed OKD Templates](#managed-okd-templates)
     * [Default Template Parameters](#default-template-parameters)
     * [How to Know What the Template Parameters Are](#how-to-know-what-the-template-parameters-are)
     * [Custom OKD Templates](#custom-okd-templates)
-  * [kustomize.patch](#kustomizepatch)
-    * [Patches Are Applied **BEFORE** OKD Templates are Processed](#patches-are-applied-before-okd-templates-are-processed)
-    * [Kustomize](#kustomize)
+  * [Patching OKD Templates](#patching-okd-templates)
+    * [kustomize.patch](#kustomizepatch)
+    * [kustomize](#kustomize)
       * [Adding content](#adding-content)
       * [Notes On kustomize Paths](#notes-on-kustomize-paths)
-    * [EXAMPLE: Adding Environment Variables to a DeploymentConfig OKD Template](#example-adding-environment-variables-to-a-deploymentconfig-okd-template)
-    * [EXAMPLE: Adding a Custom Parameter to a DeploymentConfig OKD Template](#example-adding-a-custom-parameter-to-a-deploymentconfig-okd-template)
+    * [EXAMPLE: Adding Environment Variables to a DeploymentConfig (or Deployment) OKD Template](#example-adding-environment-variables-to-a-deploymentconfig-or-deployment-okd-template)
+    * [EXAMPLE: Adding a Custom Parameter an OKD Template](#example-adding-a-custom-parameter-an-okd-template)
     * [EXAMPLE: Adding a volume and volumeMount to a CronJob OKD Template](#example-adding-a-volume-and-volumemount-to-a-cronjob-okd-template)
   * [Environment Directories](#environment-directories)
-    * [OKD Templates in Environment Directories](#okd-templates-in-environment-directories)
+    * [Sandbox and Hotfix Environments](#sandbox-and-hotfix-environments)
+    * [Release Regions](#release-regions)
+    * [WARNING: OKD Templates in Environment Directories](#warning-okd-templates-in-environment-directories)
     * [Sealed Secrets](#sealed-secrets)
+      * [kubeseal](#kubeseal)
   * [Further Examples](#further-examples)
 * [Repository and Runtime Integration Strategy](#repository-and-runtime-integration-strategy)
   * [Development Branch](#development-branch)
-  * [Synchronizing the Image and SCM Repositories](#synchronizing-the-image-and-scm-repositories)
-    * [Deployment Branch](#deployment-branch)
-      * [**WARNING: DO NOT MODIFY UPSTREAM ENVIRONMENT CONFIGURATIONS OR THE IMAGE SOURCE CODE**](#warning-do-not-modify-upstream-environment-configurations-or-the-image-source-code)
+  * [Deployment Branches](#deployment-branches)
+    * [Problem: Code is Mutable, Images are Immutable](#problem-code-is-mutable-images-are-immutable)
+    * [Solution: Deployment Branches](#solution-deployment-branches)
+      * [WARNING: DO NOT MODIFY UPSTREAM ENVIRONMENT CONFIGURATIONS OR THE IMAGE SOURCE CODE](#warning-do-not-modify-upstream-environment-configurations-or-the-image-source-code)
     * [Release Candidate Tags](#release-candidate-tags)
     * [Release Deployment Branches](#release-deployment-branches)
   * [Images](#images)
@@ -117,83 +124,128 @@ or send a letter to
 
 This developer guide will help explain what is needed to adopt a software project to build and deploy to OKD or Openshift with el-CICD.  For the remainder of the document wherever OKD is referenced, OpenShift may be safely inferred.
 
-This document is **not** meant to be a comprehensive tutorial, but rather a basic reference for software developers whose projects are to be built and deployed by el-CICD.  _**For a deeper explanation of el-CICD as a whole and its functionality, read the full manual in the README file in this repository.**  There are also number of test projects in this repository that can be used as a basic, functional reference.
-
-## Basic Steps
-
-A short overview of the steps developers need to undertake is as follows:
-
-* Decompose each application's microservices/components into individual Git repositories
-  * One Git repository per Docker image built
-* Add a Dockerfile to the root of each microservice repository
-* Add an `.openshift` directory to the root of each Git repository
-* Create and define a `template-defs` file in the `.openshift` directory
-  * This will reference all OKD templates and parameters they use per SDLC environment
-* Create one or more kustomize *.patch files to customize the OKD template(s) for each microservice's deployment
-* Convert all secrets into Sealed Secrets to commit into each Environment Directory in the `.openshift` directory
-  * Static OKD resources are also added to the Environment Directories
-
-The rest of this document will explain these steps and the `.openshift` directory and its contents in more detail.
+This document is not meant to be a comprehensive tutorial, but rather a basic reference for software developers whose projects are to be built and deployed by el-CICD.  This repository contains a [tutorial](tutorial.md) on the basic operational and functional use of el-CICD, with a simple example of [Deployment Patching](foundations.md#deployment-patching).  There are also a number of test projects on the [el-CICD site](https://github.com/elcicd) that provide numerous examples of for defining microservice deployments for el-CICD.
 
 ## Assumptions
 
-This document assumes that the reader has working knowledge of JSON, YAML, Kubernetes, OKD and/or OpenShift, OKD Templates, Git, and is a software developer.
+This document assumes that the reader has working knowledge of JSON, YAML, Kubernetes, OKD, OKD Templates, Git, and hands on experience developing software.
 
-# Project
+## Overview of Steps
 
-A _Project_ in el-CICD is a collection of one or more Git repositories to be built into Docker images and deployed into OKD.  Projects are released as a whole; thus, if even one image is different when the Project is deployed to production, the collection of images deployed to production are considered a separate, new release.
+A short overview of the steps developers need to undertake is as follows for microservices to be deployed:
+
+* Decompose each application's microservices/components into individual Git repositories
+  * One Git repository per Docker image built  
+    [**NOTE**: This does **not** mean one repository per image deployed; the same image may be deployed multiple times with different configurations]
+* Add a [Dockerfile](#dockerfile) to the root of each repository
+* Add a [`.openshift`](#openshift-directory) directory to the root of each Git repository
+* Create and define a `template-defs.yml` or `template-defs.json` file in the root of the `.openshift` directory
+  * This will reference all [OKD Templates](https://docs.okd.io/latest/openshift_images/using-templates.html) and their patches and parameters per SDLC [Environment](foundations.md#environments)
+* Create one or more `kustomize` `*.patch` files to further configure the OKD Template(s) for each microservice's deployment
+* Convert all secrets into Sealed Secrets to commit into each environment Directory in the `.openshift` directory
+  * Static OKD resources are also added to the [Environment Directories](#environment-directories)
+
+# Projects
+
+A _Project_ in el-CICD is a collection of one or more Git repositories to be built into Docker images and deployed into OKD.  Projects are released as a whole; thus, if even one image is different when the Project is deployed to production, each unique collection of images and their [Deployment Branches](#deployment-branch) is considered a separate, new release.
 
 ## One Git Repository Per Microservice or Component
 
-el-CICD only builds one Docker image per Git repository.  This means each microservice or component of a software project meant to run in its own pod must be broken out into its own Git repository.  The terms microservice and component are considered interchangeable in this context.
+el-CICD only builds one Dockerfile per Git repository.  In general, this means each microservice or component of a software project meant to run in its own pod must be broken out into its own Git repository.  The terms microservice and component are considered interchangeable in this context.
 
 The name of your microservice in el-CICD will be generated from its Git repository name, replacing special characters with dashes and converting all alphabetic characters to lowercase; .e.g. `Foo_Bar_1` becomes `foo-bar-1`.
 
-**NOTE**: el-CICD only manages the building and deployment of images into OKD.  It does not manage or build the Git repositories whose builds result in artifacts that aren't images.  These must be managed outside el-CICD.
+### Uniform Development Branch Name
 
-### A Quick Note About Builds
+Each Project in el-CICD must have a uniform [Development Branch](#development-branch) name defined, representing the code for each microservice that will be used to build the next release of the Project.  Each Git repository belonging to the Project must have a working branch defined matching this name, or the Webhooks el-CICD creates will not work.
 
-Each microservice is defined by its Git repository and a _Code Base_.  The Code Base defines how the project is built.  To find what Code Base your Git repository is assigned, look in the `el-CICD-config` repository your organization is using to configure el-CICD, and inside the `project-defs` folder you will find a YAML or JSON file with the name of you project.  Open this file, find your Git repository listing, and check the value of `codeBase` there.
+## Project Environments
 
-Under the `builder-steps` directory in `el-CICD-config`, you'll find a directory with name matching your Code Base, and the *.groovy files in there will define how your microservice is built, tested, scanned, and assembled.  After these steps complete, el-CICD will attempt to build an image for your microservice.  See the [Dockerfile](#dockerfile) section for more information.
+When your Project is onboarded the engineering cluster, a number of namespace will be created representing the SDLC environments.  You can find them with the following command:
 
-![Figure: builder-steps directory structure](images/developer-guide/builder-steps-python-directory.png)
+```bash
+oc projects | grep <project-id>
+```
+
+Each namespace will follow the naming convention
+
+```text
+<project-id>-<environment>
+```
+
+For example, for the Project `test-cicd`, the following list is displayed:
+
+```text
+    test-cicd-dev
+    test-cicd-hotfix
+    test-cicd-qa
+    test-cicd-sandbox-1
+    test-cicd-sandbox-2
+    test-cicd-stg
+```
+
+and the environment names for `test-cicd` are
+
+* `dev`
+* `qa`
+* `stg`
+* `sandbox-1`
+* `sandbox-2`
+* `hotfix`
+
+Typically, and because of best practices, there is no Prod environment, because they are deployed on a separate cluster.  A Prod environment would be the only environment listed on a production cluster for the Project.
+
+Although reasonably clear, your organization will explain the promotion order, but you can also run the [microservice-promotion-removal-pipeline](#microservice-promotion-removal-pipeline) which will list all the options available.
+
+### Sandbox Environments
+
+Sandbox environments are numbered, temporary build environments in which developers can test builds and deployments of their feature branch, for example.  Any number of microservices may be deployed to these namespaces, but no promotion of images out of them is allowed.  The number of Sandbox environments available will be set per Project by the organization and defined in the [Project Definition File](operating-manual.md#project-definition-file).
+
+### Hotfix Environment
+
+If `hotfixesAllowed` is true in your [Project Definition File](operating-manual.md#project-definition-file), then you will have a Hotfix environment created for your Project.  This environment is similar to the Sandbox environments, but it is meant for small build patches that will immediately be promoted to the Pre-prod environment for testing and quick promotion to Prod.
+
+## Builds
+
+Each microservice is defined by its Git repository and a [Code Base](foundations.md#code-base).  The Code Base will define how the Git repository is built.  To find what Code Base your Git repository is assigned, look in the `el-CICD-config/project-defs` directory for your project's [Project Defintion File](operating-manual.md#project-definition-file), find your Git repository listing, and check the value of `codeBase` there.
+
+Under the [`el-CICD-config/builder-steps`](operating-manual.md#builder-steps) directory, you'll find a directory with name matching your Code Base, and the `*.groovy` files in there will define how your microservice is [built, tested, scanned, and assembled](operating-manual.md#build-scripts) (or deployed, if it's a library).  After these steps complete, el-CICD will attempt to build an image for your microservice and deploy it to the Project's [Dev Environment](foundations.md#dev-environment).  See the [Dockerfile](#dockerfile) section for more information.
+
+![Figure: builder-steps directory structure](images/developer-guide/builder-steps-directory.png)
 
 **Figure**  
 _The_ `builder-steps` _directory showing the specific Groovy files implementing each step for the_ `python` _Code Base._
 
-## Uniform Development Branch Name
+### Library Builds
 
-Each Project in el-CICD must have a uniform Development Branch name defined, representing the code for each microservice that will be used to build the next release of the Project.  For purposes of standardization, organizations typically define this, but it is not required that every Project have the same Development Branch.  In practice, this means that if the Development Branch name for a Project is "development", each Git repository that belongs to the Project must have a branch named "development".  Webhooks are automatically generated for each Git repository of a Project that will trigger a build in el-CICD on every commit to a microservice's Development Branch.
+el-CICD supports [Library builds](foundations.md##build-library) for artifacts like Java _jars_ or Python pip wheels that are meant to be shared among multiple microservices.  el-CICD assumes a Git Repository will create the artifacts that are subsequently pushed (during the `deployer` Builder Step) to an [Artifact Repository](foundations.md#artifact-repository), and that the builds of the dependents of library will know how and where to retrieve it.  Since defining these steps are heavily end-user dependent on integrating third party applications (the Artifact Repository) and on their own Code Bases and standards, this document will not discuss them further.  Your organization will have further guidance as to how to organize your library source code per Code Base, and, since libraries are not deployed on OKD directly, how build and release versions of libraries are defined and distributed.
+
+### Build Secrets
+
+Build secrets, such as those contained in a `settings.xml` for Maven or `pip.conf` for Python, will be defined by the organization and injected into Jenkins Agents during the build steps automatically.  The organization will communicate further information on how to reference them during Docker builds if this is necessary.  For most developers the use of build secrets should be completely transparent.
 
 # Dockerfile
 
-Since all builds in el-CICD are expected to result in an image, each Git repository of a Project must have a Dockerfile in its root directory.  If a Dockerfile is not found in the root directory of the microservice, the build will result in an error.
+Since all microservice builds in el-CICD are expected to result in an image that will be deployed to a [Dev Environment](foundations.md#dev-environment), each microservice Git repository of a Project must have a single Dockerfile in its root directory.  If a Dockerfile is not found in the root directory of the microservice, the build will fail.
 
 # .openshift Directory
 
-Every microservice in a Project must have a `.openshift` directory in it's root directory.  This directory holds all files defining how the microservice's image will be deployed in OKD per Software Development Lifecycle (SDLC) environment.
+Every microservice in a Project must have a `.openshift` directory in it's root directory.  This directory holds all files defining how the microservice's image and associated OKD Resources will be deployed in OKD for each Software Development Lifecycle (SDLC) environment.
 
 ![Figure: .openshift directory structure](images/developer-guide/openshift-directory.png)
 
 **Figure**  
 _Example of the_ `.openshift` _directory illustrating the structure and its contents._
 
-As your microservice is promoted from one SDLC environment to the next, new _Deployment Branches_ are created for each environment based on the commit to the Development Branch that triggered the build.  **The contents of this directory are the only files that should be modified and committed on the Deployment Branches.  This is how deployments of particular builds are modified and versioned within a particular SDLC environment _without_ having to build and promote a new image.**
-
-## A Note on Build Secrets
-
-Build secrets, such as those contained in a `settings.xml` for Maven or `pip.conf` for Python, will be defined by the organization and injected during the build steps automatically.  The organization will communicate further information on how to reference them during Docker builds if this is necessary.  For most developers the use of build secrets should not be a concern.
-
 ## template-defs
 
-The `template-defs` file defines all OKD templates used by the microservice to define its deployment into an el-CICD SDLC environment, represented by an OKD namespace.  The file can define default parameter values to pass to each template during deployment, and/or override them per SDLC environment as necessary.
+The `template-defs.yml` (or `template-defs.json`) file defines all OKD Templates used by the microservice to define its deployment into an el-CICD SDLC [Environment](foundations.md#environments), represented by an OKD namespace.  The file can define default parameter values, environment specific parameter values, or both to pass to each template during deployment.  The same holds true for a `kustomize` patch to further configure the OKD Template.
 
 ```yml
 templates:
   - appName: my-microservice-instance
     templateName: dc-svc-template
-    patchFile: kustomize.patch
+    patchFile: `kustomize.patch`
     params:
       SVC_PORT: 8080
       MY_ENV_VAR: someValue
@@ -218,58 +270,75 @@ templates:
 **Figure**  
 _Sample template-defs.yml file._
 
-Every microservice will need to define a DeploymentConfig or CronJob in order to deploy their image; thus, unless a static OKD resource is used, at least one `dc-svc-template` or `cronjob-template` will be referenced in this file.  `template-defs` may also be written in YAML.
+Every microservice will need to define a DeploymentConfig, Deployment, or CronJob in order to deploy their image; thus, unless a static OKD resource is used, at least one `dc-svc-template` or `cronjob-template` will be referenced in this file.  `template-defs` may also be written in JSON.
 
 **NOTES:**
 
-1. In the example above, a Route template is paired with a template for a DeploymentConfig and Service.  In order to match them, the Route must have the same name as the Service, as shown above.
+1. In the example above, a Route template is paired with a template for a DeploymentConfig and Service.  In order to match them, the Route must have the same name (`appName`) as the Service (which automatically shares the same name as the DeployConfig), as shown above.
 
 2. All paths referenced in the `template-defs` are relative to the `.openshift` directory; e.g. the `dev/kustomize-dev.patch`
 
 ### appName
 
-The `appName` for the DeploymentConfig, Service, Route, and CronJob templates is injected as the `.metadata.name` value.  It is an optional entry in the `template-defs`, as it will default to the name of the microservice if not explicitly set.  The two main purposes of the this key is to match Services, Routes, DeploymentConfigs, and allow for multiple, simultaneous deployments of the same image to be defined within a microservice.
+The `appName` for the DeploymentConfig, Deployment, Service, Route, Ingress, and CronJob templates is injected as the `.metadata.name` value.  It is an optional entry in the `template-defs`, as it will default to the name of the microservice if not explicitly set.  The two main purposes of the this key is to match OKD Resources (such at the DeploymentConfig and Service), and allow for multiple, simultaneous deployments of the same image to be defined within a microservice.
 
 ### templateName
 
-The `templateName` refers to the actual name of the OKD template.  This will either be an el-CICD [managed OKD template](#managed-okd-templates), or a [custom template](#custom-okd-templates) you include in your microservice directory.
+The `templateName` refers to the actual name of the OKD Template; i.e. `.metadata.name` field in the Template file.
 
 ### file
 
-Although not shown above, list the key `file` next to the `templateName` when using a custom OKD template.  See [custom template](#custom-okd-templates) for more information.
+Although not shown above, list the key `file` next to the `templateName` when using a custom OKD Template.  See [custom template](#custom-okd-templates) for more information; for example:
+
+```yml
+templates:
+  - appName: my-app-name
+    templateName: my-dc-svc-template
+    file: my-dc-svc-template.yaml
+    patchFile: `kustomize.patch`
+    params:
+      SVC_PORT: 8080
+      TOPIC_NAME: test-cicd2-topic
+# rest of template-defs redacted
+```
+
+for a Template defined in `my-microservice/.openshift/my-dc-svc-template.yaml`:
+
+```yml
+apiVersion: template.openshift.io/v1
+kind: Template
+labels:
+  template: my-dc-svc-template
+message: An example
+metadata:
+  name:  my-dc-svc-template
+# rest of Template redacted
+```
 
 ### patchFile
 
-The `patchFile` defines a path to a kustomize patch file to be used against the template.  Patch files are used to add environment variables, volumes, volumeMounts, readiness and liveliness checks, etc. to a DeploymentConfig or Cronjob.  Even extra, microservice template parameters can be added through patching; e.g. `MY_ENV_VAR` is not part of the `dc-svc-template`, so it would have to added as part of a patch in order to make use of the value when the microservice is deployed.
+The `patchFile` references a `kustomize` patch file to be applied to the OKD Template.  Patch files are used to add environment variables, volumes, volumeMounts, readiness and liveliness probes, etc. to a DeploymentConfig, Deployment, or Cronjob.  Even extra Template parameters can be added through patching; e.g. `MY_ENV_VAR` is not part of the `dc-svc-template`, so it would have to added as part of a patch in order to make use of the value when the microservice is deployed.
 
-To reference the kustomize file, use a path relative to the `.openshift` directory if it's not in the root `'.openshift` directory, as the `dev/kustomize-dev.patch` value demonstrates above.
+To reference the `kustomize` file, use a path relative to the `.openshift` directory if it's not in the root `'.openshift` directory, as the `dev/kustomize-dev.patch` value [example above](#template-defs)
 
 ### params
 
-The params section will define the default parameters and their values for each template to be used in every SDLC environment your microservice is deployed to.   OKD Templates oftentimes have default values defined for their parameters, or the parameters are not required, so naming parameters and values is only necessary here or in the Environmental Overrides section described below if your microservice or the template specifically need a value.
+The `params` section will define the default and/or environment specific Template parameters and their values.   OKD Templates oftentimes have default values defined for their parameters, or the parameters are not required, so specifically defining parameters is only necessary here or in the [Environmental Overrides](#environmental-overrides) section if your microservice or the template specifically need a value.
 
 ### Environmental Overrides
 
-Sometimes SDLC environments need specific overrides for some template parameters, and these sections allow that.  One example is the microservice's logging level, which might be set to `INFO` during development and testing, but `WARNING` during staging and in production.  Another example is when an SDLC environment use different databases than the others, in which case the URL of the database for that environment needs to be explicitly defined here.
+Sometimes different SDLC environments require Template parameter values; e.g. a microservice's log level might be set to `INFO` in the Dev and Test environments, but `WARNING` in Pre-prod and Prod.  If these are configured through Template parameters.  The sections named after the specific SDLC environment allow you to override some the necessary parameters and/or the `patchFile`.  In the [example above](#template-defs), only two environments override the default parameters, `dev` and `qa`, and the `dev` environment also uses its own `patchFile`.  All of these sections and values within them are optional, and are only required if a specific value for that environment needs to be expressed during deployment.  Only `params` and `patchFile` may be overridden.
 
-These sections are named after the SDLC environment they are meant for.  In the above figure, only two environments override the default parameters, `dev` and `qa`, and the `dev` environment also uses its own `patchFile`.  All of these sections and values within them are optional, and are only required if a specific value for that environment needs to be expressed during deployment.
+## managed OKD Templates
 
-Only `params` and `patchFile` may be overridden.
-
-## Patching OKD Templates
-
-el-CICD makes extensive use of a unique strategy of patching [OKD templates](https://docs.okd.io/latest/openshift_images/using-templates.html) using [kustomize](https://kustomize.io/).
-
-### Managed OKD Templates
-
-el-CICD is built on the principle that developers should work on project requirements as much as possible, and worry about the technology they're using only when necessary.  To that end, most OKD resources that developers care about are expressed as OKD templates that the developer can reference without having to manage the file directly.  This frees developers up to work on and manage the microservice and/or Project specific details they need for their specific deployments.  All of the el-CICD Managed OKD Templates are located in the `el-CICD-config/managed-okd-templates` directory.
+All of the el-CICD managed OKD Templates are located in the `el-CICD-config/managed-okd-templates` directory.
 
 ![Figure: .openshift directory structure](images/developer-guide/managed-okd-templates-directory.png)
 
 **Figure**  
 _managed-okd-templates directory in el-CICD-config repository._
 
-To use a Managed OKD Template reference it in the `template-defs` file with the `templateName` property, found in the `.metadata.name` field of the OKD template file.  el-CICD will automatically load the Managed OKD Template during deployments, process the patchFile and parameters (in that order), and then deploy the resources in the proper SDLC environment.
+To use a managed OKD Template, reference it in the `template-defs` file with the `templateName` property, found in the `.metadata.name` field of the OKD Template file.  el-CICD will automatically load the managed OKD Template during deployments, process the patchFile and parameters (in that order), and then deploy the resources in the proper SDLC environment.
 
 ```yml
 templateName: dc-svc-template
@@ -279,7 +348,7 @@ templateName: dc-svc-template
 _Snippet of the_ `template-defs.yml` _referencing the_ `dc-svc-template`
 
 ```yml
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 kind: Template
 labels:
   template: dc-svc-template
@@ -294,29 +363,29 @@ _Snippet of the_ `dc-svc-template` el-CICD OKD managed template
 
 ### Default Template Parameters
 
-By default, el-CICD will pass the following parameters to every OKD template it processes:
+By default, el-CICD will pass the following parameters to every OKD Template it processes:
 
-|  NAME | DESCRIPTION |
-|  ---* | ----------* |
-|  PROJECT_ID | The Project name |
-|  MICROSERVICE_NAME | The microservice name |
-|  APP_NAME | The appName (defaults to microservice name if not explicitly set) |
-|  IMAGE_REPOSITORY | The image repository backing the SDLC environment |
-|  PULL_SECRET | The pull secret for the image repository |
-|  ENV | The environment being deployed to |
-|  IMAGE_TAG | The image tag of the microservice image |
+|  NAME              | DESCRIPTION                                                       |
+|  ----------------- | ----------------------------------------------------------------- |
+|  PROJECT_ID        | The Project name                                                  |
+|  MICROSERVICE_NAME | The microservice name                                             |
+|  APP_NAME          | The appName (defaults to microservice name if not explicitly set) |
+|  IMAGE_REPOSITORY  | The image repository backing the SDLC environment                 |
+|  PULL_SECRET       | The pull secret for the image repository                          |
+|  ENV               | The environment being deployed to                                 |
+|  IMAGE_TAG         | The image tag of the microservice image                           |
 
-Any of these parameters can be safely ignored if they are not needed or used. el-CICD Managed OKD Templates will use one of more of these by default.
+Any of these parameters can be safely ignored if they are not needed or used. el-CICD managed OKD Templates will use one of more of these by default.
 
 ### How to Know What the Template Parameters Are
 
-Copy of any of the Managed OKD Templates to a local directory which also has the `oc` CLI binary installed, and run the following command:
+Copy of any of the managed OKD Templates to a local directory which also has the `oc` CLI binary installed, and run the following command:
 
 ```bash
-oc process -f managed-okd-templates/<template-file>.yml --parameters
+oc process -f path-to-template-file/<template-file>.yml --parameters
 ```
 
-This will print out a table of all the parameters of the template, a description, what they are generated by (if defined), and the default value, if any.  For example:
+This will print out a table of all the parameters of a Template, a description, what they are generated by (if defined), and the default value (if defined).  For example:
 
 ```bash
 oc process -f managed-okd-templates/dc-svc-template.yml --parameters
@@ -324,27 +393,29 @@ oc process -f managed-okd-templates/dc-svc-template.yml --parameters
 
 produces the following output in your terminal:
 
-|  NAME | DESCRIPTION | GENERATOR | VALUE |
-|  ---- | ----------- | --------- | ----- |
-| IMAGE_REPOSITORY | The image repository from where to fetch the image | | |
-| IMAGE_PULL_POLICY | The image pull policy | | Always  |
-| PULL_SECRET | The image repository pull secret | | |
-| MICROSERVICE_NAME | The name for the microservice, derived by el-CICD from the name of the Git repository | | |
-| APP_NAME | The name for the app.  Set this value manually through the template-defs.yml file for multiple deployments of the same image. | | |
-| PROJECT_ID  | The Project ID | | |
-| ENV | The name of the environment the image is being deployed to.  Used to help define unique routes. | | |
-| IMAGE_TAG | Image Tag used to pull image from image repository | | |
-| CPU_REQ | CPU Resource Request; see OKD docs for more info | | 100m  |
-| CPU_LIMIT | Maximum CPU Resource Limit allowed; see OKD docs for more info | | 200m  |
-| MEM_REQ | Memory Resource Request; see OKD docs for more info | | 50Mi  |
-| MEM_LIMIT | Memory Resource Limit (Ceiling) in Mi or Gi; see OKD docs for more info | | 500Mi  |
-| REPLICAS | The number of replicas for this deployment; see OKD docs for more info | | 1 |
-| SVC_PORT | Service port; see OKD docs for more info | | 8080  |
-| STRATEGY | Deployment strategy; see OKD docs for more info | | Rolling  |
+```bash
+NAME                DESCRIPTION                                                                                                                      GENERATOR           VALUE
+BUILD_NUMBER        The build number
+IMAGE_REPOSITORY    The image repository from where to fetch the image
+IMAGE_PULL_POLICY   The image pull policy                                                                                                                                Always
+PULL_SECRET         The image repository pull secret
+MICROSERVICE_NAME   The name for the microservice, derived by el-CICD from the name of the Git repository
+APP_NAME            The name for the app.  Set this value manually through the template-defs.json file for multiple deployments of the same image.
+PROJECT_ID          The Project ID
+IMAGE_TAG           Image Tag used to pull image from image repository
+CPU_REQ             CPU Resource Request; see OKD docs for more info                                                                                                     100m
+CPU_LIMIT           Maximum CPU Resource Limit allowed; see OKD docs for more info                                                                                       200m
+MEM_REQ             Memory Resource Request; see OKD docs for more info                                                                                                  50Mi
+MEM_LIMIT           Memory Resource Limit (Ceiling) in Mi or Gi; see OKD docs for more info                                                                              500Mi
+REPLICAS            The number of replicas for this deployment; see OKD docs for more info                                                                               1
+SVC_PORT            Service port; see OKD docs for more info                                                                                                             8080
+PORT_PROTOCOL       Protocol for port. Must be UDP, TCP, or SCTP. Defaults to "TCP".                                                                                     TCP
+STRATEGY            Deployment strategy; see OKD docs for more info                                                                                                      Rolling
+```
 
 ### Custom OKD Templates
 
-If for some reason the Managed OKD Templates aren't sufficient, el-CICD supports Custom OKD Templates, which are OKD templates kept in the Git repository of the microservice and managed by the developer rather than the user.  Name the file using `file` property in the `template-defs` next to the `templateName`; e.g. 
+If for some reason the managed OKD Templates aren't sufficient, el-CICD supports custom OKD Templates, which are OKD Templates kept in the Git repository's `.openshift` directory of the microservice and managed by the developer rather than the user.  Name the file using `file` property in the `template-defs` next to the `templateName`; e.g. 
 
 ```yml
     templateName: my-dc-svc-template
@@ -356,25 +427,32 @@ _Snippet of a_ `template-defs.yml` _file which references the Custom OKD Templat
 
 One example where a Custom OKD Template might be used is for a ConfigMap that changes values from one environment to the next.  Without a template in this situation, a copy of the ConfigMap would need to be provided in each [Environment Directory](#environment-directories).
 
-## kustomize.patch
+## Patching OKD Templates
 
-The Managed OKD Templates are bare bones templates, only setting most basic values.  For many of the templates, e.g. `route-template` or `hpa-template` this is sufficient most of the time.  For the `dc-svc-template`, which defines a basic DeploymentConfig and Service pair, and the `cronjob-template`, which defines a basic CronJob, these bare bones templates are almost always insufficient.  Depending on the microservice's needs, one or more of environment variables, volumes, volumeMounts, readiness and liveliness checks, etc., might need to be defined, and that's what the kustomize.patch is for.
+To keep deployment configurations simple and following the [DRY principle](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself), el-CICD makes extensive use of a unique strategy of patching [managed OKD Templates](#managed-okd-templates) using [`kustomize`](https://kustomize.io/).  When deploying a microservice, the process will be:
 
-Note that the file name, `kustomize.patch`, is only an informal standard.  The file can use any name and extension, but it is strongly suggested that the `*.patch` extension continue to be used.  For one thing it makes the file and its purpose easily recognizable within a microservice's Git repository, and secondly it ensures that el-CICD's deployment mechanism won't try and accidentally process it as static OKD resource.  OKD attempts to apply all *.yml, *.json, and *.yml files in the [Environment Directories](#environment-directories) as static OKD resources in whatever environmental namespace the microservice is currently being deployed to.
+1. Read in the microservice's [`template-defs`](#template-defs) file describing
+   1. The OKD Templates to process
+   1. Each Template's optional patch file
+   1. Each Template's parameter values
+1. Patch all OKD Templates
+1. Process all OKD Templates
 
-### Patches Are Applied **BEFORE** OKD Templates are Processed
+### kustomize.patch
 
-This means that all templates, managed or custom, can add, inject, and use template parameters using *.patch files.  This is a very flexible and powerful tool for extending OKD templates.
+The [managed OKD Templates](#managed-okd-templates) are completely bare bones.  For many of the Templates, e.g. `route-template` or `hpa-template` this is sufficient most of the time.  For the `dc-svc-template`, `deploy-svc-template`, and `cronjob-template` -- which defines a basic DeploymentConfig and Service pair, Deployment and Service Pair, and Cronjob, respectively -- these bare bones templates are insufficient.  Depending on the microservice's needs, one or more of environment variables, volumes, volumeMounts, readiness probes, etc., might need to be defined, and that's what the `kustomize.patch` is for.
 
-### Kustomize
+Note that the file name, `kustomize.patch`, is only an informal standard.  The file can use any name and extension, but it is strongly suggested that the `*.patch` extension continue to be used.  For one thing it makes the file and its purpose easily recognizable within a microservice's Git repository, and secondly it ensures that el-CICD's deployment mechanism won't try and accidentally process it as static OKD resource.  Since OKD attempts to apply all `*.yml`, `*.yaml`, `*.json` files in the [Environment Directories](#environment-directories) as static OKD resources in whatever environmental namespace the microservice is currently being deployed to, avoid using JSON or YAML file extensions for this file.
 
-el-CICD makes use of [kustomize](https://kustomize.io/) to patch OKD templates, and combined with Managed OKD templates makes a simple and powerful way to quickly and easily define deployments using minimal code.  el-CICD uses the kustomize binary directly in its build agents, so this strategy works equally well in older versions of OKD which don't have kustomize built into the `oc` CLI binary.
+### kustomize
 
-The following sections will give a few examples of the most common uses of kustomize *.patch files.
+el-CICD makes use of [`kustomize`](https://kustomize.io/) to patch OKD Templates, and combined with managed OKD Templates makes a simple and powerful way to quickly and easily define deployments using minimal code.  el-CICD uses the `kustomize` binary directly in its build agents, so this strategy works equally well in older versions of OKD which don't have `kustomize` built into the `oc` CLI binary.
+
+The following sections will give a few examples of the most common uses of `kustomize` `*.patch` files.
 
 #### Adding content
 
-The examples below will only address the _add_ operation of kustomize, which inserts content into a YAML or JSON file.  This always has the following boilerplate:
+The examples below will only address the _add_ operation of `kustomize`, which inserts content into a YAML or JSON file.  This always has the following boilerplate:
 
 ```yml
 - op: add
@@ -384,45 +462,47 @@ The examples below will only address the _add_ operation of kustomize, which ins
 ```
 
 **Figure**  
-_Basic boilerplate code for adding content using kustomize for use in a patch file._
+_Basic boilerplate code for adding content using `kustomize` for use in a patch file._
 
 The `<content>` in Figure above should be proper YAML or JSON as it is expected to appear _EXACTLY_ in the document.
 
 #### Notes On kustomize Paths
 
-There are a few things to keep in mind about the `path` attribute of a kustomize operation.
+There are a few things to keep in mind about the `path` attribute of a `kustomize` operation.
 
 1. References to a portion of a document in a list can only be done numerically; e.g.
 
-  ```yml
-  path: /objects/0/spec/template/spec/containers/0/env
-    - name: key-1
-      value: value-1
-    - name: key-2
-      value: value-2
-  ```
+   ```yml
+   # insert at array into the env
+   path: /objects/0/spec/template/spec/containers/0/env
+     - name: key-1
+       value: value-1
+     - name: key-2
+       value: value-2
+   ```
 
    refers to the first element in the `objects` list, and the first element of the containers list.  The example path above is used to add a list of environment variables in a DeploymentConfig.
 
-1. Appending content to a list, rather replacing it, requires a `-` at the end of the path; e.g.
+1. Appending content to a array, rather replacing it, requires a `-`, representing the last element; e.g.
 
    ```yml
+   # append at the end of the parameters
    path: /parameters/-
-      description: My 1st parameter.
-      displayName: My 1st Parameter
-      name: MY_PARAM_1
+     description: My 1st parameter.
+     displayName: My 1st Parameter
+     name: MY_PARAM_1
 
    path: /parameters/-
-      description: My 2nd parameter.
-      displayName: My 1st Parameter
-      name: MY_PARAM_2
+     description: My 2nd parameter.
+     displayName: My 1st Parameter
+     name: MY_PARAM_2
    ```
 
-   will append a single element to a list of parameters.  If multiple elements need to be added to a list, then multiple entries must created in the *.patch file, one per element that needs to be added.
+   will append a single element to a list of parameters.  If multiple elements need to be added to a list, then multiple entries must created in the `*.patch` file, one per element that needs to be added.
 
-1. When not explicitly appending, kustomize will replace any content with whatever your operation defines.  In the first `env` example above, if the original template defined any content in that section it would be replaced with whatever is in your patch file.
+1. When not explicitly appending, `kustomize` will replace any content with whatever your operation defines.  In the first `env` example above, if the original template defined any content in that section it would be replaced with whatever is in your patch file.
 
-### EXAMPLE: Adding Environment Variables to a DeploymentConfig OKD Template
+### EXAMPLE: Adding Environment Variables to a DeploymentConfig (or Deployment) OKD Template
 
 ```yml
 - op: add
@@ -443,25 +523,27 @@ There are a few things to keep in mind about the `path` attribute of a kustomize
 ```
 
 **Figure**  
-_Injecting a username and password through a container's env in a DeploymentConfig OKD template._
+_Injecting a username and password through a container's env in a DeploymentConfig OKD Template._
 
-Note the used of the `APP_NAME` template parameter in the name of the environment definition.  Template parameters can be added anywhere in the patch, including new template parameters that can be then referenced elsewhere.
+Note the use of the default el-CICD Template parameter `APP_NAME` in the name of the environment definition.  Template parameters, default or custom, can be added anywhere in the patch, and then referenced elsewhere.  See [Default Template Parameters](#default-template-parameters) for a list of values el-CICD automatically applies to Templates.
 
-### EXAMPLE: Adding a Custom Parameter to a DeploymentConfig OKD Template
+### EXAMPLE: Adding a Custom Parameter an OKD Template
+
+Because Templates are patched before applying their parameters, `kustomize` patches can be used to add custom Template parameters.  This is a very flexible and powerful tool for extending OKD Templates.  For example, a default `kustomize.patch` file might add the parameter `ENV_VAR` to a Template, and then each [Environmental Override](#environmental-overrides) might defined its own values for `ENV_VAR`.  This is more convenient and more closely follows the DRY principle than creating a separate `*.patch` file per environment.
 
 ```yml
 - op: add
   path: /parameters/-
   value:
-    description: Some name.
-    displayName: Some Name
-    name: SOME_NAME
+    description: Some var.
+    displayName: Some var
+    name: ENV_VAR
     required: true
-    value: some-name
+    value: some-default-var-value
 ```
 
 **Figure**  
-_Adding_ `SOME_NAME` _to an OKD Template.  The value of the param would be set in the microservice's_ `template-defs` _file, or use the default, 'some-name`, which could then be injected elsewhere into the OKD template for use._
+_Adding_ `ENV_VAR` _to an OKD Template.  The value of the param could optionally be set in the microservice's_ `template-defs` _file, or rely on the default, 'some-default-var-value`._
 
 ### EXAMPLE: Adding a volume and volumeMount to a CronJob OKD Template
 
@@ -476,90 +558,134 @@ _Adding_ `SOME_NAME` _to an OKD Template.  The value of the param would be set i
   path: /objects/0/spec/jobTemplate/spec/template/spec/volumes
   value:
     - configMap:
-        name: ${SOME_NAME}-config-map
+        name: ${ENV_VAR}-config-map
       name: my-configmap-mount
 ```
 
 **Figure**  
-_Adding a volume and volumeMount referencing a ConfigMap in a container defined in a CronJob OKD Template.  Note the use of the_ `SOME_NAME` _template parameter defined above to reference the ConfigMap._
+_Adding a volume and volumeMount referencing a ConfigMap in a container defined in a CronJob OKD Template.  Note the use of the_ `ENV_VAR` _template parameter defined above to reference the ConfigMap._
 
 ## Environment Directories
 
-In order to include static OKD resources, such as hardcoded (vs OKD templates) ConfigMaps or [Sealed Secrets](#sealed-secrets), they need to be placed in either a `default` directory or a directory specifically named after an SDLC environment if they are only meant to be deployed in that environment.  These directories must be located in the `.openshift` root directory, and any YAML or JSON files found in these directories will be deployed in the appropriate environment.
+In order to include static OKD resources, such as static (vs OKD Templates) ConfigMaps or [Sealed Secrets](#sealed-secrets), they need to be placed in either a `default` directory or a directory specifically named after an [SDLC environment](#project-environments)  These directories must be located in the `.openshift` root directory, and any YAML or JSON files found in these directories el-CICD will attempt to apply in the appropriate environment.
 
-If file names between the `default` directory and Environment Directory conflict, the file in the Environment Directory will take precedence; e.g. if there are two `foo.yml` files, one in the `default` directory and the other in the `dev` Environment Directory, then `dev/foo.yml` in the `dev` will be processed when deploying to the `dev` SDLC environment, and all other SDLC environments will use the contents of the `default/foo.yml`.
+Files in the Environment Directories will take precedence over files in the `default` directory, just as values in the [Environment Overrides](#environmental-overrides) take precedence over default `template-defs` values; e.g. if there are two `foo.yml` files, one in the `default` directory and the other in the `dev` Environment Directory, then `dev/foo.yml` in the `dev` will be processed when deploying to the `dev` SDLC environment, and all other SDLC environments will use the contents of the `default/foo.yml`.
 
-### OKD Templates in Environment Directories
+### Sandbox and Hotfix Environments
 
-Do not place OKD templates in Environment Directories.  They will be deployed by el-CICD as OKD templates in your SDLC environments like any other OKD resource if they are found there.
+Both [Sandbox](#sandbox-environments) and [Hotfix](#hotfix-environment) environments will use Dev environment configurations.  They have no Environment Directory of their own.
+
+### Release Regions
+
+If your Project will be deployed onto more than one cluster in production, then you will most likely need to make use of Release Regions to handle either different configurations or, more likely, Sealed Secrets, which are cluster and namespace dependent.
+
+Regions are listed in el-CICD in the [Project Definition Files](operating-manual.md#project-definition-file), but they are otherwise arbitrary labels either chosen by the Project or the organization, and can consist of any number of labels such as `north` and `south` and `east` or `west`, `us` or `ca`, or `green` and `blue`.
+
+The naming convention for folders holding configuration files for `prod` deployments with Regions is
+
+```text
+prod-<region-label>
+```
+
+The order of precedence for resolving conflicts between files will be `prod-<region-label>` as the highest, `prod`, and then `default`.
+
+### WARNING: OKD Templates in Environment Directories
+
+Do not place OKD Templates in Environment Directories unless you intend to deploy an OKD Template in an environment.  el-CICD will attempt to apply all YML and JSON files found in Environment Directories.
 
 ### Sealed Secrets
 
-Secrets cannot be stored in Git repositories, because they are only obfuscated as base64 values, and are not encrypted.  This has made fully automated deployments of projects into Kubernetes and OKD problematic over the years.  In order to get around this, [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets) are used as a solution to encrypt Secrets for use in el-CICD so deployments may be fully automated.
+[Secrets](https://docs.okd.io/latest/nodes/pods/nodes-pods-secrets.html) cannot be stored in Git repositories, because they are only obfuscated as base64 values and not encrypted.  This has made fully automated deployments of projects into Kubernetes and OKD problematic over the years.  In order to get around this, [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets) are used as a solution to encrypt Secrets for use in el-CICD so deployments may be fully automated.
 
-Sealed Secrets are fully dependent on the cluster the Sealed Secrets are meant to be deployed in, and also on the namespace.  This means that for every environment that in your SDLC a separate Sealed Secret must be created and placed in the appropriate Environment Directory.  Any Sealed Secrets your microservice needs will be created on the OKD bastion host and committed into your microservices Git repository in the appropriate Environment Directory.
+Sealed Secrets are fully dependent on the cluster the Sealed Secrets are meant to be deployed in, and also on the namespace.  This means that for every SDLC environment your microservice is deployed to, a separate Sealed Secret must be created and placed in the appropriate Environment Directory.
+
+#### kubeseal
+
+[`kubeseal`](https://github.com/bitnami-labs/sealed-secrets#usage) is a command line utility provided by the Sealed Secrets project for creating Sealed Secrets, and should be installed on your OKD cluster's bastion.  Any Sealed Secrets your microservice needs will be created on the OKD bastion host and committed into your microservices Git repository in the appropriate Environment Directory.  If you are deploying to more than one cluster in Prod, then you'll need a Sealed Secret for each cluster, too.  See [Release Regions](#release-regions) for more information.
 
 ## Further Examples
 
 In the `el-CiCD-docs` repository, which is where this document lives, you will find a `.openshift-examples` directory with a `template-defs`, `kustomize.patch`, and other examples.  You may also copy this directory down and use it as a lightweight template from which to create the deployment configuration of your microservice.
 
+The [el-CICD site](https://github.com/elcicd) also contains a number of test repositories with numerous examples; e.g. [test-cicd-stationdemo](https://github.com/elcicd/test-cicd-stationdemo), [Test-CICD1](https://github.com/elcicd/Test-CICD1), and other projects prepended with some formulation of `test-cicd`.
+
 # Repository and Runtime Integration Strategy
 
-A microservice is comprised of two repositories, Source Code and Image, and each has artifacts that depend on the other.  The Source Code Repository is the source of truth holding both the source code that created the image from the Build and the deployment configuration defining how it will be deployed and run in the Container Orchestration Platform for each environment.  The Image Repository contains the images that were built from the source code, and it is where the Container Orchestration Platform pulls images from to run in containers in [pods](https://docs.okd.io/latest/nodes/pods/nodes-pods-using.html#nodes-pods-using-about_nodes-pods-using-ssy).  The following explains how all this is ultimately tied together by the system seamlessly so changes can be made easily, deliberately, transparently, and automatically without requiring developers to do anything they normally wouldn’t do; i.e. writing code to implement business requirements and committing the changes back to the Source Code Repository.
+A microservice is comprised of two repositories, Source Code and Image, and each has artifacts that depend on the other.  The Source Code Repository, hosted on an [SCM](foundations.md#source-control-management-scm), contains the following pertinent code:
+
+* The source to build the microservice's executables
+* The source to build the image containing the microservice's executables
+* The deployment configuration for deploying the image in each SDLC environment
+
+The [Image Repository](foundations.md#artifact-repository) contains the images that are built, and the images as they are promoted.
+
+The [Container Orchestration Platform](foundations.md#container-orchestration-platform) manages each SLDC environment, the deployment configuration as realized from the SCM for each particular environment, and the [pods](https://docs.okd.io/latest/nodes/pods/nodes-pods-using.html#nodes-pods-using-about_nodes-pods-using-ssy) running the containers based on the microservice images.
+
+The following will explain how el-CICD manages to seamlessly and automatically sync each of the different sources of information as microservices are developed, built, deployed, promoted, rolled back and forward, etc.
 
 ## Development Branch
 
-A design decision was made early on that all SCM repositories comprising a single Project would have a Development Branch of the same name; e.g. _development_ or _hotfix_.  Regardless of team or the component worked on, all developers are expected to eventually merge their latest changes to this branch, and the CICD system to be automatically triggered to run the [Build-to-Dev](#build-to-dev) pipeline whenever code is delivered.  All [Deployment Branches](#deployment-branches) will ultimately stem from the Development Branch, of which each commit hash will represent an image that was built along with the initial deployment configuration for that image for each environment of the Project.
+A design decision was made early on that all SCM repositories comprising a single Project would have a [Development Branch](foundations.md#development-branch) of the same name; e.g. `development`.  Regardless of team or the component worked on, all developers are expected to eventually merge their latest changes into this branch, which in turn will trigger the [Build-to-Dev](#build-to-dev) pipeline to build the microservice, build and push the microservice image to the Dev Image Repository, and then deploy the image into the [Dev environment](foundations.md#dev-environment).
 
 ![Figure: Development Branch](images/developer-guide/dev-branch.png)
 
-**Figure** _The Development Branch with four separate commits and their hash.  In general, each commit represents a distinct build and a distinct image._
+**Figure** _The Development Branch with four separate commits and their hash.  Each commit represents a distinct build and (if successful) a distinct image deployed to the Dev environment._
 
-## Synchronizing the Image and SCM Repositories
+## Deployment Branches
 
-The images built from source reside in an Image Repository, and they are immutable.  The deployment configuration, describing how the image should be deployed across multiple environments, is also kept in the SCM, and it needs to remain mutable.  One of the most difficult design problems for the modern, cloud supporting CICD system was settling on a methodology which explicitly acknowledges this reality while providing an easy to understand, standardized, and automated system for supporting [Deployment Patching](foundations.md#deployment-patching).
+Deployment Branches are used to keep images and their deployment configurations in sync for a particular SDLC environment.  Before getting into more detail, it helps to understand why they are needed in the first place.
 
-For the Dev environment and Development Branch, this isn't a problem, since any image built for Dev only needs to match what’s in the Development Branch; i.e. it was reasonable to expect to build a new image every time the deployment configuration changed, because part of the Build-to-Dev pipeline is testing the deployment by deploying directly to Dev.
+### Problem: Code is Mutable, Images are Immutable
 
-The harder problem is when an image is promoted to a downstream environment; e.g. QA, Stg, or Prod.  Where are the changes to the deployment for those images kept and tracked?  Changes in the Development Branch happen faster than in any downstream environment, and the further downstream the environment, the slower the changes will happen, so expecting the Development Branch to also hold the deployment for the current image deployed to QA when the Development Branch might be many commits ahead is unreasonable; i.e. expecting the source code to match the image being deployed into a downstream environment would grind development to a halt, or have the deployment configuration for a particular environment to not match the code in the repository.
+The images built from source reside in an Image Repository, and they are immutable.  The deployment configuration, describing how the image should be deployed on the [Container Orchestration Platform](foundations.md#container-orchestration-platform) OKD, is kept in the Git SCM on the Development Branch, and assuming the microservice is being actively developed it is constantly evolving with new commits; i.e. it is very mutable.
 
-The solution was to create the Deployment Branch.
+Since the Dev environment by definition represents a build resulting in a new image, this isn't an issue.  As new commits are made, new builds are triggered simultaneously, so the deployment configuration for the image deployed in the Dev environment always represents what is in the commit that built the image.
 
-### Deployment Branch
+The harder problem is when an image is promoted to a downstream environment; e.g. from Dev to a Test environment, a Test to Pre-Prod, or Pre-prod to Prod.  At some point a downstream environment may need to change the deployment configuration, and best practice requires that those changes be committed and versioned in the SCM.  Where and how can changes to the deployment configuration for those images kept and versioned, if the branch that contained the original source of the image has already evolved one more commits into the future?
 
-The purpose of the Deployment Branch is to support the [Deployment Patching](foundations.md#deployment-patching) process directly by creating a branch for each environment the image is deployed to.  Each Deployment Branch is where developers can push deployment configuration changes for the image built from the source included in the branch.  The changes will be applied whenever the image is redeployed to the particular environment.  The branches will be named in the following manner:
+Expecting the Development Branch to also hold the deployment for images deployed to a Test environment when the Development Branch might be many commits ahead is not a good strategy.  The deployment configuration for downstream environments would not represent the latest commit, but some commit in the past, assuming that the two could even be reconciled and tracked.  The problem becomes even more complex and difficult when you start to consider how to roll back or roll forward to different versions of the image and their associated deployment configurations in different SDLC environments.
 
-**deployment-\<environment>-\<src-commit-hash>**
-
-* **\<environment>:** the environment the image is to be deployed to
-* **\<src-commit-hash>:** the commit hash **_on the Development Branch_** the image was originally built from
-
-For example, when an image is promoted from Dev to QA with a commit hash of 8d7dh3g on the Development Branch, its Deployment Branch will be created and named:
-
-**deployment-qa-8d7dh3g**
-
-Only changes that affect the deployment of the image to QA or its downstream environments will be acknowledged and used by the CICD system.
+### Solution: Deployment Branches
 
 ![Figure: Deployment Branch](images/developer-guide/deployment-branch.png)
 
 **Figure**  
 
 1. _Development Branch of Project_
-1. _**deployment-qa-8d7dh3g**_ Deployment Branch with one Deployment Patch committed to it
+1. **`deployment-qa-8d7dh3g`** _Deployment Branch for `qa` with one [Deployment Patch](foundations.md#deployment-patching)
+
+The Deployment Branch was created and designed to allow changes to a microservice's deployment configuration to be tracked and versioned even while allowing that its buildable source and its image remained static.  Deployment Branches are only created when an image is promoted from one SDLC environment to the next.  As noted, the Image deployed to Dev has no Deployment Branch, since it is built and not promoted, and therefore does not need one.  When an image is promoted out of Dev to a downstream environment, the first Deployment Branch is created from source commit where the image was built.  Subsequent promotions to further downstream environments are made at the HEAD of the previous Deployment Branch; e.g. referring to the figure above, for the Stg environment, you'd get a Deployment Branch at source commit hash 9458de3.
+
+Each Deployment Branch is where developers can push deployment configuration changes for the image built from the source included in the branch  Commits to a Deployment Branch are considered [Deployment Patches](foundations.md#deployment-patching) for the environment.  
+
+The changes will be applied whenever the image is redeployed to the particular environment.  The branches will be named in the following manner:
+
+**`deployment-<environment>-<src-commit-hash>`**
+
+* **`<environment>`:** the environment the image is to be deployed to
+* **`<src-commit-hash>`:** the source commit hash **_on the Development Branch_** from which the image was built
+
+For example, when an image is promoted from Dev to QA with a commit hash of 8d7dh3g on the Development Branch, its Deployment Branch will be created and named:
+
+**`deployment-qa-8d7dh3g`**
+
+Only changes that affect the deployment of the image to QA or its downstream environments will be acknowledged and used by the CICD system.
+
+
 
 Deployment Branches are only created when an image is promoted into a particular environment.  Subsequent Deployment Branches are created from the HEAD of the previous Deployment Branch; e.g. referring to the figure above, for the Stg environment, you'd get a Deployment Branch at source commit hash 9458de3.
 
 **deployment-stg-8d7dh3g**
 
-Note that source commit hash remains constant.  This naming convention insures Deployment Branches should be easy to identify, and easy to trace any image back to it's original source commit hash on the Development Branch.
+Note that source commit hash remains constant as the image is promoted, because representing the code that created the image.  This naming convention ensures Deployment Branches should be easy to identify, the environment the deployment configuration is meant for, and identifies exactly where the source code that built the image came from on the Development Branch.
 
-#### **WARNING: DO NOT MODIFY UPSTREAM ENVIRONMENT CONFIGURATIONS OR THE IMAGE SOURCE CODE**
+#### WARNING: DO NOT MODIFY UPSTREAM ENVIRONMENT CONFIGURATIONS OR THE IMAGE SOURCE CODE
 
-Changes made to the deployment configurations for an upstream environment or the source code of the microservice on a Deployment Branch will be ignored by the current Deployment Branch.  The purpose of a Deployment Branch _is to track and version the changes of the deployment configurations for an image built from the Development Branch_.  The code that's included, and any upstream deployment configurations should only be looked at as a historical record of the Project _from the time the branch was created_.  Changing any of this in a downstream Deployment Branch makes it harder to see what is in the actual image, and how it was previously deployed before being promoted.
+Changes made to the deployment configurations for an upstream environment or the source code of the microservice on a Deployment Branch will be ignored by the current Deployment Branch.  The purpose of a Deployment Branch _is to track and version the changes of the deployment configurations for a particular environment_.  The rest of the contained source and any upstream deployment configurations should only be looked at as a historical record of the microservice _from the time the branch was created_.  Changing any of this in a downstream Deployment Branch makes it harder to understand what is in the associated image, and how it was previously deployed before being promoted.
 
-Changing the source or upstream deployment configurations will at a minimum cause confusion, and at worst make it harder to work on hotfixes if necessary.  Because of Git's distributed nature and design, locking certain files from being modified is not possible.  Deployment Branches are a work-around to the modern development problem of keeping the proverbial source of truth in two places at once, the SCM and the Image Repository.
+Changing the source or upstream deployment configurations will at a minimum cause confusion, and at worst make it harder to work on hotfixes if necessary.  Because of Git's distributed nature and design, locking certain files from being modified is not possible.  Deployment Branches are a work-around to the [modern development problem](#problem-keeping-the-image-and-scm-repositories-in-sync) of keeping the proverbial source of truth in two places at once, the SCM and the Image Repository.
 
-Note that merging changes back into the Development Branch to pick up changes are permissible and encouraged whenever it makes sense.
+Note that merging changes back into the Development Branch to pick up changes, or from an upstream deployment branch to a downstream deployment branch are encouraged whenever it makes sense.
 
 ### Release Candidate Tags
 
@@ -728,7 +854,7 @@ There is one Build-to-Dev pipeline per microservice defined in the [Project Defi
 * Build and push an image of the microservice to the Dev Image Repository
   * Tag the image with the Dev environment name, all lower case
   * e.g. `sample-microservice-name:dev`, assuming the Dev environment is named `DEV`
-* Patch and process the Dev environment OKD templates
+* Patch and process the Dev environment OKD Templates
 * Deploy the microservice
   * DEPLOY_TO_NAMESPACE is restricted to the Dev namespace or a Sandbox
 

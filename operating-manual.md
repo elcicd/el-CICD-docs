@@ -825,7 +825,7 @@ The NFS Share template is for operations use only when onboarding a Project.  Se
 
 ## Project Definition File
 
-The Project Definition File is a file that defines each Project.  It can be written in either YAML or JSON, **must be named aafter the Project**, and has the following content:
+The Project Definition File is a file that defines each Project, and they are all found in the `el-CICD-config/project-defs` directory.  It can be written in either YAML or JSON, **must be named after the Project**, and has the following content:
 
 ```yml
 rbacGroup: devops                    # The OKD RBAC group the Project belongs to
@@ -853,6 +853,11 @@ enabledTestEnvs:
 - qa                                 # Unordered list of test environments the Project needs
 sandboxEnvs: 2                       # Number of sandboxes needed
 allowsHotfixes: true                 # Enables use of optional hotfix environment
+regions:                             # arbitrary list of labels representing different clusters a Project can be deployed to in Prod
+  - blue
+  - green
+  - east
+  - west
 resourceQuotas:                      # Define the ResourceQuota per SDLC environment
   default: small.yml                 # Default file defining the ResourceQuotas for an SDLC environment of the project
   qa: medium.yml                     # File defining the ResourceQuotas for a specific SDLC environment of the project

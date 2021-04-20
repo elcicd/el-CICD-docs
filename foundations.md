@@ -60,6 +60,7 @@ or send a letter to
     * [Environments](#environments)
       * [Dev Environment](#dev-environment)
       * [Test Environments](#test-environments)
+      * [Pre-prod Environment](#pre-prod-environment)
       * [Prod Environment](#prod-environment)
     * [Project](#project)
     * [Build Once, Deploy Many](#build-once-deploy-many)
@@ -157,7 +158,7 @@ Environments are a key concept that needs to be supported by any CICD system.  W
 
 #### Dev Environment
 
-The Dev, or development, environment represents the initial deployment of a software Project immediately after a build.  It should be a direct reflection of the source code as it currently exists in its SCM repository code at all times.  In general, if at any time the current build in Dev does not reflect the current state of the SCM, then [The Build](#the-build) is considered to be broken.  This is at the very heart of what continuous integration means.
+The Dev, or Development, Environment represents the initial deployment of a software Project immediately after a build.  It should be a direct reflection of the source code as it currently exists in its SCM repository code at all times.  In general, if at any time the current build in Dev does not reflect the current state of the SCM, then [The Build](#the-build) is considered to be broken.  This is at the very heart of what continuous integration means.
 
 #### Test Environments
 
@@ -166,13 +167,16 @@ Test can represent one or more environments.  Examples include:
 * **Quality Assurance (QA)**: for the testing of whether the software meets its functional and business requirements
 * **User Acceptance Testing (UAT)**: for the testing by end users as to whether it meets their requirements for being usable
 * **Stage (Stg):** A catch-all environment for performance or load testing
-* **Pre-production (Pre-prod):** ideally, an exact duplicate of the production environment, used for testing that the production deployment configuration works, and that the software in the production will work as expected
 
 Which environments a Project actually uses depends on such factors as the size and needs of the Project and the organization.
 
+#### Pre-prod Environment
+
+The Pre-prod environment is a special kind of Test Environment, and is the penultimate SDLC environment before deployment to Prod.  Ideally it is as close to the Production Environment as possible, and it is typically used for testing that the production deployment configuration works, and that the software in the production will work as expected.
+
 #### Prod Environment
 
-The final environment, Prod, in which the software is considered to released into the world and available to end users; i.e. production.  The software is considered to be functionally complete and has passed all necessary testing before being deployed into this environment.
+The final environment, Prod, or Production, Environment in which the software is considered to released into the world and available to end users; i.e. production.  The software is considered to be functionally complete and has passed all necessary testing before being deployed into this environment.
 
 ### Project
 
@@ -224,7 +228,7 @@ This step is for any further packaging or work needed by The Build.  It could me
 
 ##### Deploy
 
-Successfully deploy the software into the Dev environment.  In the case of libraries, this typically means uploading artifacts such Java jars or pPython pip wheels to a central artifact repository, which can then be used later by other components in one or more projects.
+Successfully deploy the software into the Dev Environment.  In the case of libraries, this typically means uploading artifacts such Java jars or pPython pip wheels to a central artifact repository, which can then be used later by other components in one or more projects.
 
 #### Standardization
 
@@ -243,7 +247,7 @@ Another example would be standardizing on the unit test tools used.  While Apach
 
 ### Continuous Delivery
 
-Continuous Delivery (CD) is where the source code is always in a state where the artifacts produced by CI are deployable.  CICD systems almost without exception use automated deployment to a Dev environment after the CI process has completed to verify the software as built is indeed deployable, thus demonstrating the minimum requirements of CICD have been met.
+Continuous Delivery (CD) is where the source code is always in a state where the artifacts produced by CI are deployable.  CICD systems almost without exception use automated deployment to a [Dev Environment](#dev-environment) after the CI process has completed to verify the software as built is indeed deployable, thus demonstrating the minimum requirements of CICD have been met.
 
 In a CD system, initiating subsequent deployments to downstream environments are strictly manual; i.e. after the automated deployment to Dev, all downstream environments through Prod are initiated and approved through direct human intervention.  The idea behind this is that while the software **can** be delivered, it might not be **ready** to be delivered.  Perhaps the software hasn’t cleared QA to be passed to UAT, or perhaps the operations team only wants to perform performance testing after the UAT team has signed off on the final implementation.  Perhaps the software is still missing some relevant features that make deploying the code at that time less than optimal.
 
