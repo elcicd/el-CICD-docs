@@ -113,8 +113,8 @@ or send a letter to
     * [Project Meta-Info](#project-meta-info)
 * [Non-prod Automation Server Pipelines](#non-prod-automation-server-pipelines)
   * [build-to-dev Pipelines](#build-to-dev-pipelines)
-  * [build-and-deploy-microservices Pipeline](#build-and-deploy-microservices-pipeline)
   * [build-library Pipelines](#build-library-pipelines)
+  * [build-and-deploy-microservices Pipeline](#build-and-deploy-microservices-pipeline)
   * [microservice-promotion-removal Pipeline](#microservice-promotion-removal-pipeline)
   * [microservice-redeploy-removal Pipeline](#microservice-redeploy-removal-pipeline)
   * [create-release-candidate Pipeline](#create-release-candidate-pipeline)
@@ -849,13 +849,13 @@ _Non-prod Automation Server pipelines for RBAC Group_ `devops` _and Project_ `te
 
 ## build-to-dev Pipelines
 
-There is one Build-to-Dev pipeline per microservice defined in the [Project Definition File](operating-manual.md#project-definition-file).  The pipelines are responsible for the [Build](foundations.md#the-build), creating and pushing to the microservice's image to the [Artifact Repository](foundations.md#artifact-repository), and deploying the newly built image into the Dev environment.  This pipeline is typically triggered by a webhook whenever the Development Branch of the microservice has a new commit.
+There is one Build-to-Dev pipeline per microservice defined in the [Project Definition File](operating-manual.md#project-definition-file).  The pipelines are responsible for the [Build](foundations.md#the-build), creating and pushing to the microservice's image to the [Image Repository](foundations.md#artifact-repository), and deploying the newly built image into the Dev environment.  This pipeline is typically triggered by a webhook whenever the Development Branch of the microservice has a new commit.
 
-| Parameters             | Description                                                                    |
-| ---------------------- | ------------------------------------------------------------------------------ |
-| GIT_BRANCH             | The Git branch to check out                                                    |
-| RECREATE               | If true, clear all resources belonging to this microservice before redeploying |
-| DEPLOY_TO_NAMESPACE    | The namespace to deploy the image to                                           |
+| Parameters             | Description                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------          |
+| GIT_BRANCH             | The Git branch to check out; defaults to the Development Branch                         |
+| RECREATE               | If true, clear all resources belonging to this microservice before redeploying          |
+| DEPLOY_TO_NAMESPACE    | The namespace to deploy the image to; must be Dev, a Sandbox, or the Hotfix environment |
 
 * Download the latest microservice code from the Project's Development Branch
   * Any branch or tag may be built
@@ -866,12 +866,31 @@ There is one Build-to-Dev pipeline per microservice defined in the [Project Defi
   * e.g. `sample-microservice-name:dev`, assuming the Dev environment is named `DEV`
 * Patch and process the Dev environment OKD Templates
 * Deploy the microservice
-  * DEPLOY_TO_NAMESPACE is restricted to the Dev namespace or a Sandbox
+  * `DEPLOY_TO_NAMESPACE` is restricted to the Dev environment, a particular Sandbox environment, or the Hotfix environment (if enabled)
 
-![Figure: Build and Deploy Microservices](images/developer-guide/build-to-dev-build.png)
+![Figure: build-to-dev Build with Parameters screen](images/developer-guide/build-to-dev-build.png)
 
 **Figure**
-_Build with Parameters screen for the Build and Deploy Microservices pipeline_
+_build-to-dev Build with Parameters screen_
+
+## build-library Pipelines
+
+There is one Build-library pipeline per library defined in the [Project Definition File](operating-manual.md#project-definition-file).  The pipelines are responsible for the [Build](foundations.md#the-build), and creating and pushing the library's artifacts to the [Artifact Repository](foundations.md#artifact-repository).  This pipeline is typically triggered by a webhook whenever the Development Branch of the microservice has a new commit.
+
+| Parameters             | Description                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------          |
+| GIT_BRANCH             | The Git branch to check out; defaults to the Development Branch                         |
+| IS_SNAPSHOT            | If the library build is a snapshot or release build                                     |
+
+These pipelines is exactly like the the [Build-to-Dev](#build-to-dev-pipelines) above, except these pipelines stop after pushing their artifacts.  Their final [Builder Steps](operating-manual.md#builder-steps) is to deploy, rather than assemble, and the deploy step should be responsible for pushing the artifacts.
+
+Although a build parameter for the pipeline, `IS_SNAPSHOT` is strictly a parameter for identification and use by organizations in their [Builder Steps deploy script](operating-manual.md#defining-a-code-base).  el-CICD but does not define the difference between a release and snapshot build.  It is up to organizations to and/or Project teams to define what these mean and when it's appropriate to use either relative in their dependent microservices.
+
+
+![Figure: build-library Build with Parameters screen](images/developer-guide/build-library-build.png)
+
+**Figure**
+_build-library Build with Parameters screen_
 
 ## build-and-deploy-microservices Pipeline
 
@@ -881,40 +900,38 @@ The Build and Deploy Microservices pipeline is for building and deploying multip
 | ------------------------- | ----------------------------------------------------------------------- |
 | PROJECT_ID                | The Project ID                                                          |
 
-
 The user will:
 
-* Choose to deploy to the Dev environment or a particular Sandbox environment
-* Choose which branch to build; it will be the same for each microservice
-* Choose the microservices to build
+* Select to deploy to the Dev environment, a particular Sandbox environment, or the Hotfix environment (if enabled)
+* Enter which branch to build; it will be the same for each microservice selected
+* Check the microservices to build
+  * Or select to build all microservices
 * Select whether the chosen microservices will be recreated
   * Recreation means all resources for each chosen microservice will be removed from the environment before deploying
 
 The pipeline will:
 
 * Build the selected microservices of the Project
-  * This pipeline will trigger each Build to Dev pipeline
-  * Pipeline builds are executed in parallel using Jenkins' parallel build capability.
+  * This pipeline will trigger each [Build-to-Dev](#build-to-dev-pipelines) pipeline
+  * Pipeline builds are executed in parallel using Jenkins' parallel build capability
 
-![Figure: Build and Deploy Microservices](images/developer-guide/build-and-deploy-microservices-build.png)
+If any single Build-to-Dev pipeline fails, this pipeline is considered to have failed.
+
+![Figure: build-and-deploy-microservices Build with Parameters screen](images/developer-guide/build-and-deploy-microservices-build.png)
 
 **Figure**
-_Build with Parameters screen for the Build and Deploy Microservices pipeline_
+_build-and-deploy-microservices Build with Parameters screen_
 
-![Figure: Build and Deploy Microservices](images/developer-guide/build-and-deploy-microservices.png)
+![Figure: build-and-deploy-microservices](images/developer-guide/build-and-deploy-microservices.png)
 
 **Figure**
 _Choose what microservices build and where to deploy to_
 
-`buildAll` will build all the microservices in the Project.  `recreateAll` will remove all previously deployed microservices from the enviroment before deploying anything, and this functionality can be used without building any microservices as a means of cleaning the Dev or Sandox environments.
-
-## build-library Pipelines
-
-Builds libraries
+`buildAll` will build all the microservices in the Project.  `recreateAll` will remove all previously deployed microservices from the environment before deploying anything, and this functionality can be used without building any microservices as a means of cleaning the Dev or Sandbox environments.
 
 ## microservice-promotion-removal Pipeline
 
-The Promotion/Removal pipeline will promote one or more microservices of a Project from one environment to the next and/or remove microservices from the environment to be promoted to.
+The microservice-promotion-removal pipeline will promote one or more microservices of a Project from a source environment to the next target environment and/or remove microservices from the target environment.
 
 | Build Parameters          | Description                                                             |
 | ------------------------- | ----------------------------------------------------------------------- |
@@ -922,36 +939,37 @@ The Promotion/Removal pipeline will promote one or more microservices of a Proje
 
 The user will:
 
-* Choose the environment to promote from -> to
-* Choose a default action (do nothing, promote, or remove) for all microservices
-* Choose an action for each specific microservice, if different than the default action
+* Select the environment to promote from -> to
+  * Which environment a microservice may be promoted from/to, see [Environment Promotion Order](operating-manual.md#environment-promotion-order)
+* Select a default action to be performed for each microservice in the Project; the default is to do nothing
+* Select
+  * Which microservices to promote
+  * Which microservices to remove
 
 The pipeline will:
 
-* Verify each image to be promoted is currently deployed in the previous environment
-* If the previous environment is a test environment, confirm a Deployment Branch for the previous environment exists
+* Verify whether each image to be promoted is currently deployed in the previous environment
+* If the previous environment is a Test environment, confirm a Deployment Branch for the previous environment exists
 * Create a new Deployment Branch from the previous Deployment Branch for the current environment if one does not exist
+  * When promoting from Dev, the Deployment Branch will be created at the source commit hash that built the image
 * Copy the image from the previous environment's Image Repository to the current environment's Image Repository
-  * Tag the image with the current environment name, all lower case; e.g. `qa`
-    * This marks the image as the currently or most recently (if later removed) deployed to that environment
-  * Tag the image with current environment name and source commit hash; e.g. `qa-skd76dg`
-    * Every image should be able to be tracked back to the source it was built with
-* Remove all microservices selected for removal from the "to" environment
-* Deploy the microservices selected for promotion
+  * The image is tagged according to the conventions described in [Non-prod Image Tags](#non-prod-image-tags)
+* Remove all microservices selected for removal from the target environment
+* Deploy all microservices selected for promotion to the target environment
 
-![Figure: Promotion/Removal](images/developer-guide/promotion-removal-pipeline-build.png)
+![Figure: microservice-promotion-removal Build with Parameters screen](images/developer-guide/promotion-removal-pipeline-build.png)
 
 **Figure**
-_Build with Parameters screen for the Promotion/Removal pipeline_
+_microservice-promotion-removal Build with Parameters screen_
 
 ![Figure: Promotion/Removal](images/developer-guide/promotion-removal-pipeline.png)
 
 **Figure**
-_Select microservices to promote or remove_
+_Select the microservices to promote or remove_
 
 ## microservice-redeploy-removal Pipeline
 
-The Redeploy/Removal pipeline will redeploy an image already promoted into a test environment.  This pipeline is for rolling microservices back/forward, or to apply a [Deployment Patch](foundations.md#deployment-patching) in the selected environment.
+The microservice-redeploy-removal pipeline will redeploy an image already promoted into a test environment.  This pipeline is for rolling microservices back/forward, or to apply a [Deployment Patch](foundations.md#deployment-patching) in the selected environment.
 
 | Build Parameters          | Description                                                             |
 | ------------------------- | ----------------------------------------------------------------------- |
@@ -959,7 +977,7 @@ The Redeploy/Removal pipeline will redeploy an image already promoted into a tes
 
 The user will:
 
-* Choose the environment to be operated on
+* Select the environment to be operated on
 * Select
   * Which version of each microservice to redeploy
   * Which microservices to remove
@@ -968,14 +986,16 @@ The pipeline will:
 
 * Verify the image still exists in the environment's Image Repository
 * Confirm a Deployment Branch exists for the image
-* Tag the image with the current environment name, all lower case, marking it as the current image deployed in the environment
+* The image is tagged according to the conventions described in [Non-prod Image Tags](#non-prod-image-tags)
 * Remove all microservices selected for removal from environment
 * Deploy the microservices selected for promotion
 
-![Figure: Promotion/Removal Build](images/developer-guide/redeploy-removal-pipeline-build.png)
+The versions of each microservice listed on the Build with Parameters screen dropdown boxes are defined by the source commit hash that built the original image, per the image tagging conventions defined in [Non-prod Image Tags](#non-prod-image-tags). 
+
+![Figure: microservice-redeploy-removal Build with Parameters screen](images/developer-guide/redeploy-removal-pipeline-build.png)
 
 **Figure**
-_Build with Parameters screen for the Redeploy/Removal pipeline_
+_microservice-redeploy-removal Build with Parameters screen_
 
 ![Figure: Promotion/Removal Build Select Env](images/developer-guide/redeploy-removal-pipeline-select-env.png)
 
@@ -989,7 +1009,7 @@ _Select microservices to redeploy or remove_
 
 ## create-release-candidate Pipeline
 
-The Create [Release Candidate](foundations.md#release-candidate) pipeline's will define a collection of images from those having last been deployed in the [Pre-prod](foundations.md#pre-prod) environment as a candidate for a release to production.
+The create-release-candidate pipeline allows the user to define a [Release Candidate](foundations.md#release-candidate) from the images currently deployed in the [Pre-prod](foundations.md#pre-prod) environment.
 
 | Build Parameters          | Description                                                             |
 | ------------------------- | ----------------------------------------------------------------------- |
@@ -1007,28 +1027,28 @@ The pipeline will:
 * Tag each microservice image currently tagged for the Pre-prod environment with the Release Candidate Tag
 * Tag the Pre-Prod Deployment Branch at the HEAD of the Pre-prod Deployment Branch with the Release Candidate Tag
 
-![Figure: Create Release Candidate Build](images/developer-guide/create-release-candidate-build.png)
+![Figure: create-release-candidate Build with Parameters screen](images/developer-guide/create-release-candidate-build.png)
 
 **Figure**
-_Build with Parameters screen for the Redeploy/Removal pipeline_
+_create-release-candidate Build with Parameters screen_
 
-![Figure: Create Release Candidate](images/developer-guide/create-release-candidate.png)
+![Figure: Select all Project microservices that are intended to be part of this release](images/developer-guide/create-release-candidate.png)
 
 **Figure**
-_Select microservices to tag that are part of the Release Candidate_
+_Select all Project microservices that are intended to be part of this release_
 
 ## redeploy-release-candidate Pipeline
 
-The Redeploy Release Candidate pipeline is for resetting the Pre-prod environment and redeploying a complete release candidate.  This is run either for to retest a particular Release Candidate, or in preparation for creating a hotfix release.
+The redeploy-release-candidate pipeline is for resetting the [Pre-prod](foundations.md#pre-prod) environment and redeploying a complete release candidate in it.  This is run either for to retest a particular [Release Candidate](foundations.md#release-candidate), or in preparation for creating a [hotfix release](operating-manual.md#the-hotfix-process).
 
 * Verify both images and a Git tag exist that match the Release Candidate Tag
 * Ask the user to confirm the deployment of the Release Candidate, and removal of all microservices not part of the Release Candidate
 
 If the user approves the deployment, the pipeline will continue and:
 
-* Tag all images of the Release Candidate with the Pre-prod environment name, all lower case, marking it as the current image deployed in the environment
+* Tag all images of the Release Candidate with the Pre-prod environment name
 * Remove all currently deployed microservices in Pre-prod
-* Deploy all microservices of the Release Candidate into Pre-prod, using the latest commit from the Deployment Branch for the Pre-prod environment  
+* Deploy all microservices of the Release Candidate into Pre-prod, using the latest commit from the Deployment Branch for the Pre-prod environment
   * Upon successful completion, the release is ready for promotion and deployment to Prod
 
 ![Figure: Redeploy Release Candidate Build](images/developer-guide/redeploy-release-candidate-build.png)

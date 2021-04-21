@@ -78,7 +78,8 @@ or send a letter to
       * [Build Secrets](#build-secrets)
         * [Naming Convention Definitions](#naming-convention-definitions)
       * [SDLC Definition](#sdlc-definition)
-        * [Lifecycle Definition](#lifecycle-definition)
+        * [Environment Definitions](#environment-definitions)
+        * [Environment Promotion Order](#environment-promotion-order)
         * [Image Repositories](#image-repositories)
     * [Jenkins Configuration](#jenkins-configuration)
       * [Jenkins and Agents Dockerfiles and Configuration Files](#jenkins-and-agents-dockerfiles-and-configuration-files)
@@ -94,6 +95,7 @@ or send a letter to
     * [Libraries](#libraries)
     * [Enabled Test Environments](#enabled-test-environments)
     * [Sandbox Environments](#sandbox-environments)
+    * [Allow Hotfixes](#allow-hotfixes)
     * [ResourceQuotas](#resourcequotas)
     * [NFS Shares](#nfs-shares)
   * [Code Base Framework](#code-base-framework)
@@ -607,9 +609,9 @@ PULL_TOKEN_FILE_POSTFIX=_PULL_TOKEN_FILE
 
 Defining the organization's SDLC is conceptually the most important part of the configuration.  Whatever is defined in these files will determine how Projects are onboarded with el-CICD and into OKD.  Project Definition Files, namespaces, image tags, where images are pushed and promooted, and Git Deployment Branch names.
 
-##### Lifecycle Definition
+##### Environment Definitions
 
-The following defines the supported environments and the possible environment promotion scheme used by the organization.  `DEV_ENV`, `PRE_PROD`, and `PROD` **must** be defined.  `TEST_ENVS` are list in order of promotion (e.g. QA is promoted to UAT in the example below) in a colon delimited list, and are optional.  The `HOTFIX_ENV` is an alternative build environment where emergency patches to applications already in production are built, and this environment must be specifically enabled in the [Project Definition File](#project-definition-file) to be realized.
+The following defines the supported environments and the possible environment promotion scheme used by the organization.  `DEV_ENV`, `PRE_PROD`, and `PROD` **must** be defined.  `TEST_ENVS` are list in order of precedence in a colon delimited list.  The `HOTFIX_ENV` is an alternative build environment where emergency patches to applications already in production are built.
 
 In `el-CICD-config/bootstrap/el-cicd-default-system.conf`:
 
@@ -629,6 +631,20 @@ PRE_PROD_ENV=STG
 # The production environment
 PROD_ENV=PROD
 ```
+
+##### Environment Promotion Order
+
+The SDLC The order of promotion of an image from one environment to the next will proceed in order of precedence as follows:
+
+DEV -> TEST_ENVS -> PRE_PROD_ENV -> PROD_ENV
+
+TEST_ENVS are defined in a colon delimited list with precedence being from left to right.
+
+For the specialized Hotfix SDLC, it is
+
+HOTFIX_ENV -> PRE_PROD_ENV -> PROD_ENV
+
+[**NOTE:** We describe the Hotfix SDLC as specialized in the sense it should only be used for small, emergency patches to applications currently deployed in production.  It should not be abused as a way to short circuit the normal SDLC in order to skip the Test environments.]
 
 ##### Image Repositories
 
@@ -852,7 +868,7 @@ libraries:
 enabledTestEnvs:
 - qa                                 # Unordered list of test environments the Project needs
 sandboxEnvs: 2                       # Number of sandboxes needed
-allowsHotfixes: true                 # Enables use of optional hotfix environment
+allowsHotfixes: true                 # Enables use of optional Hotfix environment
 releaseRegions:                      # arbitrary list of labels representing different, optional clusters configurations for Prod
   - east
   - west
@@ -905,11 +921,15 @@ Libraries are defined under the `libraries` section, and are otherwise the same 
 
 ### Enabled Test Environments
 
-Dev, Pre-prod, and Prod are required by every Project hosted by el-CICD, but Test environments are purely optional.  Projects are expected to declare the Test environments they require.  SDLC environments will be created for them when onboarding based on the required environments and optional Test environments.  Once declared, they cannot be skipped.  A [Hotfix](#hotfix), if enabled, is the one exception to this rule.
+Dev, Pre-prod, and Prod are required by every Project hosted by el-CICD, but Test environments are purely optional.  Projects are expected to declare the Test environments they require.  SDLC environments will be created for them when onboarding based on the required environments and optional Test environments.  Once declared, they cannot be skipped.
 
 ### Sandbox Environments
 
-The number sandbox environments needed by the Project.  Sandbox environments are areas where developers can deploy builds for their own testing purposes.  Images cannot be promoted out of a Sandbox environment.
+The number sandbox environments needed by the Project.  Sandbox environments are areas where developers can manually deploy builds for their own testing purposes.  Images cannot be promoted out of a Sandbox environment.
+
+### Allow Hotfixes
+
+If hotfixes are allowed, el-CICD will create a Hotfix environment for the Project during onboarding.  The Hotfix environment is a special build environment intended as a means for users to quickly patch issues for applications currently deployed in production, and should not be used as a means of skipping the Test environments.  See [The Hotfix Process](#the-hotfix-process) for more information.
 
 ### ResourceQuotas
 
@@ -1045,8 +1065,9 @@ For a Code Base named `foo`:
     ```
 
     ```groovy
-    def deploy(def projectInfo, def microService) {
+    def deploy(def projectInfo, def library) {
         // Code to deploy foo to an Artifact Repository
+        // use library.isSnapshot to determine the type of build
     }
 
     return this
@@ -1377,21 +1398,21 @@ If the user approves the deployment:
 
 ### The Hotfix Process
 
-el-CICD supports [hotfixing](foundations.md#hotfix) by creating a specialized build namespace when enabled in the [Project Definition File](#project-definition-file) through the Project level flag `allowsHotfixes`.  When that flag is true, the hotfix build environment will be created during the Non-prod Project Onboarding process, and promotion of images from that environment to Pre-prod will be enabled.  To apply a hotfix to a deployed Release Version:
-Candidate Deployment Branches
+el-CICD supports [hotfixing](foundations.md#hotfixing) by creating a special build environment when enabled in the [Project Definition File](#project-definition-file) through the Project level flag `allowsHotfixes`.  When that flag is true, the hotfix build environment will be created during the Non-prod Project Onboarding process, and promotion of images from that environment to Pre-prod will be enabled.  To apply a hotfix to a deployed Release Version:
 
 * Create `hotfix` branches for the microservice(s) that need it
 * Fix and deploy builds based on the `hotfix` branch to the Hotfix Environment and test the fixes
 * Redeploy the Release Candidate into Pre-prod
-  * If there has been any Deployment Patching in Prod, consider merging the appropriate Release Version Deployment Branches back into the Release
-  * You can do this step any time earlier, and consider doing so if your application deployments are time consuming
-* Promote to Pre-prod and test the application with the fixes
-* Create a new, Hotfix Release Candidate
+  * If there has been any Deployment Patching in Prod, consider merging the appropriate Release Version Deployment Branches back into the Release Candidate Deployment Branches
+* Promote the hotfixes to Pre-prod and test the application with the fixes
+* Create a new Release Candidate for the Hotfix
 * Promote the Hotfix Release Candidate to Prod
 
-This process is **only if the source code of a microservice needs to change**.  If the code is working as expected, and the problem can be solved through the application's deployment configuration, then consider using Deployment Patching to solve your problem.
+This process is **only if the source code of a microservice needs to change**.  If the code is working as expected, and the problem can be solved through the application's deployment configuration, then have the development team consider using [Deployment Patching](foundations.md#deployment-patching) to solve the problem.
 
-This process was designed to be as quick as possible while still maintaining an orderly, versioned process and keeping the disruption of the development team while they are working on a future version of the application to a minimum.  In this case, only the Pre-prod environment will be unavailable for a short period while the Hotfix Release Candidate is being tested and prepared.
+This process in el-CICD was designed to be as quick as possible while still maintaining an orderly, versioned process and keeping the disruption of the development team while they are working on a future version of the application to a minimum.  In this case, only the Pre-prod environment will be unavailable for a short period while the hotfixed Release Candidate is being tested and prepared for deployment to Prod.
+
+The process was described in this document, rather than in the [Developer Guide](developer-guide.md), because operations will need to be closely involved in any deployment to production, especially a quick one requiring an emergency fix.  Operations should also act as a getkeeper ensuring that hotfixing is enabled and used appropriately.
 
 ## Extending el-CICD
 
@@ -1435,7 +1456,7 @@ To add a hook script, use the following naming convention:
 
 `<extension-point>-<pipeline-name>.groovy`
 
-[**NOTE:** Use `build-to-dev` and `build-library` for all `build-to-dev` and `build-library` pipeline runs.  You cannot target a specific microservice ]
+[**NOTE:** Use `build-to-dev` and `build-library` for all `build-to-dev` and `build-library` pipeline runs.  You cannot target a specific microservice or library build pipeline with a hook script.]
 
 Place the scripts in `el-CICD-config/hook-scripts` and commit it back to the Git repository.  el-CICD will look in this directory and load the appropriate script during every pipeline run automatically if it's there.
 

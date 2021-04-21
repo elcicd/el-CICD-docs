@@ -582,7 +582,7 @@ _Non-prod Jenkins Pipelines_
 
 Got to GitHub, and head over to the Settings section of any of your tutorial projects; e.g. Test-CICD1.  Click on `Deploy Keys` on the left-hand menu.  You should a deploy key named `el-cicd-non-prod-deploy-key|apps-crc.testing|test-cicd` listed, which represents the which engineering server, cluster wild card, and project (delimited by pipes) is managing that key.
 
-Click on Webhooks.  You should find a push Webhook back to your engineering cluster and referencing the Build to Dev pipeline for that microservice.
+Click on Webhooks.  You should find a push Webhook back to your engineering cluster and referencing the Build-to-Dev pipeline for that microservice.
 
 ## Non-prod SDLC Support
 

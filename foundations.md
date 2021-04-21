@@ -71,7 +71,7 @@ or send a letter to
         * [Build](#build)
         * [Test](#test)
         * [Scan](#scan)
-        * [Assembly](#assembly)
+        * [Assemble](#assemble)
         * [Deploy](#deploy)
       * [Standardization](#standardization)
     * [Continuous Delivery](#continuous-delivery)
@@ -101,7 +101,7 @@ or send a letter to
         * [Release Version](#release-version)
           * [Release Region](#release-region)
         * [Production Rollback/Forward/Deployment Patching](#production-rollbackforwarddeployment-patching)
-      * [Hotfix](#hotfix)
+      * [Hotfixing](#hotfixing)
   * [Supporting Projects](#supporting-projects)
     * [Git](#git)
     * [GitHub](#github)
@@ -222,13 +222,13 @@ Best practices dictates all Projects should implement unit and integration tests
 
 Code should be scanned and/or linted to ensure coding standards are being followed, for coverage metrics of the tests, for possible security vulnerabilities and exposures, etc.  Ideally The Build should fail if any of these metrics fail to meet organizational standards, but in practice it takes a disciplined and mature organization and team to implement this.  Many organizations and/or teams instead take the issues discovered here, prioritize them, and feed them back into the Project plan to be dealt with later.  Issues fed back into the Project for later work can sometimes be referred to as _technical debt_.
 
-##### Assembly
+##### Assemble
 
 This step is for any further packaging or work needed by The Build.  It could mean as little as cleaning any unneeded artifacts left over from the previous steps to further packaging of the artifacts already created that didn't fit under the compile step.
 
 ##### Deploy
 
-Successfully deploy the software into the Dev Environment.  In the case of libraries, this typically means uploading artifacts such Java jars or pPython pip wheels to a central artifact repository, which can then be used later by other components in one or more projects.
+Successfully push library artifacts to the [Artifact Repository](#artifact-repository).  This typically means uploading artifacts such Java jars or Python pip wheels, which are then made available to be used by one or more microservices.
 
 #### Standardization
 
@@ -324,7 +324,7 @@ This workflow will pull source from the SCM, build it if necessary, run all unit
 * **SNAPSHOT**
 * **RELEASE**
 
-el-CICD only supports these concepts in general, and it is up to the organization to define what they mean.  el-CICD does not define or manage the promotion of libraries from one state to the other.
+el-CICD only supports these concepts in general; i.e. a snapshot library build is simply a library build that is not a release.  It is up to the organization to define what this means, and up to organizations and Project teams to decide which to use and when.  el-CICD does not define or manage the promotion of libraries from one state to the other.
 
 ### Build-to-Dev
 
@@ -386,11 +386,11 @@ Applications are sometimes deployed to production on more then one cluster.  Thi
 
 Because production deployments of applications are treated as a whole rather than any one of its parts, this workflow is also handled by the Deploy-to-Prod workflow.  When rolling an application back or forward, a user is really just deploying a particular Release Version of the application with its latest matching deployment configuration(s).  Similarly, [Deployment Patching](#deployment-patching) of a Release Version is treated as a redeployment of the same version of the application with the updated deployment configuration information pulled from the SCM; i.e. each microservice whose deployment configuration has been changed is rolled out again as a group.
 
-#### Hotfix
+#### Hotfixing
 
-No matter how good the planning or testing, sometimes bugs or other emergencies make waiting for the next application release untenable, and changes to the application currently deployed in production need to be made as soon as possible.  Colloquially, this is known as a _Hotfix_.
+No matter how good the planning or testing, sometimes bugs or other emergencies make waiting for the next application release untenable, rollback is not an option, and changes to the application currently deployed in production need to be made as soon as possible.  Colloquially, this is known as a _Hotfix_.
 
-Changes to the code are made on a Hotfix Branch, rather than on the Development Branch, merged into a new release, and the new release is deployed.  Ideally, this process should have little to no impact on the next release of the application, and the changes made for the Hotfix will potentially be merged into the current release's Development Branch.
+Changes to the code are typically made on a Hotfix Branch rather than on the Development Branch, merged into a new release, and the new release is deployed.  Ideally, this process should have little to no impact on the next release of the application, and the changes made for the Hotfix will potentially be merged into the current release's Development Branch.
 
 ## Supporting Projects
 
