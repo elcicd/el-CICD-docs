@@ -579,7 +579,7 @@ Both [Sandbox](#sandbox-environments) and [Hotfix](#hotfix-environment) environm
 
 If your Project will be deployed onto more than one cluster in production, then you will most likely need to make use of Release Regions to handle either different configurations or, more likely, Sealed Secrets, which are cluster and namespace dependent.
 
-Regions are listed in el-CICD in the [Project Definition Files](operating-manual.md#project-definition-file), but they are otherwise arbitrary labels either chosen by the Project or the organization, and can consist of any number of labels such as `north` and `south` and `east` or `west`, `us` or `ca`, or `green` and `blue`.
+Regions are constrained for a Project by listing them in the [Project Definition Files](operating-manual.md#project-definition-file), but they are otherwise arbitrary labels either chosen by the Project or the organization, and can consist of any number of labels such as `north` and `south` and `east` or `west`, `us` or `ca`, or `green` and `blue`.
 
 The naming convention for folders holding configuration files for `prod` deployments with Regions is
 
