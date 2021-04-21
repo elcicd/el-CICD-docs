@@ -853,9 +853,7 @@ enabledTestEnvs:
 - qa                                 # Unordered list of test environments the Project needs
 sandboxEnvs: 2                       # Number of sandboxes needed
 allowsHotfixes: true                 # Enables use of optional hotfix environment
-regions:                             # arbitrary list of labels representing different clusters a Project can be deployed to in Prod
-  - blue
-  - green
+releaseRegions:                      # arbitrary list of labels representing different, optional clusters configurations for Prod
   - east
   - west
 resourceQuotas:                      # Define the ResourceQuota per SDLC environment
