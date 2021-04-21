@@ -97,16 +97,16 @@ or send a letter to
   * [Deployment Branches](#deployment-branches)
     * [Problem: Code is Mutable, Images are Immutable](#problem-code-is-mutable-images-are-immutable)
     * [Solution: Deployment Branches](#solution-deployment-branches)
-      * [WARNING: DO NOT MODIFY UPSTREAM ENVIRONMENT CONFIGURATIONS OR THE IMAGE SOURCE CODE](#warning-do-not-modify-upstream-environment-configurations-or-the-image-source-code)
+      * [WARNING: DO NOT MODIFY BUILDABLE SOURCE OR UPSTREAM ENVIRONMENT CONFIGURATIONS](#warning-do-not-modify-buildable-source-or-upstream-environment-configurations)
+    * [Deployment Branch Naming Conventions](#deployment-branch-naming-conventions)
     * [Release Candidate Tags](#release-candidate-tags)
-    * [Release Deployment Branches](#release-deployment-branches)
+    * [Release Version Deployment Branches](#release-version-deployment-branches)
   * [Images](#images)
     * [Image Naming Conventions](#image-naming-conventions)
-    * [Image Tagging Conventions](#image-tagging-conventions)
-      * [Dev Image Tag](#dev-image-tag)
-      * [Non-prod Environments](#non-prod-environments)
-      * [Release Candidates](#release-candidates)
-      * [Prod Image Tag](#prod-image-tag)
+    * [Image Labels](#image-labels)
+    * [Non-prod Image Tags](#non-prod-image-tags)
+    * [Release Candidate Image Tags](#release-candidate-image-tags)
+      * [Prod Image Tags](#prod-image-tags)
   * [Deployment Metadata Resources](#deployment-metadata-resources)
     * [Deployment Resource Labeling](#deployment-resource-labeling)
     * [Microservice Runtime Meta-Info](#microservice-runtime-meta-info)
@@ -656,57 +656,51 @@ Expecting the Development Branch to also hold the deployment for images deployed
 
 The Deployment Branch was created and designed to allow changes to a microservice's deployment configuration to be tracked and versioned even while allowing that its buildable source and its image remained static.  Deployment Branches are only created when an image is promoted from one SDLC environment to the next.  As noted, the Image deployed to Dev has no Deployment Branch, since it is built and not promoted, and therefore does not need one.  When an image is promoted out of Dev to a downstream environment, the first Deployment Branch is created from source commit where the image was built.  Subsequent promotions to further downstream environments are made at the HEAD of the previous Deployment Branch; e.g. referring to the figure above, for the Stg environment, you'd get a Deployment Branch at source commit hash 9458de3.
 
-Each Deployment Branch is where developers can push deployment configuration changes for the image built from the source included in the branch  Commits to a Deployment Branch are considered [Deployment Patches](foundations.md#deployment-patching) for the environment.  
+Each Deployment Branch is where developers can push deployment configuration changes for the image built from the source included in the branch  Commits to a Deployment Branch are considered [Deployment Patches](foundations.md#deployment-patching) for the environment.  These changes will be applied whenever the image is redeployed to the particular environment.
 
-The changes will be applied whenever the image is redeployed to the particular environment.  The branches will be named in the following manner:
+#### WARNING: DO NOT MODIFY BUILDABLE SOURCE OR UPSTREAM ENVIRONMENT CONFIGURATIONS
+
+Changes made to the deployment configurations for an upstream environment or the buildable source code of the microservice on a Deployment Branch will be ignored by the current Deployment Branch.  The purpose of a Deployment Branch _is to track and version the changes of the deployment configurations for the environment it is currently deployed in_.  The buildable source and any upstream deployment configurations of a Deployment Branch should only be looked at as a historical reference of the microservice's source; i.e. how the image was built and previously deployed.
+
+Changing the source or upstream deployment configurations will at a minimum cause confusion, and at worst make it harder to work on hotfixes if necessary.  Because of Git's distributed nature and design, locking certain files from being modified is not possible.  Deployment Branches are a work-around to the [modern development problem](#problem-code-is-mutable-images-are-immutable) of keeping the proverbial source of truth in more than two repositories.
+
+Merging changes from a Deployment Branch back into the Development Branch or from an upstream deployment branch to a downstream deployment branch  to pick up lessons learned from testing are encouraged whenever it makes sense.
+
+### Deployment Branch Naming Conventions
+
+The Deployment Branches will be named in the following manner:
 
 **`deployment-<environment>-<src-commit-hash>`**
 
 * **`<environment>`:** the environment the image is to be deployed to
-* **`<src-commit-hash>`:** the source commit hash **_on the Development Branch_** from which the image was built
+* **`<src-commit-hash>`:** the source commit hash on the Development Branch from which the image was built
 
 For example, when an image is promoted from Dev to QA with a commit hash of 8d7dh3g on the Development Branch, its Deployment Branch will be created and named:
 
 **`deployment-qa-8d7dh3g`**
 
-Only changes that affect the deployment of the image to QA or its downstream environments will be acknowledged and used by the CICD system.
+Only changes that affect the deployment of the image to QA in `deployment-qa-8d7dh3g` will be acknowledged and used by el-CICD, and changes to downstream deployment configurations will only be used if the image is promoted.  Subsequent Deployment Branches are created from the HEAD of the previous Deployment Branch; e.g. referring to the figure above, for the Stg environment, you'd get a Deployment Branch at source commit hash 9458de3.
 
+**`deployment-stg-8d7dh3g`**
 
-
-Deployment Branches are only created when an image is promoted into a particular environment.  Subsequent Deployment Branches are created from the HEAD of the previous Deployment Branch; e.g. referring to the figure above, for the Stg environment, you'd get a Deployment Branch at source commit hash 9458de3.
-
-**deployment-stg-8d7dh3g**
-
-Note that source commit hash remains constant as the image is promoted, because representing the code that created the image.  This naming convention ensures Deployment Branches should be easy to identify, the environment the deployment configuration is meant for, and identifies exactly where the source code that built the image came from on the Development Branch.
-
-#### WARNING: DO NOT MODIFY UPSTREAM ENVIRONMENT CONFIGURATIONS OR THE IMAGE SOURCE CODE
-
-Changes made to the deployment configurations for an upstream environment or the source code of the microservice on a Deployment Branch will be ignored by the current Deployment Branch.  The purpose of a Deployment Branch _is to track and version the changes of the deployment configurations for a particular environment_.  The rest of the contained source and any upstream deployment configurations should only be looked at as a historical record of the microservice _from the time the branch was created_.  Changing any of this in a downstream Deployment Branch makes it harder to understand what is in the associated image, and how it was previously deployed before being promoted.
-
-Changing the source or upstream deployment configurations will at a minimum cause confusion, and at worst make it harder to work on hotfixes if necessary.  Because of Git's distributed nature and design, locking certain files from being modified is not possible.  Deployment Branches are a work-around to the [modern development problem](#problem-keeping-the-image-and-scm-repositories-in-sync) of keeping the proverbial source of truth in two places at once, the SCM and the Image Repository.
-
-Note that merging changes back into the Development Branch to pick up changes, or from an upstream deployment branch to a downstream deployment branch are encouraged whenever it makes sense.
+Take notice of how the source commit hash remains constant as the image is promoted.  This naming convention not only makes it easy to determine the SDLC environment the image was promoted to, but also the original source commit that created the image.
 
 ### Release Candidate Tags
 
-[Deploying a complete application to production](foundations.md#deploy-to-production) is different and more complex than deploying the individual components or microservices of an application to a non-production environment.  Tagging for a Release Candidate or branching for the Release Version must happen for all images and source repositories of all microservices defined to be in the Release Version.  el-CICD does not define what a valid version should be labeled as, only that it must conform to a naming conventions acceptable to both the Source and Image Repository, in this case Git and an Image Repository which complies with the Docker’s naming conventions for images.  A Release Candidate Tag has the following format:
+[Deploying a complete application to production](foundations.md#deploy-to-production) is different and more complex than deploying the individual components or microservices of an application to a non-production environment.  el-CICD defines a [Release Candidate](foundations.md#release-candidate) as a collection of all images deployed in Pre-prod intended to be deployed to Prod.  el-CICD does not define what a candidate should be, only that it must conform to a naming conventions acceptable to both the Source and Image Repository, in this case Git and Docker image naming conventions.
 
-**\<version>-\<src-commit-hash>**
+A Release Candidate Tag in Git has the following format:
 
-* **\<version>:** the label of the application to be released; e.g. 1.0.0 using [Semantic Versioning](https://semver.org/) notation
-* **\<src-commit-hash>:** the commit hash on the **Development Branch** where the image was built
+**`<version>-<src-commit-hash>`**
 
-Each Project will have a Pre-prod environment, and that environment will define what can be promoted to Prod.  Once chosen, **_each image and the latest source commit hash on its associated Pre-prod Deployment Branch_** will be tagged.  A check will be performed to ensure the Release Candidate Tag is unique within every repository of the Project and hasn’t been used before.  The tagging operation will fail if it has.
+* **`<version>`:** the label of the application to be released; e.g. 1.0.0 using [Semantic Versioning](https://semver.org/) notation
+* **`<src-commit-hash>`:** the commit hash on the Development Branch where the image was built
 
-For example, assume that a  few changes have been made on the Pre-prod Deployment Branch
+Each Project will have a [Pre-prod environment](foundations.md#pre-prod-environment), and what is currently deployed in Pre-prod will constrain what can be chosen to be in the Release Candidate.  Once chosen and approved, a check will be performed to validate the Release Candidate Tag is unique within every repository of the Project, and then **_each microservice's current Pre-prod Deployment Branch will be tagged at its HEAD_**.
 
-**deployment-stg-8d7dh3g**
-
-mentioned earlier as part of the testing and tuning process, and that the Project team is now satisfied this might be good enough to promote to production with any other microservices in the application as version 1.0.0.  When the Release Candidate Tag is applied by the system, _it will be applied on the latest commit hash on the **deployment-stg-8d7dh3g** branch_ as:
+For example, assume that a few Deployment Patches have been applied to the Pre-prod Deployment Branch `deployment-stg-8d7dh3g`, and that the Project team is now satisfied this might be good enough to promote to production with any other microservices in the application as version 1.0.0.  When the Release Candidate Tag is applied by the system, it will be applied on the latest commit hash on the `deployment-stg-8d7dh3g` branch as:
 
 **1.0.0-8d7dh3g**
-
-The image deployed in Stg will similarly be tagged as 1.0.0-8d7dh3g in its Image Repository.  The application is now available for promotion to production.
 
 ![Figure: Release Candidate Tag](images/developer-guide/release-candidate-tag.png)
 
@@ -717,23 +711,19 @@ The image deployed in Stg will similarly be tagged as 1.0.0-8d7dh3g in its Image
 1. _**deployment-stg-8d7dh3g** Deployment Branch with one Deployment Patch_
 1. _Release Candidate Tag **1.0.0-8d7dh3g** at the HEAD of the Stg Deployment Branch_
 
-### Release Deployment Branches
+### Release Version Deployment Branches
 
-[Deployment Patching](#deployment-patching) must be supported in production, too.  As production is possibly tuned over time due to unforeseen circumstances, a Deployment Branch is created for each microservice that was tagged in the Release Candidate process to accommodate those changes.  Each branch is made **at the same commit hash** where the Release Candidate was tagged, and conforms to the following naming convention:
+[Deployment Patching](#deployment-patching) must be supported in production, too.  As production is possibly tuned over time due to unforeseen or changing circumstances, a Deployment Branch will be created for each microservice that was tagged in the Release Candidate process if the Release Candidate is promoted to production.  **Unlike with Non-prod promotions**, a Release Version Deployment Branch **is made at the Release Candidate Tag**, and **not** at the HEAD of the Pre-prod Deployment Branch.
 
-**v\<version tag>-\<src-commit-hash>**
+A Release Version Deployment Branch has the following naming convention:
+
+**`v<version tag>-<src-commit-hash>`**
 
 * **v:** every release to production is prepended with a ‘v’ to delineate it from a Release Candidate
-* **\<version tag>:** the Release Candidate Tag
-* **\<src-commit-hash>:** the commit hash on the **Development Branch** where the image was built; e.g.
+* **`<version tag>`:** the Release Candidate Tag
+* **`<src-commit-hash>`:** the commit hash on the Development Branch where the image was built; e.g.
 
-**1.0.0-8d7dh3g** becomes **v1.0.0-8d7dh3g**
-
-Any changes to the deployment configuration of any release deployed in production should go here.  As a reminder:
-
-**DO NOT CHANGE UPSTREAM DEPLOYMENT CONFIGURATION OR SOURCE CODE.**
-
-Any other changes on the Release Deployment Branches, as with all Deployment Branches, are ignored, and will make creating a proper hotfix branch more difficult.  When applying changes to one or more Release Deployment Branches, simply redeploy the release into production, and the system is smart enough to figure out which microservices have changed and only redeploy those unless otherwise requested.
+**`1.0.0-8d7dh3g`** becomes **`v1.0.0-8d7dh3g`**
 
 ![Figure: Release Version Deployment Branch](images/developer-guide/release-version-branch.png)
 
@@ -745,86 +735,106 @@ Any other changes on the Release Deployment Branches, as with all Deployment Bra
 1. _Release Candidate Tag **1.0.0-8d7dh3g** at the HEAD of the Stg Deployment Branch_
 1. _Release Version Deployment Branch **v1.0.0-8d7dh3g** created when a Release Candidate is deployed to Prod._
 
-Note that even though subsequent changes have been committed to the **deployment-stg-8d7dh3g** Deployment Branch after being tagged as a Release Candidate, the Release Deployment Branch is created at the commit where the tag was created.
-
 ## Images
+
+Images follow a similar but slightly different set of naming conventions than those used for the SCM.
 
 ### Image Naming Conventions
 
 Images are named with the following convention:
 
-**\<Project ID>-\<microservice name>**
-* **\<Project ID>:** the Project ID of the application
-* **\<microservice name>:** name of the microservice as derived from the Git repository name to conform to OKD resource naming conventions
+**`<Project ID>-<microservice name>`**
 
-The Project ID comes from the name of the [Project Definition File](foundations.md#project-definition-file) defined in the [Project Definition Repository](foundations.md#project-definition-repository), and serves as an ID for the group of microservices that make up a Project.  The _microservice name_ comes from the Git repository name of the source code the microservice came from, modified to conform to OKD resource naming conventions.  In particular, underscores are converted to dashes, and all letters are lowercased; e.g.
+* **`<Project ID>`:** the Project ID of the application
+* **`<microservice name>`:** name of the microservice as derived from the Git repository name to conform to OKD resource naming conventions
+
+The Project ID comes from the name of the [Project Definition File](operating-manual.md#project-definition-file) defined in the [Project Definition Repository](foundations.md#project-definition-repository), and serves as an ID for the group of microservices that make up a Project.  The microservice name comes from the Git repository name of the source code the microservice came from, modified to conform to OKD resource naming conventions.  In particular, underscores are converted to dashes, and all letters are lowercased; e.g.
 
 * **Git Repository Name:**  Test_CICD1_
 * **Microservice Name:**  test-cicd1
 
-### Image Tagging Conventions
+### Image Labels
 
-#### Dev Image Tag
+Each image built by el-CICD is labeled in the following manner:
 
-Images built to Dev are always tagged as **_dev_**, and there will be only a single version of an image built from source to Dev.  This is because versioning is expected to take place in the Source Code Repository, and Dev images are expected to reflect the latest delivered code in the Development Branch at all times.  For rollback/forward considerations of Dev images, you can either reset HEAD to an earlier or later commit and rebuild, or build manually from a commit hash in the [Build-to-Dev](#build-to-dev-pipeline) pipeline.
+```docker
+LABEL SRC_COMMIT_REPO='<git-repository>'
+LABEL SRC_COMMIT_BRANCH='<development-branch>'
+LABEL SRC_COMMIT_HASH='<src-commit-hash>'
+```
 
-#### Non-prod Environments
+* **`SRC_COMMIT_REPO`:** the Git repository holding the source code from which the image was built
+* **`SRC_COMMIT_BRANCH`:** the branch the image was built from, usually the Development Branch
+* **`SRC_COMMIT_HASH`:** the commit hash on the Development Branch where the image was built; e.g.
 
-Subsequent Non-prod environments are given two tags.  The version currently deployed in the environment is simply tagged as the environment name; e.g. QA is tagged as **_qa_**, and Stg is tagged as **_stg_**.  The image is also given a separate tag in the following format:
+### Non-prod Image Tags
 
-**\<environment>-\<src-commit-hash>**
+The **last image deployed** in a Non-prod environment will use the following tagging convention:
 
-* **\<environment>:** the lowercase environment name, such as qa for QA, or stg for Stg
-* **\<src-commit-hash>:** the commit hash on the Development Branch where the image was built
+**`<env>`**
 
-#### Release Candidates
+* **`<env>`:** the lowercase environment name, such as qa for QA, or stg for Stg
 
-Release Candidates are tagged in their Image Repository by their version; e.g. 1.0.0.  Each image is labeled with the source commit hash, and the source commit hash can be found in the Git, too, from the Deployment Branch name.
+For all images promoted beyond the Dev environment, they will simultaneously have a second tag:
 
-#### Prod Image Tag
+**`<env>-<src-commit-hash>`**
+
+* **`<env>`:** the lowercase environment name, such as qa for QA, or stg for Stg
+* **`<src-commit-hash>`:** the commit hash on the **Development Branch** where the image was built
+
+The latter tag enables images to be rolled back and forward by the user.
+
+### Release Candidate Image Tags
+
+Release Candidates are tagged as is; e.g. Release Candidate 1.0.0 will also be tagged in the Pre-prod Image Repository as 1.0.0.  When a [Release Candidate Tag](#release-candidate-tags) is created, the tag is checked for uniqueness in the Pre-prod Image Repository before it is applied.
+
+#### Prod Image Tags
 
 Production images are tagged by prefixing their Release Candidate Tag with a **v**:
 
-**v\<version>**
+**`v<version tag>`**
 
-* **v:** every release to production is prepended with a ‘v’ to delineate it from a Release Version
-* **\<version>:** the Release Candidate version
-
-So, *1.0.0* becomes **_v1.0.0_**.  Each image is labeled with the source commit hash, and the source commit hash can be found in the Git, too, from the Deployment Branch name.
+* **v:** every Release Candidate image promoted to production is prepended with a ‘v’ to delineate it as a Release Version
+* **`<version tag>`:** the Release Candidate (now Version) Tag
 
 ## Deployment Metadata Resources
 
-Since many deployment resources are created and destroyed in OKD for each deployment of a microservice, el-CICD maintains a lightweight set of metadata for microservice and application to facilitate deployment resource management.
+Since many deployment resources are created and destroyed in OKD for each deployment of a microservice, el-CICD maintains a lightweight set of metadata for microservices and Project deployments to facilitate deployment resource management.
 
 ### Deployment Resource Labeling
 
-Each deployment resource defined by the microservice in it’s Source Code Repository will have the following labels automatically attached to it on each deployment regardless of environment:
+Each OKD resource found in the microservice's [.openshift Directory](#openshift-directory) and applied during a deployment will have the following labels automatically attached to it on each deployment regardless of environment:
 
-* **Project**: The Project ID from the Project Definition Repository
-* **microservice**: The microservice name, derived from the Git repository name to conform to OKD resource naming standards
-* **git-repo**: The name of the Git repository where the source code resides; the hostname is not included for security purposes
-* **src-commit-hash**: The source commit hash the deployed image was built from on the Development Branch
-* **deployment-branch**: The Deployment Branch from which the deployment resource for the currently deployed image was defined
-* **deployment-commit-hash**: The deployment commit hash on the Deployment Branch that was holds the source to the current deployment resource definitions
-* **release-version**: The Release Version Tag, if in production; the value will be _undefined_ in any other environment outside of Prod
-* **build-number**: Jenkins build number for the latest deployment
+* **`projectid`**: The Project ID
+* **`microservice`**: The microservice name, derived from the Git repository name to conform to OKD resource naming standards
+* **`git-repo`**: The Git repository containing the original source
+* **`src-commit-hash`**: The source commit hash the deployed image was built from
+* **`deployment-branch`**: The Deployment Branch defining the deployment configuration
+* **`deployment-commit-hash`**: The deployment commit hash on the Deployment Branch
+* **`release-version`**: The Release Version Tag, if in production; otherwise, _undefined_
+* **`release-region`**: The [Release Region](#release-regions), if in production and used; otherwise, _undefined_
+* **`deploy-time`**: System time the microservice was deployed; `$(date +%d.%m.%Y-%H.%M.%S%Z)`
+* **`build-number`**: Jenkins build number for the latest deployment
 
 ### Microservice Runtime Meta-Info
 
 Each deployment of a microservice will automatically have created and deployed an OKD ConfigMap that contains data and labels that mirror the microservice meta-information defined in the previous section, and it will be named using the following format:
 
-**\<Project ID>-\<microservice name>-meta-info**
+**`<Project ID>-<microservice name>`-meta-info**
 
-* **\<Project ID>:** the Project ID of the application, per OKD resource naming rules
-* **\<microservice name>:** name of the microservice as derived from the Git repository name to conform to OKD resource naming conventions
+* **`<Project ID>`:** The Project ID
+* **`<microservice name>`:** name of the microservice as derived from the Git repository name to conform to OKD resource naming conventions
 
 ### Project Meta-Info
 
-Each deployment into production will have an additional OKD ConfigMap automatically created and deployed that contains data and labels reflecting the Project ID and the Release Version currently deployed.  It will be named using the following format:
+Each deployment into production will have an additional OKD ConfigMap automatically created and deployed that contains data and labels reflecting the Project specific information.  It will be named using the following format and contain the following information:
 
-**\<Project ID>-meta-info**
+**`<Project ID>`-meta-info**
 
-* **\<Project ID>:** the Project ID of the application
+* **`projectid`**: The Project ID
+* **`release-version`**: The Release Version Tag
+* **`release-region`**: The [Release Region](#release-regions), if used; otherwise, _undefined_
+* **`build-number`**: Jenkins build number for the latest deployment
 
 This resource will only exist in Prod.
 
