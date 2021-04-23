@@ -1070,7 +1070,7 @@ For a Code Base named `foo`:
     ```groovy
     def deploy(def projectInfo, def library) {
         // Code to deploy foo to an Artifact Repository
-        // use library.isSnapshot to determine the type of build
+        // optionally utilize the boolean library.isSnapshot to determine whether the build is for a snapshot or release
     }
 
     return this

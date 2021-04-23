@@ -58,7 +58,7 @@ The documents in this repository describes the motivation, design, and implement
 
 el-CICD supports the following features:
 
-* **Operational Support**
+* **DevOps Support**
   * Automated bootstrapping of servers
   * Automated Jenkins And Jenkins Agent image builds
   * Automated and extensible framework for setting and rotating credentials
@@ -69,7 +69,7 @@ el-CICD supports the following features:
   * Configurable set of SDLC environments per installation and, to a lesser degree, per Project
   * Automated support for deployment, rollback, and roll forward of complete applications in production
   * Simplified support of applications to more than one cluster
-  * Hotfixing process for deployments in production
+  * Hotfixing support for deployments in production
 
 * **Development Support**
   * Automated building, testing, scanning, and deployment for libraries and microservices
@@ -87,7 +87,7 @@ el-CICD supports the following features:
   Explains the basic concepts, design, and architecture behind el-CICD.  Also lists supporting, 3rd party projects incorporated into el-CICD.
 
 * [**Operating Manual**](operating-manual.md)  
-  For cluster and CICD server administrators.  How to bootstrap, maintain, and manage el-CICD.
+  For cluster and CICD server administrators explaining el-CICD DevOps.  How to bootstrap, maintain, and manage el-CICD.
 
 * [**Developer Guide**](developer-quide.md)  
   Everything a developer needs to know to integrate their Projects into el-CICD for fully automated SDLC support and deployment from commiting to their Development Branch to creating a Release Candidate for promotion to Prod.

@@ -61,6 +61,7 @@ Mountain View, CA
     * [CRC Setup and Install](#crc-setup-and-install)
   * [Setup, Configure, and Bootstrap el-CICD](#setup-configure-and-bootstrap-el-cicd)
     * [Download the Release el-CICD Repositories](#download-the-release-el-cicd-repositories)
+      * [Create el-CICD and test-cicd Git repositories](#create-el-cicd-and-test-cicd-git-repositories)
     * [Create Image Repositories](#create-image-repositories)
     * [el-CICD Secrets](#el-cicd-secrets)
       * [Create el-CICD Repo Read Only Private Keys](#create-el-cicd-repo-read-only-private-keys)
@@ -249,41 +250,51 @@ If you accidentally start CRC without the dash, you will need to run `crc delete
 
 This section will cover the minimum necessary steps to install el-CICD.  It will cover basic configuration, setting up the repositories needed for images and code, and the credentials for secrets that will need to be gathered.  At the end of this section the Non-prod Onboarding Automation Server will have been configured and created in your cluster.
 
-[**NOTE**: This part of setting up tutorial is understandably tedious, but in order to fully understand what el-CICD has to offer, and what you'll be required to do if you choose to make it a central part of your SDLC process it is necessary.]
+[**NOTE**: This first part of setting up tutorial is understandably tedious, but in order to fully understand what el-CICD has to offer, and what you'll be required to do if you choose to make it a central part of your SDLC process, it is necessary.]
 
 ### Download the Release el-CICD Repositories
 
-This tutorial assumes you will be using [GitHub](github.com) as your Git repository.  Other Git repositories such as GitLab and Bitbucket are not currently supported, but are targeted for a future release.
+If you haven't done so already, download the [el-CICD release](https://github.com/elcicd/el-CICD-RELEASES) `<version>.tar.xz`, and extract it.
 
-The following el-CICD repositories should be created and the downloaded release code pushed into the respective repositories you created:
+The following directories comprising el-CICD should be available to you now:
 
-* el-CICD
-* el-CICD-config
+* **`el-CICD`**: The main el-CICD functional code.
+* **`el-CICD-config`**: el-CICD configuration, where end users configure el-CICD.
+* **`el-CICD-docs`**: All relevant el-CICD documentation.
 
-Do not fork the repositories directly from the `elcicd` GitHub site, since development is ongoing and will not necessarily match this tutorial.
+The following demonstration microservices and libraries should also be included, with a quick overview of some of the features they demonstrate: 
 
-The following demonstration repositories should be forked, and the **development** branch is what you should default to using: 
+* **`Test-CICD1`**: Demonstrates Release Regions for Python microservice.
+* **`Test-CICD1-lib`**: Demonstrates library build for Python library.
+* **`test_CICD2`**: Demonstrates custom OKD Templates for Python library.
+* **`TeSt-CiCd3`**: Demonstrates Python CronJob.
+* **`Test_CICD4`**: Demonstrates multiple deployments of same Python microservice, environment specific patching, and an environment specific DB deployments.
+* **`test-cicd-R`**: Demonstrates R microservice.
+* **`test-cicd-stationdemo`**: Demonstrates Kubernetes Deployment, Ingress, Readiness Probe, and Java Maven build for Spring Boot microservice.
+* **`test-cicd-stationdemo-lib`**: Demonstrates library build for Java Maven Spring Boot library.
 
-* [Test-CICD1](https://github.com/elcicd/Test-CICD1)
-* [Test-CICD1-lib](https://github.com/elcicd/Test-CICD1-lib)
-* [test_CICD2](https://github.com/elcicd/test_CICD2)
-* [TeSt-CiCd3](https://github.com/elcicd/TeSt-CiCd3)
-* [Test_CICD4](https://github.com/elcicd/Test_CICD4)
-* [test-cicd-R](https://github.com/elcicd/test-cicd-R)
-* [test-cicd-stationdemo](https://github.com/elcicd/test-cicd-stationdemo)
-* [test-cicd-stationdemo-lib](https://github.com/elcicd/test-cicd-stationdemo-lib)
+There is also an empty directory, **`cicd-secrets`**, which is meant to hold credentials when bootstrapping.
 
-The odd spelling of the Git repositories was purposefully used for testing purposes.
+These test repositories contain a basic demonstration of the full gamut of el-CICD functionality with regards to builds and deployments across the SDLC.  The odd spelling of the Git repositories was purposefully used for testing purposes.
 
-These test repositories contain a basic demonstration of the full gamut of el-CICD functionality with regards to builds and deployments across the SDLC.  You will need to modify the contents of these repositories and/or run scripts contained in them during the course of this tutorial.  [**Note:** You may optionally omit some of these if you choose, but you will have to modify the default [Project Definition File](operating-manual.md#project-definition-file), `test-cicd.yml`, in `el-CICD-config/project-defs` and remove the microservices and/or libraries you will not be including.]
+You will need to modify the contents of these repositories and/or run scripts contained in them during the course of this tutorial.
 
-You should also create a sibling directory to the `el-CICD`, `cicd-secrets`, that will contain a collection of secrets, six in total, that will be gathered to run this tutorial.  Your final local el-CICD directory should look like the following:
+The local el-CICD directory should look like the following:
 
 ![Figure: code bases mapped to their Jenkins Agents](images/tutorial/local-el-cicd-dirs.png)
 
 **Figure 2**  
 _Local el-CICD repositories and_ `cicd-secrets` _directory (other test project repositories omitted for brevity)_
 
+#### Create el-CICD and test-cicd Git repositories
+
+[**NOTE:** This tutorial assumes you will be using [GitHub](github.com) as your Git repository.  Other Git repositories such as GitLab and Bitbucket are not currently supported, but are targeted for a future release.]
+
+For every Git folder in the el-CICD **EXCEPT** `cicd-secrets`, create a matching repository on GitHub under a single account and push all corresponding code into it.
+
+For each demonstration microservice and library, create a branch called **`development`** and check it out locally.
+
+Except during bootstrapping, el-CICD pulls all the code from GitHub for every single pipeline run.  This included el-CICD functional code, configuration, and all Project code.
 
 ### Create Image Repositories
 
