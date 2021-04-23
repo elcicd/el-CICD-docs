@@ -151,7 +151,7 @@ A SDLC typically includes a number of deployment stages before ultimately being 
 
 Environments are a key concept that needs to be supported by any CICD system.  While deployments to each environment should ideally be exactly the same from Dev to Prod, there are many reasons why this is rarely true based on need and other practical matters.  Best practices are to minimize the differences between environments, and the closer to a production environment a deployment gets the closer the environment should resemble production.  While not always the case, environments are usually organized as a linear sequence; e.g. from Dev to QA to Stage to Prod.  el-CICD supports a configurable, linear sequence of environments, with a few exceptions to be described below.
 
-![Figure 1: Environment Flow](images/operations-manual/environments.png)
+![Figure 1: Environment Flow](images/foundations/environments.png)
 
 **Figure 1**  
  _Environment flow from Git to Prod_
