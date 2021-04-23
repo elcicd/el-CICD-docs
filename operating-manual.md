@@ -172,7 +172,8 @@ Both repositories are pulled on every pipeline run.  This allows for easy and in
 
 ![Figure: bootstrap Directory Structure](images/operations-manual/install-directory-structure.png)  
 
-**Figure** _bootstrap Directory Structure_
+**Figure 1**  
+_bootstrap Directory Structure_
 
 ## el-CICD Repository
 
@@ -230,7 +231,8 @@ End users should create another sibling folder to the el-CICD folders holding yo
 
 ![Figure: cicd-secrets Directory in detail](images/operations-manual/cicd-secrets-directory.png)  
 
-**Figure** `cicd-secrets` _and_ `builder-secrets` _Directory with Default Files_
+**Figure 2**  
+`cicd-secrets` _and_ `builder-secrets` _Directory with Default Files_
 
 ### builder-secrets
 
@@ -796,7 +798,7 @@ You will need a Dockerfile called `Dockerfile.base` (or `Dockerfile.<ext>` is yo
 
 ![Figure: jenkins Directory, Dockerfiles, and Supporting Configuration](images/operations-manual/jenkins-directory.png)
 
-**Figure**  
+**Figure 3**  
 _jenkins Directory, Dockerfiles, and Supporting Configuration_
 
 ##### Skopeo and Kustomize
@@ -813,7 +815,8 @@ Classes of ResourceQuotas can be assigned to different SDLC namespaces, and conf
 
 ![Figure: resource-quotas Directory](images/operations-manual/resource-quotas-directory.png)
 
-**Figure** _resource-quotas Directory_
+**Figure 4**  
+_resource-quotas Directory_
 
 ### OKD Template Definition Files
 
@@ -979,7 +982,7 @@ The `el-CICD-config/builder-steps` directory holds the functional files that are
 
 ![Figure: The builder-steps Directory](images/operations-manual/builder-steps-directory.png)
 
-**Figure**  
+**Figure 5**  
 _The builder-steps Directory_
 
 #### Code Base Folders
@@ -1081,7 +1084,8 @@ The files for each step can be named anything.  The above names (e.g. `builder` 
 
 ![Figure: el-CICD Components](images/operations-manual/components.png)
 
-**Figure** _el-CICD Components_
+**Figure 6**  
+_el-CICD Components_
 
 ## el-CICD Admin Utility
 
@@ -1228,7 +1232,8 @@ By default, access to the Onboarding Automation Server namespaces are already re
 
 ![Figure: el-CICD Non-prod Automation Server Pipelines](images/operations-manual/el-cicd-non-prod-onboarding-master.png)
 
-**Figure** _el-CICD Non-prod Automation Server pipelines.  Prod will have the_ `prod-project-onboarding` _pipeline instead,_
+**Figure 7**  
+_el-CICD Non-prod Automation Server pipelines.  Prod will have the_ `prod-project-onboarding` _pipeline instead,_
 
 #### non-prod-project-project-onboarding Pipeline
 

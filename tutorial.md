@@ -153,7 +153,7 @@ We move the CRC directory containing the decompressed files to a generic directo
 
 ![Figure: CRC install directory structure](images/tutorial/crc-install-directory.png)
 
-**Figure**  
+**Figure 1**  
 _CRC install directory structure with pull-secrets file and original *.tar.xz CRC download included_
 
 ### Download the el-CICD Release
@@ -281,7 +281,7 @@ You should also create a sibling directory to the `el-CICD`, `cicd-secrets`, tha
 
 ![Figure: code bases mapped to their Jenkins Agents](images/tutorial/local-el-cicd-dirs.png)
 
-**Figure**  
+**Figure 2**  
 _Local el-CICD repositories and_ `cicd-secrets` _directory (other test project repositories omitted for brevity)_
 
 
@@ -315,7 +315,7 @@ The following section will cover how to gather the basic secrets needed by el-CI
 
 ![Figure: cicd-secrets directory](images/tutorial/cicd-secrets-directory.png)
 
-**Figure**  
+**Figure 3**  
 _cicd-secrets directory and secret files expected for bootstrapping el-CICD_
 
 Note the `builder-secrets` directory iin the figure above.  If your builds require secrets that you'd normally provide thorugh a `pip.conf` or `settings.xml`. for example, place them inside this directory.  All files in this directory will be mounted as a Secret in el-CICD during the bootstrapping process, and then mounted as a directory in the Jenkins build agents for use during builds.
@@ -548,7 +548,7 @@ From the main page on the left-hand menu, click `Manage Jenkins`, and then in th
 
 ![Figure: Non-prod Onboarding Automation Server Credentials](images/tutorial/non-prod-onboarding-automation-server-credentials.png)
 
-**Figure**  
+**Figure 4**  
 _Non-prod Onboarding Automation Server credentials_
 
 If something is missing or doesn't look right, then check your configuration, fix any issues, and you can safely run the bootstrap command again.
@@ -561,7 +561,7 @@ Click `Build with Parameters` on the left-hand menu, enter `test-cicd` as the `P
 
 ![Figure: Entering the test-cicd PROJECT_ID for the Onboarding pipeline](images/tutorial/entering-non-prod-onboarding-pipeline-parameters.png)
 
-**Figure**  
+**Figure 5**  
 _Entering `test-cicd` for the `PROJECT_ID` when kicking off the Non-prod onboarding pipeline_
 
 It is strongly suggested that you follow the logs of the build to see what is happening.  You can do this by clicking the build number when it appears, and then clicking `Console Output` on the left-hand menu to follow the build logs in real time.
@@ -592,7 +592,7 @@ From the main page on the left-hand menu, click `Manage Jenkins`, and then in th
 
 ![Figure: Non-prod Jenkins credentials](images/tutorial/devops-non-prod-jenkins-credentials.png)
 
-**Figure**  
+**Figure 6**  
 _Non-prod CICD Jenkins credentials_
 
 [**Note:** In the real world, the project would belong to an actual group, whether in OKD directly or as part of your organization's authentication mechanism, and you would log in as an authenticated OKD user and **not** admin.  el-CICD makes every member of the project's RBAC group an OKD namespace admin for the Non-prod Automation Server of the group.]
@@ -601,7 +601,7 @@ Click on the Jenkins logo in the upper left, and click through the folder link i
 
 ![Figure: Non-prod test-cicd CICD Jenkins pipelines](images/tutorial/non-prod-devops-test-cicd-project-pipelines.png)
 
-**Figure**  
+**Figure 7**  
 _Non-prod CICD Jenkins pipelines for the_
 
 #### Confirm Non-prod Configuration of the `test-cicd` Project in GitHub
@@ -764,7 +764,7 @@ templateName: dc-svc-template
 patchFile: kustomize.patch
 ```
 
-**Figure**
+**Figure 8**
 _Snippet from Test-CICD1 template-defs.yml configuring the deployment of the pod to use an managed OKD Template and the `kustomize` patch file to apply to it_
 
 Test-CICD1 also defines a custom (i.e. not managed) OKD Template, `.openshift/configmap-template.yml`, which is used to encapsulate the environment variables to be injected into the running `test-cicd1` pod.  managed OKD Templates have no environment defined, so a `kustomize.patch` injects the ConfigMap with the following snippet:
@@ -1114,7 +1114,7 @@ From the main page on the left-hand menu, click `Manage Jenkins`, and then in th
 
 ![Figure: Non-prod Onboarding Automation Server Credentials](images/tutorial/prod-onboarding-automation-server-credentials.png)
 
-**Figure**  
+**Figure 9**  
 _Prod Onboarding Automation Server credentials_
 
 If something is missing, then check your configuration, fix any issues, and you can safely [run the bootstrapscript again](#bootstrap-the-prod-onboarding-automation-server).
@@ -1127,7 +1127,7 @@ Click `Build with Parameters` on the left, enter `test-cicd` as the PROJECT_ID, 
 
 ![Figure: Entering the test-cicd PROJECT_ID for the Onboarding pipeline](images/tutorial/entering-prod-onboarding-pipeline-parameters.png)
 
-**Figure**  
+**Figure 10**  
 _Entering `test-cicd` for the PROJECT_ID when kicking off the Prod onboarding pipeline_
 
 It is strongly suggested that you follow the logs of the build to see what is happening.  You can do this by clicking the build number when it appears, and then clicking `Console Output` on the left-hand menu to follow the build logs in real time.
@@ -1158,14 +1158,14 @@ From the main page on the left-hand menu, click `Manage Jenkins`, and then in th
 
 ![Figure: Prod Jenkins Credentials](images/tutorial/devops-prod-jenkins-credentials.png)
 
-**Figure**  
+**Figure 11**  
 _Non-prod Jenkins credentials_
 
 Click on the Jenkins logo in the upper left, and click through the folder link in the center of the window, `devops-el-cicd-prod-master`, until you see all the pipelines the Prod onboarding process created for the `test-cicd` project:
 
 ![Figure: Prod Jenkins pipelines](images/tutorial/prod-devops-test-cicd-project-pipelines.png)
 
-**Figure**  
+**Figure 12**  
 _Prod Jenkins pipelines_
 
 #### Confirm Prod Configuration of the `test-cicd` Project in GitHub
@@ -1180,7 +1180,7 @@ The rest of the tutorial will take you through promoting tp Prod, which creates 
 
 ![Figure: Deploy to Prod build parameters](images/tutorial/deploy-to-production-build.png)
 
-**Figure**  
+**Figure 13**  
 _Deploy to Prod build parameters_
 
 1. Go to the [deploy-to-production](https://jenkins-devops-el-cicd-prod-master.apps-crc.testing/job/devops-el-cicd-prod-master/job/devops-el-cicd-prod-master-deploy-to-production/) pipeline

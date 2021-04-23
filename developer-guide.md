@@ -213,7 +213,7 @@ Under the [`el-CICD-config/builder-steps`](operating-manual.md#builder-steps) di
 
 ![Figure: builder-steps directory structure](images/developer-guide/builder-steps-directory.png)
 
-**Figure**  
+**Figure 1**  
 _The_ `builder-steps` _directory showing the specific Groovy files implementing each step for the_ `python` _Code Base._
 
 ### Library Builds
@@ -234,7 +234,7 @@ Every microservice in a Project must have a `.openshift` directory in it's root 
 
 ![Figure: .openshift directory structure](images/developer-guide/openshift-directory.png)
 
-**Figure**  
+**Figure 2**  
 _Example of the_ `.openshift` _directory illustrating the structure and its contents._
 
 ## template-defs
@@ -267,7 +267,7 @@ templates:
 
 ```
 
-**Figure**  
+**Figure 3**  
 _Sample template-defs.yml file._
 
 Every microservice will need to define a DeploymentConfig, Deployment, or CronJob in order to deploy their image; thus, unless a static OKD resource is used, at least one `dc-svc-template` or `cronjob-template` will be referenced in this file.  `template-defs` may also be written in JSON.
@@ -335,7 +335,7 @@ All of the el-CICD managed OKD Templates are located in the `el-CICD-config/mana
 
 ![Figure: .openshift directory structure](images/developer-guide/managed-okd-templates-directory.png)
 
-**Figure**  
+**Figure 4**  
 _managed-okd-templates directory in el-CICD-config repository._
 
 To use a managed OKD Template, reference it in the `template-defs` file with the `templateName` property, found in the `.metadata.name` field of the OKD Template file.  el-CICD will automatically load the managed OKD Template during deployments, process the patchFile and parameters (in that order), and then deploy the resources in the proper SDLC environment.
@@ -344,7 +344,7 @@ To use a managed OKD Template, reference it in the `template-defs` file with the
 templateName: dc-svc-template
 ```
 
-**Figure**  
+**Figure 5**  
 _Snippet of the_ `template-defs.yml` _referencing the_ `dc-svc-template`
 
 ```yml
@@ -357,7 +357,7 @@ metadata:
   name:  dc-svc-template
 ```
 
-**Figure**  
+**Figure 6**  
 _Snippet of the_ `dc-svc-template` el-CICD OKD managed template
 
 
@@ -422,7 +422,7 @@ If for some reason the managed OKD Templates aren't sufficient, el-CICD supports
     file: my-dc-svc-template.yml
 ```
 
-**Figure**  
+**Figure 7**  
 _Snippet of a_ `template-defs.yml` _file which references the Custom OKD Template,_ `my-dc-svc-template` _in the file_ `my-dc-svc-template.yml`.
 
 One example where a Custom OKD Template might be used is for a ConfigMap that changes values from one environment to the next.  Without a template in this situation, a copy of the ConfigMap would need to be provided in each [Environment Directory](#environment-directories).
@@ -461,10 +461,10 @@ The examples below will only address the _add_ operation of `kustomize`, which i
     <content>
 ```
 
-**Figure**  
+**Figure 8**  
 _Basic boilerplate code for adding content using `kustomize` for use in a patch file._
 
-The `<content>` in Figure above should be proper YAML or JSON as it is expected to appear _EXACTLY_ in the document.
+The `<content>` in Figure 8 above should be proper YAML or JSON as it is expected to appear in the document being patched.  YAML indentation should start with the indentation of the patch file, and **not** the target document.  `kustomize` will insert it properly.
 
 #### Notes On kustomize Paths
 
@@ -522,7 +522,7 @@ There are a few things to keep in mind about the `path` attribute of a `kustomiz
           name: my-microservice-sealed-secret
 ```
 
-**Figure**  
+**Figure 9**  
 _Injecting a username and password through a container's env in a DeploymentConfig OKD Template._
 
 Note the use of the default el-CICD Template parameter `APP_NAME` in the name of the environment definition.  Template parameters, default or custom, can be added anywhere in the patch, and then referenced elsewhere.  See [Default Template Parameters](#default-template-parameters) for a list of values el-CICD automatically applies to Templates.
@@ -542,7 +542,7 @@ Because Templates are patched before applying their parameters, `kustomize` patc
     value: some-default-var-value
 ```
 
-**Figure**  
+**Figure 10**  
 _Adding_ `ENV_VAR` _to an OKD Template.  The value of the param could optionally be set in the microservice's_ `template-defs` _file, or rely on the default, 'some-default-var-value`._
 
 ### EXAMPLE: Adding a volume and volumeMount to a CronJob OKD Template
@@ -562,7 +562,7 @@ _Adding_ `ENV_VAR` _to an OKD Template.  The value of the param could optionally
       name: my-configmap-mount
 ```
 
-**Figure**  
+**Figure 11**  
 _Adding a volume and volumeMount referencing a ConfigMap in a container defined in a CronJob OKD Template.  Note the use of the_ `ENV_VAR` _template parameter defined above to reference the ConfigMap._
 
 ## Environment Directories
@@ -629,7 +629,7 @@ A design decision was made early on that all SCM repositories comprising a singl
 
 ![Figure: Development Branch](images/developer-guide/dev-branch.png)
 
-**Figure** _The Development Branch with four separate commits and their hash.  Each commit represents a distinct build and (if successful) a distinct image deployed to the Dev environment._
+**Figure 12** _The Development Branch with four separate commits and their hash.  Each commit represents a distinct build and (if successful) a distinct image deployed to the Dev environment._
 
 ## Deployment Branches
 
@@ -649,7 +649,7 @@ Expecting the Development Branch to also hold the deployment for images deployed
 
 ![Figure: Deployment Branch](images/developer-guide/deployment-branch.png)
 
-**Figure**  
+**Figure 13**  
 
 1. _Development Branch of Project_
 1. **`deployment-qa-8d7dh3g`** _Deployment Branch for `qa` with one [Deployment Patch](foundations.md#deployment-patching)
@@ -704,7 +704,7 @@ For example, assume that a few Deployment Patches have been applied to the Pre-p
 
 ![Figure: Release Candidate Tag](images/developer-guide/release-candidate-tag.png)
 
-**Figure**
+**Figure 14**
 
 1. _Development Branch of Project_
 1. _**deployment-qa-8d7dh3g** Deployment Branch with one Deployment Patch_
@@ -727,7 +727,7 @@ A Release Version Deployment Branch has the following naming convention:
 
 ![Figure: Release Version Deployment Branch](images/developer-guide/release-version-branch.png)
 
-**Figure**
+**Figure 15**
 
 1. _Development Branch of Project_
 1. _**deployment-qa-8d7dh3g** Deployment Branch with one Deployment Patch_
@@ -844,7 +844,7 @@ The following pipelines exist on the Non-prod Automation Server.  All except the
 
 ![Figure: Non-prod Automation Server Pipelines](images/developer-guide/non-prod-automation-servier-pipelines.png)
 
-**Figure**
+**Figure 16**
 _Non-prod Automation Server pipelines for RBAC Group_ `devops` _and Project_ `test-cicd`
 
 ## build-to-dev Pipelines
@@ -870,7 +870,7 @@ There is one Build-to-Dev pipeline per microservice defined in the [Project Defi
 
 ![Figure: build-to-dev Build with Parameters screen](images/developer-guide/build-to-dev-build.png)
 
-**Figure**
+**Figure 17**
 _build-to-dev Build with Parameters screen_
 
 ## build-library Pipelines
@@ -889,7 +889,7 @@ Although a build parameter for the pipeline, `IS_SNAPSHOT` is strictly a paramet
 
 ![Figure: build-library Build with Parameters screen](images/developer-guide/build-library-build.png)
 
-**Figure**
+**Figure 18**
 _build-library Build with Parameters screen_
 
 ## build-and-deploy-microservices Pipeline
@@ -919,12 +919,12 @@ If any single Build-to-Dev pipeline fails, this pipeline is considered to have f
 
 ![Figure: build-and-deploy-microservices Build with Parameters screen](images/developer-guide/build-and-deploy-microservices-build.png)
 
-**Figure**
+**Figure 19**
 _build-and-deploy-microservices Build with Parameters screen_
 
 ![Figure: build-and-deploy-microservices](images/developer-guide/build-and-deploy-microservices.png)
 
-**Figure**
+**Figure 20**
 _Choose what microservices build and where to deploy to_
 
 `buildAll` will build all the microservices in the Project.  `recreateAll` will remove all previously deployed microservices from the environment before deploying anything, and this functionality can be used without building any microservices as a means of cleaning the Dev or Sandbox environments.
@@ -959,12 +959,12 @@ The pipeline will:
 
 ![Figure: microservice-promotion-removal Build with Parameters screen](images/developer-guide/promotion-removal-pipeline-build.png)
 
-**Figure**
+**Figure 21**
 _microservice-promotion-removal Build with Parameters screen_
 
 ![Figure: Promotion/Removal](images/developer-guide/promotion-removal-pipeline.png)
 
-**Figure**
+**Figure 22**
 _Select the microservices to promote or remove_
 
 ## microservice-redeploy-removal Pipeline
@@ -994,17 +994,17 @@ The versions of each microservice listed on the Build with Parameters screen dro
 
 ![Figure: microservice-redeploy-removal Build with Parameters screen](images/developer-guide/redeploy-removal-pipeline-build.png)
 
-**Figure**
+**Figure 23**
 _microservice-redeploy-removal Build with Parameters screen_
 
 ![Figure: Promotion/Removal Build Select Env](images/developer-guide/redeploy-removal-pipeline-select-env.png)
 
-**Figure**
+**Figure 24**
 _Select environment to redeploy to_
 
 ![Figure: Promotion/Removal](images/developer-guide/redeploy-removal-pipeline.png)
 
-**Figure**
+**Figure 25**
 _Select microservices to redeploy or remove_
 
 ## create-release-candidate Pipeline
@@ -1029,12 +1029,12 @@ The pipeline will:
 
 ![Figure: create-release-candidate Build with Parameters screen](images/developer-guide/create-release-candidate-build.png)
 
-**Figure**
+**Figure 26**
 _create-release-candidate Build with Parameters screen_
 
 ![Figure: Select all Project microservices that are intended to be part of this release](images/developer-guide/create-release-candidate.png)
 
-**Figure**
+**Figure 27**
 _Select all Project microservices that are intended to be part of this release_
 
 ## redeploy-release-candidate Pipeline
@@ -1053,10 +1053,10 @@ If the user approves the deployment, the pipeline will continue and:
 
 ![Figure: Redeploy Release Candidate Build](images/developer-guide/redeploy-release-candidate-build.png)
 
-**Figure**
+**Figure 28**
 _Build with Parameters screen for the Redeploy Release Candidate pipeline_
 
 ![Figure: Redeploy Release Candidate Confirmation](images/developer-guide/redeploy-release-candidate.png)
 
-**Figure**
+**Figure 29**
 _Confirm redeploying the Release Candidate into Pre-prod_
