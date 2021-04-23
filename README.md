@@ -1,10 +1,16 @@
-# el-CICD Introduction and Documents
+  
+  
+**Overview of features and documentation for understanding, operating, and developing within el-CICD.**
 
-Overview of features, and [supporting documents](#supporting-documents) for understanding, operating, and developing for el-CICD.
+* [Preamble](#preamble)
+* [License](#license)
+* [PREFACE](#preface)
+* [el-CICD Documentation](#el-cicd-documentation)
+* [TODO](#todo)
 
 ## Preamble
 
-This document is part of the el-CICD Project, a complete CICD system for the OKD Container Platform.
+This document is part of the el-CICD Project, a complete CICD COTS solution for [OKD, The Community Distribution of Kubernetes that powers Red Hat Openshift](https://www.okd.io/)
 
 Copyright (C) 2021 Evan "Hippy" Slatis  
 email: hippyod -at- yahoo -dot- com
@@ -48,39 +54,59 @@ or send a letter to
 
 ## PREFACE
 
-The documents in this repository describes the motivation, design, and implementation of a fully featured CICD COTS solution for use on either the upstream OKD or on Red Hat® OpenShift®, either 3.11 or 4.x.  For the remainder of the document wherever OKD is referenced, OpenShift may be safely inferred.  Barring some minor configuration, there should be no difference in how the the system works on either platform.
+The documents in this repository describes the motivation, design, and implementation of a fully featured CICD COTS solution for use on either the upstream OKD or on Red Hat® OpenShift®, either 3.11 or 4.x.  Wherever OKD is referenced, OpenShift may be safely inferred.  Barring some minor configuration, there should be no difference in how the the system works on either platform.
 
 el-CICD supports the following features:
 
-* Configurable set of SDLC environments per installation and, to a lesser degree, per Project
-* Extensible scripting framework for bootstrapping el-CICD
-* Extensible build framework by language and/or framework
-* Extensible framework for el-CICD pipelines
-* Simplified deployment configuration framework for developers, minimizing code and configuration required so team focus remains on business requirements
-* Sandbox deployments for developers
-* Configurable support for automated creation of NFS Persistent Volumes
-* Configurable support for automated application of ResourceQuota definitions per environment
-* Automated branching, tagging, and synchronization of deployment configurations in Git and Docker image repositories
-* Automated promotion of images across SDLC environments and/or OKD clusters
-* Roll-forward and roll-back functionality within environments, including full production versions
-* Incremental and versioned patching of deployments in downstream SDLC envrionments
-* Support for promotions, and deployments into production
-* Automated versioning of applications across a group of microservices in production
-* Incremental deployment patching into production
+* **Operational Support**
+  * Automated bootstrapping of servers
+  * Automated Jenkins And Jenkins Agent image builds
+  * Automated and extensible framework for setting and rotating credentials
+  * Extensible framework of build and deployment pipelines
+  * Easy to enforce standards within a project or across an organization
+  * Automated and configurable support for creation and management of NFS Persistent Volumes
+  * Automated and configurable support for management of ResourceQuotas per Project and namespace
+  * Configurable set of SDLC environments per installation and, to a lesser degree, per Project
+  * Automated support for deployment, rollback, and roll forward of complete applications in production
+  * Simplified support of applications to more than one cluster
+  * Hotfixing process for deployments in production
 
-Features not supported, but on the TODO list:
+* **Development Support**
+  * Automated building, testing, scanning, and deployment for libraries and microservices
+  * Vastly simplified deployment configuration framework for developers: development team focus should remain on business requirements
+  * Sandbox deployments for developers to test
+  * Deployment of encrypted Secrets from Git
+  * Automated branching, tagging, and synchronization of deployment configurations in Git and Docker image repositories
+  * Automated promotion of images across SDLC environments and/or OKD clusters
+  * Roll-forward and roll-back functionality
+  * Incremental and versioned patching of deployments in downstream SDLC environments
 
-* GitLab and Bitbucket support
-* Helm support
-* More fine-grained RBAC control of SDLC environments and promotions
-* Support multiple Production deployment environments (e.g. different regions may require different configurations)
-* Parallel development Projects (e.g. hotfix or alternating team releases)
+## el-CICD Documentation
 
-## Supporting Documents
+* [**Foundations**](foundations.md)  
+  Explains the basic concepts, design, and architecture behind el-CICD.  Also lists supporting, 3rd party projects incorporated into el-CICD.
 
-* [Foundations](foundations.md)  
-  Explains the basic concepts and architecture of el-CICD.  Also lists supporting, 3rd party projects incorporated into el-CICD.  
-* [Operations Manual](operating-manual.md)  
-  For cluster administrators.  How to bootstrap, maintain, and manage el-CICD.
-* [Developer Guide](developer-quide.md)  
-  Everything a developer needs to know to integrate their Projects into el-CICD for fully automated SDLC support and deployment from commiting to their Development Branch to deployment to Prod.
+* [**Operating Manual**](operating-manual.md)  
+  For cluster and CICD server administrators.  How to bootstrap, maintain, and manage el-CICD.
+
+* [**Developer Guide**](developer-quide.md)  
+  Everything a developer needs to know to integrate their Projects into el-CICD for fully automated SDLC support and deployment from commiting to their Development Branch to creating a Release Candidate for promotion to Prod.
+
+* [**Turorial**](tutorial.md)  
+  The easiest and fastest way to learn most of what el-CICD has to offer on your own, local cluster using [Red Hat CodeReady Containers](https://developers.redhat.com/products/codeready-containers/overview).
+
+## TODO
+
+Features not supported, but coming soon:
+
+* **GitLab and Bitbucket support**
+  * Only GitHub is currently supported
+
+* **Vanilla Kubernetes deployments**
+  * Final deployments of end-user projects can be Kubernetes neutral, but el-CICD currently installs and runs only on OKD/OpenShift clusters
+
+* **Helm support**
+  * el-CICD provides an easy to use and flexible system of templated Kubernetes and OKD Resources, but we realize this is not the be all/end all for defining deployment configurations.
+
+* **More fine-grained RBAC control of SDLC environments and promotions**
+  * Access to development and test environments within a Project is currently restricted for a single RBAC group.  In the future, el-CICD will support differing group access definitions between development and test environments and pipelines.
