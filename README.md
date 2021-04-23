@@ -92,7 +92,7 @@ el-CICD supports the following features:
 * [**Developer Guide**](developer-quide.md)  
   Everything a developer needs to know to integrate their Projects into el-CICD for fully automated SDLC support and deployment from commiting to their Development Branch to creating a Release Candidate for promotion to Prod.
 
-* [**Turorial**](tutorial.md)  
+* [**Tutorial**](tutorial.md)  
   The easiest and fastest way to learn most of what el-CICD has to offer on your own, local cluster using [Red Hat CodeReady Containers](https://developers.redhat.com/products/codeready-containers/overview).
 
 ## TODO
