@@ -1208,10 +1208,10 @@ The rest of the tutorial will take you through promoting tp Prod, which creates 
 
 1. Enter the following command in your terminal to watch the microservices as el-CICD deploys them, and wait until the last pod is in a Ready state:
 
-    ```
-    watch oc get dc,deploy,cj,pods,secrets,cm,services,routes,ingress,hpa \
-        -l projectid=test-cicd -n test-cicd-prod
-    ```
+   ```
+   watch oc get dc,deploy,cj,pods,secrets,cm,services,routes,ingress,hpa \
+       -l projectid=test-cicd -n test-cicd-prod
+   ```
 
 ### Upgrading a Release Version, Rolling Forward, and Rolling Back, and Deployment Patching
 
