@@ -101,7 +101,10 @@ Mountain View, CA
       * [Confirm the Configuration of the `test-cicd` Project in the Prod Automation Server](#confirm-the-configuration-of-the-test-cicd-project-in-the-prod-automation-server)
       * [Confirm Prod Configuration of the `test-cicd` Project in GitHub](#confirm-prod-configuration-of-the-test-cicd-project-in-github)
   * [Deploying to Production](#deploying-to-production)
-    * [Upgrading a Release Version, Rolling Forward, and Rolling Back, and Deployment Patching](#upgrading-a-release-version-rolling-forward-and-rolling-back-and-deployment-patching)
+  * [Optional Production Tasks](#optional-production-tasks)
+    * [Upgrading a Release Version, Release Regions, Rolling Forward, and Rolling Back](#upgrading-a-release-version-release-regions-rolling-forward-and-rolling-back)
+    * [Application Deployment Patching](#application-deployment-patching)
+    * [Hotfixing an Application](#hotfixing-an-application)
 
 ## Minimum Requirements
 
@@ -731,7 +734,7 @@ Now open your browser to and go to your Non-prod image repository, and check the
 
 #### Promote to Stg
 
-Repeat the previous [step](#promoting-microservices), but change the `promotionEnvs` dropdown in the `Input Requested` step from `dev -> qa` to `qa -> stg`.
+Repeat the [previous step](#promoting-microservices), but change the `promotionEnvs` dropdown in the `Input Requested` step from `dev to qa` to `qa to stg`.
 
 Run the following command and wait for the pipeline to complete before proceeding:
 
@@ -1175,16 +1178,22 @@ Unlike in Non-prod, there should not be a Webhook present, since there's nothing
 
 The rest of the tutorial will take you through promoting tp Prod, which creates a [Release Version](foundations.md#release-version) from a Release Candidate, as well as rolling back and forward Release Versions in Production.
 
+![Figure: Deploy to Prod build parameters](images/tutorial/deploy-to-production-build.png)
+
+**Figure**  
+_Deploy to Prod build parameters_
+
 1. Go to the [deploy-to-production](https://jenkins-devops-el-cicd-prod-master.apps-crc.testing/job/devops-el-cicd-prod-master/job/devops-el-cicd-prod-master-deploy-to-production/) pipeline
 1. Click on `Build with Parameters` on the left-hand menu
 1. Enter `test-cicd` for the `PROJECT_ID` and `1.0.0` for the RELEASE_CANDIDATE_TAG, and click the `Build` button
 1. When the build number appears, click on it, and then click on `Console Output` on the left-hand menu
-1. When the logs pause and the links `Proceed` and `Abort` appear, **read the summary** to confirm promoting your Release Candidate into Prod
+1. When the logs pause and the links `Proceed` and `Abort` appear, **read the summary** before confirming the promotion of your Release Candidate into Prod
 
     ```text
     ===========================================
 
     CONFIRM PROMOTION AND DEPLOYMENT OF RELEASE CANDIDATE 1.0.0 TO PRODUCTION
+    REGION: undefined
 
     ===========================================
 
@@ -1213,8 +1222,18 @@ The rest of the tutorial will take you through promoting tp Prod, which creates 
        -l projectid=test-cicd -n test-cicd-prod
    ```
 
-### Upgrading a Release Version, Rolling Forward, and Rolling Back, and Deployment Patching
+## Optional Production Tasks
 
-Upgrading Release Versions, rolling forward, and rolling back in production is exactly the same as deploying a particular version.  To demonstrate, repeat [Deploying to Production](#deploying-to-production) twice, first promoting `1.1.1`, and then to roll back to version `1.0.0`.  
+While not necessary to understanding the basic mechanics of el-CICD, these tasks will offer a deeper understanding of how to use it.
 
-Deployment patching in production works by redeploying the same version of the application.  el-CICD is smart enough on a redeployment of the application to only deploy the microservices that were patched, unless otherwise requested.  This will be reflected in the promotion summary before final deployment.
+### Upgrading a Release Version, Release Regions, Rolling Forward, and Rolling Back
+
+Upgrading Release Versions, rolling forward, and rolling back in production is exactly the same as deploying a particular Release Version.  To demonstrate, repeat [Deploying to Production](#deploying-to-production) twice, first promoting `1.1.1`, and then to roll back to version `1.0.0`.  You can optionally try out [Release Regions](developer-guide.md#release-regions) at the same time by redeploying either Release Version with an `east` or `west` Region.  While only `Test-CICD1` has defined a different configuration for each Region (see how it's `.openshift` directory is organized), the logs and the microservice's environmental ConfigMap will demonstrate the functionality, and overall it will demonstrate that defining and/or deploying with a Region for any microservice is optional.
+
+### Application Deployment Patching
+
+Deployment patching in production works much like it did for individual microservices, except now you're redeploying the whole application regardless of how many microservices' deployment configurations were modified.  el-CICD is smart enough on a redeployment of an application to only deploy the microservices that were patched, unless otherwise requested.  This will be reflected in the promotion summary before final deployment.  Before testing a Deployment Patch for a release, try redeploying the same Release Version into production to see it fail fast with nothing to do.
+
+### Hotfixing an Application
+
+To perform a hotfix, [create a new version of the image for `Test-CICD1`](#create-and-promote-a-new-image), but this time build the microservice to the `test-cicd-hotfix` namespace, and [promote the image](#promoting-microservices) directly to Stg (i.e. skipping the Test environments) by selecting `hotfix to stg` from the `promotionEnvs` dropdown, and then [recreate the `1.0.0` Release Candidate](#create-the-release-candidates) as version `1.0.1`.  Promote the Release Candidate to Prod to confirm your hotfix was deployed.
