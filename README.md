@@ -89,7 +89,7 @@ el-CICD supports the following features:
 * [**Operating Manual**](operating-manual.md)  
   For cluster and CICD server administrators explaining el-CICD DevOps.  How to bootstrap, maintain, and manage el-CICD.
 
-* [**Developer Guide**](developer-quide.md)  
+* [**Developer Guide**](developer-guide.md)  
   Everything a developer needs to know to integrate their Projects into el-CICD for fully automated SDLC support and deployment from commiting to their Development Branch to creating a Release Candidate for promotion to Prod.
 
 * [**Tutorial**](tutorial.md)  
