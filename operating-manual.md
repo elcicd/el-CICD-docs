@@ -96,6 +96,7 @@ or send a letter to
     * [Enabled Test Environments](#enabled-test-environments)
     * [Sandbox Environments](#sandbox-environments)
     * [Allow Hotfixes](#allow-hotfixes)
+    * [Release Regions](#release-regions)
     * [ResourceQuotas](#resourcequotas)
     * [NFS Shares](#nfs-shares)
   * [Code Base Framework](#code-base-framework)
@@ -934,6 +935,10 @@ The number sandbox environments needed by the Project.  Sandbox environments are
 
 If hotfixes are allowed, el-CICD will create a Hotfix environment for the Project during onboarding.  The Hotfix environment is a special build environment intended as a means for users to quickly patch issues for applications currently deployed in production, and should not be used as a means of skipping the Test environments.  See [The Hotfix Process](#the-hotfix-process) for more information.
 
+### Release Regions
+
+A list of arbitrary values that allow you to deploy the same application on multiple clusters.  These values will be used to supplement the Prod deployment configuration, allowing the Project to configure each deployment in production slightly differently per cluster.  For more information on implemention, see the [Developer Guide](developer-guide.md#release-regions).
+
 ### ResourceQuotas
 
 The values under this section are expected to map environments to the ResourceQuota definition files in the `el-CICD-config/resource-quotas` directory.  To define a ResourceQuota definition file as a default, use the `default` key.  To define the ResourceQuota definition file for sandboxes, use the `sandbox` key.
@@ -1356,7 +1361,7 @@ Even though the pipeline mostly does all the same work regardless of the purpose
 
 ### Release Region
 
-[Release Regions](foundations.md#release-region) are not part of el-CICD configuration, or part of a Project's configuration, and they are completely optional.  They are development and deployment-time concept only.  Regions allow you to deploy the same application on multiple clusters, with each region allowing to configure each deployment slightly differently, and, more importantly, make sure you're deploying the cluster's specific SealedSecrets where appropriate.  You will need to coordinate with your development teams to define which Release Regions need to be defined, and when, and what defines a Release Region specific to the application and organization's infrastructure.
+[Release Regions](#release-regions) are not part of el-CICD's configuration, or part of a Project's configuration, and they are completely optional.  They are development and deployment-time concept only, expressed as a list of values.  Regions allow you to deploy the same application on multiple clusters, with each region allowing to configure each deployment slightly differently, and, more importantly, make sure you're deploying the cluster's specific SealedSecrets where appropriate.  You will need to coordinate with your development teams to define which Release Regions need to be defined, and when, and what defines a Release Region specific to the application and organization's infrastructure.
 
 ### Release Candidate Promotion
 
