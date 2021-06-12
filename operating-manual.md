@@ -88,6 +88,7 @@ or send a letter to
   * [Managed OKD Resources](#managed-okd-resources)
     * [ResourceQuota Definition Files](#resourcequota-definition-files)
     * [OKD Template Definition Files](#okd-template-definition-files)
+      * [3.11 Template Integration](#311-template-integration)
   * [Project Definition File](#project-definition-file)
     * [OKD RBAC Groups](#okd-rbac-groups)
     * [Git Project information](#git-project-information)
@@ -829,7 +830,9 @@ All basic OKD resources a developer might concern themselves with are defined in
 
 * `cronjob-template.yml`
 * `dc-svc-template.yml`
+* `dc-svc-prom-port-template.yml`
 * `deploy-svc-template.yml`
+* `deploy-svc-prom-port-template.yml`
 * `hpa-template.yml`
 * `ingress-template.yml`
 * `pvc-template.yml`
@@ -841,7 +844,25 @@ To get a list of the parameters to set per file, run the following from the comm
 oc process -f managed-okd-templates/<template-file-name> --parameters
 ```
 
-The NFS Share template is for operations use only when onboarding a Project.  See [Project Definition File]
+The DeploymentConfig and Deployment templates will also assist with basic [3Scale and Prometheus integration](developer-guide.md#3scale-and-prometheus-integration).
+
+The NFS Share template is for operations use only when onboarding a Project.  See [Project Definition File](#project-definition-file).
+
+#### 3.11 Template Integration
+
+Each template adheres to the latest Kubernetes standard for API versions:
+
+```
+apiVersion: template.openshift.io/v1
+```
+
+If using these templates in 3.11, change the `apiVersion` to the following:
+
+```
+apiVersion: v1
+```
+
+The templates with the older `apiVersion` will work on later versions of OKD, but that style of versioning is deprecated.
 
 ## Project Definition File
 

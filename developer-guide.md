@@ -76,6 +76,7 @@ or send a letter to
   * [managed OKD Templates](#managed-okd-templates)
     * [Default Template Parameters](#default-template-parameters)
     * [How to Know What the Template Parameters Are](#how-to-know-what-the-template-parameters-are)
+      * [3Scale and Prometheus Integration](#3scale-and-prometheus-integration)
     * [Custom OKD Templates](#custom-okd-templates)
   * [Patching OKD Templates](#patching-okd-templates)
     * [kustomize.patch](#kustomizepatch)
@@ -375,7 +376,7 @@ By default, el-CICD will pass the following parameters to every OKD Template it 
 |  ENV               | The environment being deployed to                                 |
 |  IMAGE_TAG         | The image tag of the microservice image                           |
 
-Any of these parameters can be safely ignored if they are not needed or used. el-CICD managed OKD Templates will use one of more of these by default.
+Any of these parameters can be safely ignored if they are not needed or used in unmanaged, custom templates. el-CICD managed OKD Templates will use one of more of these by default.  Only the `APP_NAME` parameter can be set by the user, via the `appName` attribute in the `template-defs` file.
 
 ### How to Know What the Template Parameters Are
 
@@ -391,27 +392,44 @@ This will print out a table of all the parameters of a Template, a description, 
 oc process -f managed-okd-templates/dc-svc-template.yml --parameters
 ```
 
-produces the following output in your terminal:
+produces the following output in your terminal (default values removed for brevity):
 
-```bash
-NAME                DESCRIPTION                                                                                                                      GENERATOR           VALUE
-BUILD_NUMBER        The build number
-IMAGE_REPOSITORY    The image repository from where to fetch the image
-IMAGE_PULL_POLICY   The image pull policy                                                                                                                                Always
-PULL_SECRET         The image repository pull secret
-MICROSERVICE_NAME   The name for the microservice, derived by el-CICD from the name of the Git repository
-APP_NAME            The name for the app.  Set this value manually through the template-defs.json file for multiple deployments of the same image.
-PROJECT_ID          The Project ID
-IMAGE_TAG           Image Tag used to pull image from image repository
-CPU_REQ             CPU Resource Request; see OKD docs for more info                                                                                                     100m
-CPU_LIMIT           Maximum CPU Resource Limit allowed; see OKD docs for more info                                                                                       200m
-MEM_REQ             Memory Resource Request; see OKD docs for more info                                                                                                  50Mi
-MEM_LIMIT           Memory Resource Limit (Ceiling) in Mi or Gi; see OKD docs for more info                                                                              500Mi
-REPLICAS            The number of replicas for this deployment; see OKD docs for more info                                                                               1
-SVC_PORT            Service port; see OKD docs for more info                                                                                                             8080
-PORT_PROTOCOL       Protocol for port. Must be UDP, TCP, or SCTP. Defaults to "TCP".                                                                                     TCP
-STRATEGY            Deployment strategy; see OKD docs for more info                                                                                                      Rolling
+```text
+NAME                           DESCRIPTION
+BUILD_NUMBER                   The build number
+IMAGE_REPOSITORY               The image repository from where to fetch the image
+IMAGE_PULL_POLICY              The image pull policy
+PULL_SECRET                    The image repository pull secret
+MICROSERVICE_NAME              The name for the microservice, derived by el-CICD from the
+                               name of the Git repository
+APP_NAME                       The name for the app.  Set this value manually through the template-defs
+                               file for multiple deployments of the same image.
+PROJECT_ID                     The Project ID
+IMAGE_TAG                      Image Tag used to pull image from image repository
+CPU_REQ                        CPU Resource Request; see OKD docs for more info
+CPU_LIMIT                      Maximum CPU Resource Limit allowed; see OKD docs for more info
+MEM_REQ                        Memory Resource Request; see OKD docs for more info
+MEM_LIMIT                      Memory Resource Limit (Ceiling) in Mi or Gi; see OKD docs for more info
+REPLICAS                       The number of replicas for this deployment; see OKD docs for more info
+SVC_PORT                       Service port; see OKD docs for more info
+PORT_PROTOCOL                  Protocol for port. Must be UDP, TCP, or SCTP. Defaults to "TCP".
+STRATEGY                       Deployment strategy; see OKD docs for more info
+PROMETHEUS_PATH                Prometheus scraping path
+PROMETHEUS_SCHEME              Prometheus scheme (http/https)
+PROMETHEUS_SCRAPE              Prometheus scrape (true/false)
+THREE_SCALE_PATH               3Scale path
+THREE_SCALE_SCHEME             3Scale scheme (http/https)
+THREE_SCALE_DESCRIPTION_PATH   3Scale description path
+THREE_SCALE_NET                3Scale net (true/false, true if active)
 ```
+
+#### 3Scale and Prometheus Integration
+
+el-CICD offers basic deployment integration with both 3Scale and Prometheus (3.11 style annotations for Prometheus).  Whenever you deploy using a managed OKD Template, the Services generated by el-CICD will include the proper annotations and/or label to integrate.  If your microservice(s) aren't using either, you can safely ignore the injected values, and the default values are to inform both systems to ignore the them.  You can set the appropriate Prometheus and/or 3Scale values to alert either system to acknowledge the microservice.  Prometheus integration does not currently work with the newer operator in OKD 4.
+
+The default DeploymentConfig and Deployment with Service Templates assume the Prometheus port shares the Service port.  If you wish to use an alternative port for Prometheus, use the `*-prom-port-template` and set the parameter `PROMETHEUS_PORT` (not shown above in your `template-defs` file.
+
+See the [3Scale](https://access.redhat.com/documentation/en-us/red_hat_3scale_api_management/2.10/html/admin_portal_guide/service-discovery_service-discovery#service-discovery-criteria_service-discovery) docs on OKD integration for more information.
 
 ### Custom OKD Templates
 
